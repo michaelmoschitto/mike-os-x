@@ -1,4 +1,4 @@
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion';
 import { Fragment, useRef, useState } from 'react';
 
 import { useUI } from '@/lib/store';
@@ -87,7 +87,7 @@ const Dock = () => {
 
 interface DockIconProps {
   icon: DockIcon;
-  mouseX: ReturnType<typeof useMotionValue>;
+  mouseX: MotionValue<number>;
   isActive: boolean;
   isHovered: boolean;
   onHover: (id: string | null) => void;
