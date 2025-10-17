@@ -9,6 +9,12 @@
   --bezel-dark: #7b7b7b;
   --bezel-light: #ffffff;
   --font-ui: 'Lucida Grande', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Aqua Pinstripe Colors */
+  --aqua-pinstripe-light-1: #f0f0f0;
+  --aqua-pinstripe-light-2: #e4e4e4;
+  --aqua-pinstripe-dark-1: rgba(255, 255, 255, 0.08);
+  --aqua-pinstripe-dark-2: rgba(0, 0, 0, 0.15);
 }
 
 body {
@@ -29,16 +35,22 @@ body {
   }
 
   .aqua-pinstripe {
-    background: repeating-linear-gradient(0deg, #f0f0f0, #f0f0f0 1px, #e4e4e4 1px, #e4e4e4 2px);
+    background: repeating-linear-gradient(
+      0deg,
+      var(--aqua-pinstripe-light-1),
+      var(--aqua-pinstripe-light-1) 1px,
+      var(--aqua-pinstripe-light-2) 1px,
+      var(--aqua-pinstripe-light-2) 2px
+    );
   }
 
   .aqua-pinstripe-dark {
     background: repeating-linear-gradient(
       0deg,
-      rgba(255, 255, 255, 0.08),
-      rgba(255, 255, 255, 0.08) 1px,
-      rgba(0, 0, 0, 0.15) 1px,
-      rgba(0, 0, 0, 0.15) 2px
+      var(--aqua-pinstripe-dark-1),
+      var(--aqua-pinstripe-dark-1) 1px,
+      var(--aqua-pinstripe-dark-2) 1px,
+      var(--aqua-pinstripe-dark-2) 2px
     );
   }
 
@@ -75,7 +87,13 @@ body {
   }
 
   .aqua-menubar {
-    background: repeating-linear-gradient(0deg, #f0f0f0, #f0f0f0 1px, #e4e4e4 1px, #e4e4e4 2px);
+    background: repeating-linear-gradient(
+      0deg,
+      var(--aqua-pinstripe-light-1),
+      var(--aqua-pinstripe-light-1) 1px,
+      var(--aqua-pinstripe-light-2) 1px,
+      var(--aqua-pinstripe-light-2) 2px
+    );
     border-bottom: 1px solid #999999;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.9),
