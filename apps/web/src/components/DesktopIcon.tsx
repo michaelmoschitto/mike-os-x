@@ -63,18 +63,20 @@ const DesktopIcon = ({
       onClick={handleClick}
       whileDrag={{ scale: 1.05, zIndex: 50 }}
     >
-      <div
-        className={`flex flex-col items-center gap-1 rounded-md px-1 py-1 ${
-          isSelected ? 'desktop-icon-selected' : ''
-        }`}
-      >
+      <div className="flex flex-col items-center gap-1">
         <img
           src={icon.icon}
           alt={icon.label}
-          className="h-12 w-12 object-contain"
+          className={`h-12 w-12 object-contain transition-all duration-75 ${
+            isSelected ? 'brightness-75' : ''
+          }`}
           draggable={false}
         />
-        <span className="desktop-icon-label max-w-full text-center leading-tight break-words">
+        <span
+          className={`desktop-icon-label max-w-full px-1 text-center leading-tight break-words ${
+            isSelected ? 'desktop-icon-selected' : ''
+          }`}
+        >
           {icon.label}
         </span>
       </div>
