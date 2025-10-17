@@ -1,5 +1,6 @@
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { Fragment, useRef, useState } from 'react';
+
 import { useUI } from '@/lib/store';
 
 type DockIconType =
@@ -56,14 +57,14 @@ const Dock = () => {
     <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2">
       <motion.div
         ref={dockRef}
-        className="flex items-end gap-1 rounded-md border border-white/10 bg-[#1a1a1a]/20 px-3 py-2 shadow-2xl backdrop-blur-2xl"
+        className="aqua-pinstripe-dark flex items-end gap-1 border border-white/20 bg-white/10 px-3 py-2 shadow-2xl backdrop-blur-2xl"
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         style={{
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
         }}
       >
         {dockIcons.map((item) => (
