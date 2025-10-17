@@ -99,4 +99,28 @@ body {
       inset 0 1px 0 rgba(255, 255, 255, 0.9),
       0 1px 2px rgba(0, 0, 0, 0.2);
   }
+
+  .desktop-icon-label {
+    color: white;
+    text-shadow:
+      -1px -1px 0 rgba(0, 0, 0, 0.7),
+      1px -1px 0 rgba(0, 0, 0, 0.7),
+      -1px 1px 0 rgba(0, 0, 0, 0.7),
+      1px 1px 0 rgba(0, 0, 0, 0.7);
+    font-size: 11px;
+    font-family: var(--font-ui);
+    border-radius: 3px;
+    transition: all 0.08s ease;
+  }
+
+  .desktop-icon-label.desktop-icon-selected {
+    background: linear-gradient(to bottom, rgba(82, 140, 224, 0.92), rgba(49, 105, 198, 0.95));
+    border: 1px solid rgba(33, 86, 170, 0.95);
+    box-shadow:
+      inset 0 1px 0 rgba(135, 177, 238, 0.4),
+      0 1px 2px rgba(0, 0, 0, 0.4);
+    text-shadow:
+      0 -1px 0 rgba(0, 0, 0, 0.5),
+      0 1px 0 rgba(135, 177, 238, 0.3);
+  }
 }
