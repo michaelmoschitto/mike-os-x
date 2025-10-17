@@ -1,0 +1,19 @@
+{
+  "name": "mike-os-x",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "rip": "bun run dev",
+    "dev": "bun --cwd apps/web dev",
+    "dev:web": "bun --cwd apps/web dev",
+    "build": "bun --cwd apps/web build",
+    "build:web": "bun --cwd apps/web build",
+    "preview": "bun --cwd apps/web preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2"
+  }
+}
