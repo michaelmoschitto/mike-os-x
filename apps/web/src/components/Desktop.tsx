@@ -1,5 +1,6 @@
 import Dock from '@/components/Dock';
 import MenuBar from '@/components/MenuBar';
+import DesktopIcons from '@/components/DesktopIcons';
 
 const Desktop = () => {
   return (
@@ -13,12 +14,12 @@ const Desktop = () => {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(74,143,217,0.4)_0%,_transparent_50%)]" />
         <div className="absolute top-1/4 left-1/3 h-[500px] w-[500px] rounded-full bg-[#7eb9ed]/20 blur-3xl" />
         <div className="absolute right-1/3 bottom-1/3 h-[400px] w-[400px] rounded-full bg-[#4a90e2]/15 blur-3xl" />
+
+        {/* Desktop Icons */}
+        <DesktopIcons />
       </div>
 
       <Dock />
-
-      {/* Main desktop area - will contain windows and desktop icons later */}
-      <div className="pt-6" />
     </div>
   );
 };
