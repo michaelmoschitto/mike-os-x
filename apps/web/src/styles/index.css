@@ -145,3 +145,22 @@ body {
       inset -1px -1px 0 #f9f9f9 !important;
   }
 }
+
+/* TextEdit contentEditable styling */
+[contenteditable] ul,
+[contenteditable] ol {
+  margin: 1em 0;
+  padding-left: 2.5em;
+}
+
+[contenteditable] li {
+  margin: 0.25em 0;
+}
+
+[contenteditable] ul {
+  list-style-type: disc;
+}
+
+[contenteditable] ol {
+  list-style-type: decimal;
+}

@@ -23,13 +23,15 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
   // Initialize content
   useEffect(() => {
     if (editorRef.current && windowData.content) {
-      editorRef.current.innerText = windowData.content;
+      // Convert line breaks to HTML breaks for proper display
+      const htmlContent = windowData.content.replace(/\n/g, '<br>');
+      editorRef.current.innerHTML = htmlContent;
     }
   }, []);
 
   const handleContentChange = () => {
     if (editorRef.current) {
-      updateWindowContent(windowData.id, editorRef.current.innerText);
+      updateWindowContent(windowData.id, editorRef.current.innerHTML);
     }
   };
 
@@ -43,6 +45,20 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
 
   const handleLineHeightChange = (newLineHeight: number) => {
     setLineHeight(newLineHeight);
+  };
+
+  const handleBulletedList = () => {
+    if (editorRef.current) {
+      editorRef.current.focus();
+      document.execCommand('insertUnorderedList', false);
+    }
+  };
+
+  const handleNumberedList = () => {
+    if (editorRef.current) {
+      editorRef.current.focus();
+      document.execCommand('insertOrderedList', false);
+    }
   };
 
   // Keyboard shortcuts for formatting
@@ -92,6 +108,8 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
         onAlignmentChange={handleAlignmentChange}
         onFontSizeChange={handleFontSizeChange}
         onLineHeightChange={handleLineHeightChange}
+        onBulletedList={handleBulletedList}
+        onNumberedList={handleNumberedList}
       />
 
       {/* Ruler */}

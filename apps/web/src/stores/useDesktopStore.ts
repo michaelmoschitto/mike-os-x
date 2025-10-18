@@ -26,24 +26,34 @@ const initialIcons: DesktopIcon[] = [
     type: 'file',
     gridIndex: 0,
     fileExtension: 'md',
-    content: `# Welcome to Mike OS X
+    content: `# Hey, my name is Mike! 👋
 
-This is a Mac OS X 10.1 (Aqua era) themed portfolio built with React and Vite.
+Welcome to my portfolio.
 
-## Features
+## About Me
 
-- Authentic Aqua design with gel buttons and pinstripes
-- Desktop icon system with drag and drop
-- TextEdit application for viewing and editing files
-- Window management with focus and z-index handling
+I'm a **Senior Front-End Developer** passionate about building beautiful, functional web experiences. This portfolio is inspired by the iconic *Mac OS X Aqua* design from the early 2000s.
 
-## Try it out
+## What I Do
 
-Double-click this file or other text files on the desktop to open them in TextEdit!
+- Build modern web applications with **React** and **TypeScript**
+- Create pixel-perfect UIs with attention to detail
+- Design systems that feel authentic and nostalgic
+
+## Technical Skills
+
+- **Languages:** JavaScript, TypeScript, HTML, CSS
+- **Frameworks:** React, Vite, Next.js
+- **Styling:** Tailwind CSS, Framer Motion
+- **Tools:** Git, Docker, VS Code
 
 ---
 
-Built with ❤️ using modern web technologies.`,
+### Explore this OS
+
+Double-click files to open them in TextEdit. Drag windows around. Click the dock. It's *almost* like the real thing.
+
+Built with ❤️ in 2025, inspired by 2001.`,
   },
 ];
 
@@ -58,4 +68,3 @@ export const useDesktopStore = create<DesktopStore>((set) => ({
       ),
     })),
 }));
-

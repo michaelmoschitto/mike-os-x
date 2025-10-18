@@ -5,6 +5,8 @@ interface TextEditToolbarProps {
   onAlignmentChange: (alignment: 'left' | 'center' | 'right' | 'justify') => void;
   onFontSizeChange: (size: number) => void;
   onLineHeightChange: (lineHeight: number) => void;
+  onBulletedList: () => void;
+  onNumberedList: () => void;
 }
 
 const FONT_SIZES = [9, 10, 11, 12, 13, 14, 18, 24, 36, 48, 64, 72, 96];
@@ -19,6 +21,8 @@ const TextEditToolbar = ({
   onAlignmentChange,
   onFontSizeChange,
   onLineHeightChange,
+  onBulletedList,
+  onNumberedList,
 }: TextEditToolbarProps) => {
   return (
     <div
@@ -176,7 +180,7 @@ const TextEditToolbar = ({
 
         {/* List buttons */}
         <button
-          className="font-ui relative flex h-[22px] w-[24px] items-center justify-center text-xs transition-all"
+          className="toolbar-button font-ui relative flex h-[22px] w-[24px] items-center justify-center text-xs transition-all"
           style={{
             background: '#e5e5e5',
             border: '1px solid #999',
@@ -185,6 +189,7 @@ const TextEditToolbar = ({
             borderRight: 'none',
             boxShadow: 'inset 1px 1px 0 #f8f8f8, inset -1px -1px 0 #888',
           }}
+          onClick={onBulletedList}
           title="Bulleted List"
           type="button"
         >
@@ -199,7 +204,7 @@ const TextEditToolbar = ({
         </button>
 
         <button
-          className="font-ui relative flex h-[22px] w-[24px] items-center justify-center text-xs transition-all"
+          className="toolbar-button font-ui relative flex h-[22px] w-[24px] items-center justify-center text-xs transition-all"
           style={{
             background: '#e5e5e5',
             border: '1px solid #999',
@@ -208,6 +213,7 @@ const TextEditToolbar = ({
             borderBottomRightRadius: '2px',
             boxShadow: 'inset 1px 1px 0 #f8f8f8, inset -1px -1px 0 #888',
           }}
+          onClick={onNumberedList}
           title="Numbered List"
           type="button"
         >
