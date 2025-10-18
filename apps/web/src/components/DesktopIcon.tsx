@@ -67,9 +67,7 @@ const DesktopIcon = ({
         <img
           src={icon.icon}
           alt={icon.label}
-          className={`h-12 w-12 object-contain transition-all duration-75 ${
-            isSelected ? 'brightness-75' : ''
-          }`}
+          className={`h-12 w-12 object-contain ${isSelected ? 'brightness-75' : ''}`}
           draggable={false}
         />
         <span
