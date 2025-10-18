@@ -31,7 +31,7 @@ const TrafficLights = ({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="traffic-lights flex items-center gap-2">
       <button
         className="group relative h-[10px] w-[10px] rounded-full transition-all"
         style={{

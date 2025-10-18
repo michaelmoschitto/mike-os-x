@@ -26,34 +26,30 @@ const initialIcons: DesktopIcon[] = [
     type: 'file',
     gridIndex: 0,
     fileExtension: 'md',
-    content: `# Hey, my name is Mike! 👋
+    content: `# Hey, my name is Mike!
 
 Welcome to my portfolio.
 
 ## About Me
 
-I'm a **Senior Front-End Developer** passionate about building beautiful, functional web experiences. This portfolio is inspired by the iconic *Mac OS X Aqua* design from the early 2000s.
+I'm a **dev** based in Incline Village, NV passionate about AI/ML, databases, user interfaces, and scalability. This portfolio is inspired by the iconic *Mac OS X Aqua* design from 2000, the year I was born.
 
 ## What I Do
 
-- Build modern web applications with **React** and **TypeScript**
-- Create pixel-perfect UIs with attention to detail
-- Design systems that feel authentic and nostalgic
+- idk I just liked to code.
 
-## Technical Skills
+## Tech used to make this site:
 
 - **Languages:** JavaScript, TypeScript, HTML, CSS
-- **Frameworks:** React, Vite, Next.js
+- **Frameworks:** React, Vite
 - **Styling:** Tailwind CSS, Framer Motion
-- **Tools:** Git, Docker, VS Code
+- **Tools:** Git, Docker, Cursor
 
 ---
 
 ### Explore this OS
 
-Double-click files to open them in TextEdit. Drag windows around. Click the dock. It's *almost* like the real thing.
-
-Built with ❤️ in 2025, inspired by 2001.`,
+Built with ❤️ in 2025, inspired by 2000.`,
   },
 ];
 

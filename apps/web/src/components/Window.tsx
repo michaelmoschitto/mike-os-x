@@ -1,4 +1,4 @@
-import { motion, useMotionValue } from 'framer-motion';
+import { motion, useDragControls, useMotionValue } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
 import TrafficLights from '@/components/TrafficLights';
@@ -34,6 +34,7 @@ const Window = ({
   const x = useMotionValue(position.x);
   const y = useMotionValue(position.y);
   const isDragging = useRef(false);
+  const dragControls = useDragControls();
 
   useEffect(() => {
     if (!isDragging.current) {
@@ -58,6 +59,15 @@ const Window = ({
     onDragEnd?.({ x: x.get(), y: y.get() });
   };
 
+  const handleTitlebarPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Don't start drag if clicking on traffic lights buttons
+    const target = e.target as HTMLElement;
+    if (target.closest('.traffic-lights')) {
+      return;
+    }
+    dragControls.start(e);
+  };
+
   return (
     <motion.div
       className={cn('aqua-window absolute overflow-hidden')}
@@ -74,8 +84,10 @@ const Window = ({
       transition={{ duration: 0.2 }}
       onClick={handleClick}
       drag
+      dragControls={dragControls}
       dragMomentum={false}
       dragElastic={0}
+      dragListener={false}
       dragConstraints={{
         left: 0,
         top: 22,
@@ -84,7 +96,6 @@ const Window = ({
       }}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      dragListener={isActive}
     >
       {/* Titlebar */}
       <div
@@ -92,6 +103,7 @@ const Window = ({
           'aqua-titlebar flex cursor-move items-center justify-between px-2.5',
           isActive ? 'active' : ''
         )}
+        onPointerDown={handleTitlebarPointerDown}
       >
         <TrafficLights onClose={onClose} onMinimize={onMinimize} isActive={isActive} />
         <span className="font-ui text-[11px] font-semibold tracking-tight text-black/80 select-none">
