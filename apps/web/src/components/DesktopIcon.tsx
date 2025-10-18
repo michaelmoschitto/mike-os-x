@@ -1,6 +1,8 @@
 import { motion, useMotionValue } from 'framer-motion';
-import type { DesktopIcon } from '@/stores/useDesktopStore';
 import { useEffect, useRef } from 'react';
+
+import type { DesktopIcon } from '@/stores/useDesktopStore';
+import { useWindowStore } from '@/stores/useWindowStore';
 
 interface DesktopIconProps {
   icon: DesktopIcon;
@@ -22,6 +24,8 @@ const DesktopIcon = ({
   const x = useMotionValue(position.x);
   const y = useMotionValue(position.y);
   const isDragging = useRef(false);
+  const lastClickTime = useRef(0);
+  const openWindow = useWindowStore((state) => state.openWindow);
 
   // Update motion values when position prop changes (but not during drag)
   useEffect(() => {
@@ -33,7 +37,37 @@ const DesktopIcon = ({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onSelect(icon.id);
+    
+    const now = Date.now();
+    const timeSinceLastClick = now - lastClickTime.current;
+    
+    // Double-click detection (< 300ms)
+    if (timeSinceLastClick < 300 && timeSinceLastClick > 0) {
+      handleDoubleClick();
+    } else {
+      onSelect(icon.id);
+    }
+    
+    lastClickTime.current = now;
+  };
+
+  const handleDoubleClick = () => {
+    // Only open text files (.txt, .md) in TextEdit
+    if (icon.type === 'file' && (icon.fileExtension === 'txt' || icon.fileExtension === 'md')) {
+      // Calculate centered position for window
+      const windowWidth = 600;
+      const windowHeight = 500;
+      const centerX = (window.innerWidth - windowWidth) / 2;
+      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2; // Account for menubar and dock
+
+      openWindow({
+        type: 'textedit',
+        title: icon.label,
+        content: icon.content || '',
+        position: { x: centerX, y: centerY + 22 }, // Add menubar height
+        size: { width: windowWidth, height: windowHeight },
+      });
+    }
   };
 
   const handleDragStart = () => {

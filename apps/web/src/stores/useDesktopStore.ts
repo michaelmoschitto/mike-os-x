@@ -7,6 +7,8 @@ export interface DesktopIcon {
   type: 'file' | 'folder' | 'app' | 'volume';
   position?: { x: number; y: number };
   gridIndex?: number;
+  content?: string;
+  fileExtension?: string;
 }
 
 interface DesktopStore {
@@ -23,6 +25,25 @@ const initialIcons: DesktopIcon[] = [
     icon: '/icons/file-text.png',
     type: 'file',
     gridIndex: 0,
+    fileExtension: 'md',
+    content: `# Welcome to Mike OS X
+
+This is a Mac OS X 10.1 (Aqua era) themed portfolio built with React and Vite.
+
+## Features
+
+- Authentic Aqua design with gel buttons and pinstripes
+- Desktop icon system with drag and drop
+- TextEdit application for viewing and editing files
+- Window management with focus and z-index handling
+
+## Try it out
+
+Double-click this file or other text files on the desktop to open them in TextEdit!
+
+---
+
+Built with ❤️ using modern web technologies.`,
   },
 ];
 

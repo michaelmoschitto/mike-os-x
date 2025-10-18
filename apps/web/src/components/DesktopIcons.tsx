@@ -1,6 +1,7 @@
-import { useDesktopStore } from '@/stores/useDesktopStore';
-import DesktopIcon from '@/components/DesktopIcon';
 import { useEffect, useState, useRef } from 'react';
+
+import DesktopIcon from '@/components/DesktopIcon';
+import { useDesktopStore } from '@/stores/useDesktopStore';
 
 const GRID_PADDING_RIGHT = 20;
 const GRID_START_Y = 40;

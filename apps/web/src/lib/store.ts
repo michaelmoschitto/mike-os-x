@@ -3,6 +3,7 @@ import { create } from 'zustand';
 type App =
   | 'finder'
   | 'browser'
+  | 'textedit'
   | 'projects'
   | 'writing'
   | 'photos'
