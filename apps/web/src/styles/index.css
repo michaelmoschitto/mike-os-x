@@ -137,4 +137,11 @@ body {
       0 -1px 0 rgba(0, 0, 0, 0.5),
       0 1px 0 rgba(135, 177, 238, 0.3);
   }
+
+  .toolbar-button:active {
+    background: #c8c8c8 !important;
+    box-shadow:
+      inset 1px 1px 0 #777,
+      inset -1px -1px 0 #f9f9f9 !important;
+  }
 }

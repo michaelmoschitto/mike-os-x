@@ -16,6 +16,7 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
 
   const [alignment, setAlignment] = useState<'left' | 'center' | 'right' | 'justify'>('left');
   const [fontSize, setFontSize] = useState(12);
+  const [lineHeight, setLineHeight] = useState(1.5);
 
   const editorRef = useRef<HTMLDivElement>(null);
 
@@ -38,6 +39,10 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
 
   const handleFontSizeChange = (size: number) => {
     setFontSize(size);
+  };
+
+  const handleLineHeightChange = (newLineHeight: number) => {
+    setLineHeight(newLineHeight);
   };
 
   // Keyboard shortcuts for formatting
@@ -83,8 +88,10 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
       <TextEditToolbar
         alignment={alignment}
         fontSize={fontSize}
+        lineHeight={lineHeight}
         onAlignmentChange={handleAlignmentChange}
         onFontSizeChange={handleFontSizeChange}
+        onLineHeightChange={handleLineHeightChange}
       />
 
       {/* Ruler */}
@@ -101,7 +108,7 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
           style={{
             fontSize: `${fontSize}px`,
             textAlign: alignment,
-            lineHeight: '1.5',
+            lineHeight: lineHeight.toFixed(1),
             color: '#000',
           }}
         />
