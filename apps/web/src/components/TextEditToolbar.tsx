@@ -222,14 +222,15 @@ const TextEditToolbar = ({
         </button>
       </div>
 
-      {/* Center: Font size and spacing indicator */}
-      <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-3">
+      {/* Center: Font size dropdown */}
+      <div className="absolute left-1/2 -translate-x-1/2">
         <select
-          className="font-ui h-[22px] rounded-sm px-2.5 text-[10px] transition-all focus:ring-1 focus:ring-blue-400 focus:outline-none"
+          className="font-ui h-[22px] rounded-sm px-2.5 pr-5 text-[10px] transition-all focus:ring-1 focus:ring-blue-400 focus:outline-none"
           style={{
             background: '#e5e5e5',
             border: '1px solid #999',
-            boxShadow: 'inset 1px 1px 0 #f8f8f8, inset -1px -1px 0 #888',
+            borderRadius: '2px',
+            boxShadow: 'inset 1px 1px 2px rgba(0, 0, 0, 0.15), inset -1px -1px 0 #f8f8f8',
           }}
           value={fontSize}
           onChange={(e) => onFontSizeChange(Number(e.target.value))}
@@ -240,7 +241,6 @@ const TextEditToolbar = ({
             </option>
           ))}
         </select>
-        <div className="font-ui text-[10px] text-[#222]">0 pt</div>
       </div>
 
       {/* Right: Empty space for symmetry */}
