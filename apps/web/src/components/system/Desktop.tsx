@@ -1,7 +1,7 @@
-import DesktopIcons from './DesktopIcons';
-import Dock from './Dock';
-import MenuBar from './MenuBar';
 import TextEditWindow from '@/components/apps/TextEdit/TextEditWindow';
+import DesktopIcons from '@/components/system/DesktopIcons';
+import Dock from '@/components/system/Dock';
+import MenuBar from '@/components/system/MenuBar';
 import { useWindowStore } from '@/stores/useWindowStore';
 
 const Desktop = () => {
@@ -17,10 +17,8 @@ const Desktop = () => {
         className="absolute top-[22px] right-0 bottom-0 left-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: 'url(/imgs/osx-10-light.png)' }}
       >
-        {/* Desktop Icons */}
         <DesktopIcons />
 
-        {/* Windows */}
         {windows
           .filter((w) => !w.isMinimized)
           .map((window) => (

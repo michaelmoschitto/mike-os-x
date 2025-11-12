@@ -71,9 +71,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
   focusWindow: (id) => {
     const state = get();
     const zIndex = state.maxZIndex + 1;
-    const windows = state.windows.map((w) =>
-      w.id === id ? { ...w, zIndex } : w
-    );
+    const windows = state.windows.map((w) => (w.id === id ? { ...w, zIndex } : w));
 
     set({
       windows,
@@ -96,10 +94,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
 
   minimizeWindow: (id) => {
     set((state) => ({
-      windows: state.windows.map((w) =>
-        w.id === id ? { ...w, isMinimized: !w.isMinimized } : w
-      ),
+      windows: state.windows.map((w) => (w.id === id ? { ...w, isMinimized: !w.isMinimized } : w)),
     }));
   },
 }));
-

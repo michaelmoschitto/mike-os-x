@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 
-import DesktopIcon from './DesktopIcon';
+import DesktopIcon from '@/components/system/DesktopIcon';
 import { useDesktopStore } from '@/stores/useDesktopStore';
 
 const GRID_PADDING_RIGHT = 20;
@@ -33,7 +33,6 @@ const DesktopIcons = () => {
   };
 
   const getIconPosition = (icon: (typeof icons)[0]) => {
-    // If icon has custom position, use it
     if (icon.position) {
       return icon.position;
     }
@@ -55,7 +54,6 @@ const DesktopIcons = () => {
       className="absolute inset-0 top-[22px]"
       onClick={handleBackgroundClick}
       onMouseDown={(e) => {
-        // Only deselect if clicking directly on background, not on icons
         if (e.target === e.currentTarget) {
           handleBackgroundClick();
         }

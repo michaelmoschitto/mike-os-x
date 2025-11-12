@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
-import TextEditRuler from './TextEditRuler';
-import TextEditToolbar from './TextEditToolbar';
+import TextEditRuler from '@/components/apps/TextEdit/TextEditRuler';
+import TextEditToolbar from '@/components/apps/TextEdit/TextEditToolbar';
 import Window from '@/components/window/Window';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
@@ -20,14 +20,12 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
 
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Initialize content
   useEffect(() => {
     if (editorRef.current && windowData.content) {
-      // Convert line breaks to HTML breaks for proper display
       const htmlContent = windowData.content.replace(/\n/g, '<br>');
       editorRef.current.innerHTML = htmlContent;
     }
-  }, []);
+  }, [windowData.id, windowData.content]);
 
   const handleContentChange = () => {
     if (editorRef.current) {

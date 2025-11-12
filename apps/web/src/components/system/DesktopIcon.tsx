@@ -27,7 +27,6 @@ const DesktopIcon = ({
   const lastClickTime = useRef(0);
   const openWindow = useWindowStore((state) => state.openWindow);
 
-  // Update motion values when position prop changes (but not during drag)
   useEffect(() => {
     if (!isDragging.current) {
       x.set(position.x);
@@ -37,17 +36,16 @@ const DesktopIcon = ({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     const now = Date.now();
     const timeSinceLastClick = now - lastClickTime.current;
-    
-    // Double-click detection (< 300ms)
+
     if (timeSinceLastClick < 300 && timeSinceLastClick > 0) {
       handleDoubleClick();
     } else {
       onSelect(icon.id);
     }
-    
+
     lastClickTime.current = now;
   };
 
@@ -76,7 +74,6 @@ const DesktopIcon = ({
 
   const handleDragEnd = () => {
     isDragging.current = false;
-    // Get final position from motion values
     onDragEnd(icon.id, { x: x.get(), y: y.get() });
   };
 

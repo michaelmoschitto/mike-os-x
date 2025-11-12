@@ -11,7 +11,6 @@ interface TextEditToolbarProps {
 
 const FONT_SIZES = [9, 10, 11, 12, 13, 14, 18, 24, 36, 48, 64, 72, 96];
 
-// Divider component for toolbar
 const ToolbarDivider = () => <div className="mx-1 h-[18px] w-px bg-[#999]" />;
 
 const TextEditToolbar = ({

@@ -21,4 +21,3 @@ export const useUI = create<UIStore>((set) => ({
   activeApp: null,
   setActiveApp: (app) => set({ activeApp: app }),
 }));
-

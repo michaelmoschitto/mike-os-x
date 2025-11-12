@@ -5,7 +5,9 @@ This folder contains all UI components organized by their role in the Mac OS X d
 ## 📁 Folder Structure
 
 ### `/system` - Core OS Components
+
 The foundational OS-level UI that's always present:
+
 - **MenuBar** - Global menu bar (Apple, File, View, Go, Help)
 - **Dock** - Bottom application launcher with icons
 - **Desktop** - Desktop background and icon management
@@ -16,7 +18,9 @@ The foundational OS-level UI that's always present:
 ---
 
 ### `/window` - Window Management
+
 Window chrome, controls, and utilities for window behavior:
+
 - **Window** - Base Aqua window with titlebar and content area
 - **TrafficLights** - Window control buttons (close, minimize, maximize)
 - Future: WindowResizer, WindowManager, WindowTitle, etc.
@@ -26,14 +30,17 @@ Window chrome, controls, and utilities for window behavior:
 ---
 
 ### `/apps` - Application Components
+
 App-specific components grouped by application:
 
 #### `/apps/TextEdit`
+
 - TextEditWindow - Main TextEdit window wrapper
 - TextEditToolbar - Formatting toolbar
 - TextEditRuler - Text ruler component
 
 #### Future Apps
+
 - `/apps/Projects` - Portfolio projects browser
 - `/apps/Writing` - Blog/writing viewer
 - `/apps/Photos` - Photo gallery
@@ -46,12 +53,15 @@ App-specific components grouped by application:
 ---
 
 ### `/ui` - Aqua UI Primitives
+
 Reusable Aqua-styled building blocks for creating interfaces:
+
 - Future: AquaButton, AquaInput, AquaSelect, AquaTab, AquaScrollbar, AquaCheckbox, etc.
 
 **When to add here:** Generic, reusable UI components styled with the Aqua design system. These are the LEGO blocks for building new interfaces.
 
 **Examples:**
+
 - A gel-style button with proper gradients and hover states
 - An Aqua-styled text input with inset borders
 - A tabbed interface component
@@ -60,12 +70,15 @@ Reusable Aqua-styled building blocks for creating interfaces:
 ---
 
 ### `/common` - Shared Cross-Cutting Components
+
 Components used across multiple apps and contexts:
+
 - Future: Palette (⌘K command palette), AboutDialog, ContextMenu, etc.
 
 **When to add here:** Components that don't fit in a single app or the OS chrome, but are used in multiple places.
 
 **Examples:**
+
 - Command Palette (used globally)
 - Context menus (used by multiple apps)
 - Dialogs/modals (shared UI pattern)
@@ -76,6 +89,7 @@ Components used across multiple apps and contexts:
 ## 🎯 Import Guidelines
 
 ### Absolute Imports (Preferred)
+
 ```typescript
 // Import from barrel exports
 import { Window, TrafficLights } from '@/components/window';
@@ -87,6 +101,7 @@ import { Window, MenuBar, TextEditWindow } from '@/components';
 ```
 
 ### Specific Imports (When Needed)
+
 ```typescript
 // Direct file import for specific use cases
 import Window from '@/components/window/Window';
@@ -148,8 +163,8 @@ import Window from '@/components/window/Window';
 ## 🔮 Future Additions
 
 As the project grows, we may add:
+
 - `/system/Finder` - Finder-specific chrome components
 - `/ui/forms` - Form-related Aqua components
 - `/ui/feedback` - Loading, error, toast components
 - `/animations` - Shared Framer Motion variants
-

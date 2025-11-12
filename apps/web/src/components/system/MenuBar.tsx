@@ -3,7 +3,7 @@ import { useWindowStore } from '@/stores/useWindowStore';
 const MenuBar = () => {
   const activeWindowId = useWindowStore((state) => state.activeWindowId);
   const windows = useWindowStore((state) => state.windows);
-  
+
   const activeWindow = windows.find((w) => w.id === activeWindowId);
   const appName = activeWindow ? 'TextEdit' : 'Finder';
 

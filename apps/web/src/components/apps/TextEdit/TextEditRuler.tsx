@@ -1,14 +1,13 @@
 const TextEditRuler = () => {
-  // Generate tick marks for ruler (every inch, with half-inch marks)
   const ticks = [];
-  const totalInches = 7; // 0 to 7 inches
-  const pixelsPerInch = 72; // Standard screen DPI
-  const startOffset = 12; // Offset from left edge for first tick
+  const totalInches = 7;
+  const pixelsPerInch = 72;
+  const startOffset = 12;
 
+  // Generate tick marks for ruler (every inch, with half-inch marks)
   for (let i = 0; i <= totalInches; i++) {
     const left = startOffset + i * pixelsPerInch;
 
-    // Main inch mark with number
     ticks.push(
       <div
         key={`inch-${i}`}
@@ -24,7 +23,6 @@ const TextEditRuler = () => {
       </div>
     );
 
-    // Half-inch mark
     if (i < totalInches) {
       ticks.push(
         <div
@@ -58,10 +56,8 @@ const TextEditRuler = () => {
         </svg>
       </div>
 
-      {/* Ruler ticks - start from offset */}
       <div className="absolute top-0 left-0 h-full">{ticks}</div>
 
-      {/* Right margin indicator - downward pointing triangle */}
       <div
         className="absolute z-10 flex items-start"
         style={{ right: '2px', top: '2px', filter: 'drop-shadow(1px 1px 0 #999)' }}
