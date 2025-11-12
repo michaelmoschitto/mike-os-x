@@ -1,7 +1,7 @@
-import DesktopIcons from '@/components/DesktopIcons';
-import Dock from '@/components/Dock';
-import MenuBar from '@/components/MenuBar';
-import TextEditWindow from '@/components/TextEditWindow';
+import DesktopIcons from './DesktopIcons';
+import Dock from './Dock';
+import MenuBar from './MenuBar';
+import TextEditWindow from '@/components/apps/TextEdit/TextEditWindow';
 import { useWindowStore } from '@/stores/useWindowStore';
 
 const Desktop = () => {

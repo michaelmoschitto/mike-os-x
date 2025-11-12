@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
-import TextEditRuler from '@/components/TextEditRuler';
-import TextEditToolbar from '@/components/TextEditToolbar';
-import Window from '@/components/Window';
+import TextEditRuler from './TextEditRuler';
+import TextEditToolbar from './TextEditToolbar';
+import Window from '@/components/window/Window';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
 interface TextEditWindowProps {

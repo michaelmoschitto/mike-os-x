@@ -1,11 +1,11 @@
 import { motion, useMotionValue } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
-import type { DesktopIcon } from '@/stores/useDesktopStore';
+import type { DesktopIconData } from '@/stores/useDesktopStore';
 import { useWindowStore } from '@/stores/useWindowStore';
 
 interface DesktopIconProps {
-  icon: DesktopIcon;
+  icon: DesktopIconData;
   position: { x: number; y: number };
   isSelected: boolean;
   onSelect: (id: string) => void;
