@@ -1,7 +1,7 @@
 import { motion, useDragControls, useMotionValue } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
-import TrafficLights from '@/components/TrafficLights';
+import TrafficLights from './TrafficLights';
 import { cn } from '@/lib/utils';
 
 interface WindowProps {

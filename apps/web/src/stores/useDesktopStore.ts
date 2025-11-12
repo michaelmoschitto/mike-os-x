@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import readmeContent from '../../content/README.md?raw';
 
-export interface DesktopIcon {
+export interface DesktopIconData {
   id: string;
   label: string;
   icon: string;
@@ -13,13 +13,13 @@ export interface DesktopIcon {
 }
 
 interface DesktopStore {
-  icons: DesktopIcon[];
+  icons: DesktopIconData[];
   selectedIcon: string | null;
   setSelectedIcon: (id: string | null) => void;
   updateIconPosition: (id: string, position: { x: number; y: number }) => void;
 }
 
-const initialIcons: DesktopIcon[] = [
+const initialIcons: DesktopIconData[] = [
   {
     id: 'readme',
     label: 'README.md',

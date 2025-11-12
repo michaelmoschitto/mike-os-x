@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 
-import DesktopIcon from '@/components/DesktopIcon';
+import DesktopIcon from './DesktopIcon';
 import { useDesktopStore } from '@/stores/useDesktopStore';
 
 const GRID_PADDING_RIGHT = 20;
