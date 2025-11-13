@@ -292,3 +292,4 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
 
 export default BrowserWindow;
 
+
