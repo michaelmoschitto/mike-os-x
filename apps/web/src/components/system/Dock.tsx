@@ -181,7 +181,7 @@ const DockIcon = ({ icon, mouseX, isActive, isHovered, onHover, onClick }: DockI
           <img
             src={icon.icon}
             alt={icon.label}
-            className="h-full w-full object-contain pointer-events-none"
+            className="pointer-events-none h-full w-full object-contain"
             draggable={false}
           />
         </motion.div>

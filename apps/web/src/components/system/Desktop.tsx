@@ -1,8 +1,8 @@
 import { BrowserWindow } from '@/components/apps/Browser';
+import { TextEditWindow } from '@/components/apps/TextEdit';
 import DesktopIcons from '@/components/system/DesktopIcons';
 import Dock from '@/components/system/Dock';
 import MenuBar from '@/components/system/MenuBar';
-import { TextEditWindow } from '@/components/apps/TextEdit';
 import { useWindowStore } from '@/stores/useWindowStore';
 
 const Desktop = () => {

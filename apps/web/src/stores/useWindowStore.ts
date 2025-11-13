@@ -1,8 +1,9 @@
 import { create } from 'zustand';
+
 import { DEFAULT_BOOKMARKS } from '@/config/defaultBookmarks';
 import { getHostnameFromUrl } from '@/lib/utils';
 
-export type BookmarkItem = 
+export type BookmarkItem =
   | { type: 'bookmark'; title: string; url: string }
   | { type: 'folder'; title: string; items: Array<{ title: string; url: string }> };
 
@@ -68,9 +69,8 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     };
 
     // Initialize browser windows with default folders from config
-    const bookmarks = window.type === 'browser' && !window.bookmarks
-      ? DEFAULT_BOOKMARKS
-      : window.bookmarks;
+    const bookmarks =
+      window.type === 'browser' && !window.bookmarks ? DEFAULT_BOOKMARKS : window.bookmarks;
 
     const newWindow: Window = {
       ...window,
@@ -146,7 +146,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
           const historyIndex = w.historyIndex ?? -1;
           // Remove forward history when navigating to a new URL
           const newHistory = [...history.slice(0, historyIndex + 1), url];
-          
+
           // Add to browsing history for autocomplete
           const browsingHistory = w.browsingHistory || [];
           const pageTitle = title || getHostnameFromUrl(url);
@@ -155,11 +155,11 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
             title: pageTitle,
             visitTime: Date.now(),
           };
-          
+
           // Remove duplicate if exists and add to front (most recent first)
           const filteredHistory = browsingHistory.filter((entry) => entry.url !== url);
           const updatedBrowsingHistory = [newHistoryEntry, ...filteredHistory].slice(0, 100); // Keep last 100 entries
-          
+
           return {
             ...w,
             url,
@@ -222,7 +222,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       windows: state.windows.map((w) => {
         if (w.id === id && w.type === 'browser') {
           const bookmarks = w.bookmarks || [];
-          
+
           // If folderName is provided, add to that folder
           if (folderName) {
             let folderFound = false;
@@ -240,7 +240,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
               }
               return item;
             });
-            
+
             // If folder was found, return the updated bookmarks
             if (folderFound) {
               return {
@@ -248,7 +248,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
                 bookmarks: updatedBookmarks,
               };
             }
-            
+
             // If folder wasn't found, fall back to adding as regular bookmark
             // Check for duplicates
             if (bookmarks.some((b) => b.type === 'bookmark' && b.url === url)) {
@@ -259,7 +259,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
               bookmarks: [...bookmarks, { type: 'bookmark' as const, title, url }],
             };
           }
-          
+
           // Otherwise add as a regular bookmark (not in a folder)
           // Check for duplicates
           if (bookmarks.some((b) => b.type === 'bookmark' && b.url === url)) {
@@ -280,7 +280,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       windows: state.windows.map((w) => {
         if (w.id === id && w.type === 'browser') {
           const bookmarks = w.bookmarks || [];
-          
+
           // If folderName is provided, remove from that folder
           if (folderName) {
             return {
@@ -296,13 +296,11 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
               }),
             };
           }
-          
+
           // Otherwise remove regular bookmark
           return {
             ...w,
-            bookmarks: bookmarks.filter((b) => 
-              b.type === 'bookmark' ? b.url !== url : true
-            ),
+            bookmarks: bookmarks.filter((b) => (b.type === 'bookmark' ? b.url !== url : true)),
           };
         }
         return w;

@@ -200,7 +200,8 @@ const BrowserContent = ({ url, onLoadStart, onLoadEnd, onUrlChange }: BrowserCon
                   This is normal behavior, not a bug.
                 </p>
                 <p className="mt-2 text-gray-600">
-                  You can click "Open in Real Browser" to view the page in your default browser.
+                  You can click &quot;Open in Real Browser&quot; to view the page in your default
+                  browser.
                 </p>
               </div>
             </div>

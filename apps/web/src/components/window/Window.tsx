@@ -20,7 +20,7 @@ interface WindowProps {
 }
 
 const Window = ({
-  id,
+  id: _id,
   title,
   isActive,
   position,

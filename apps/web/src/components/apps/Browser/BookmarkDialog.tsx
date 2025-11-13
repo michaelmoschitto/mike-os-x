@@ -1,9 +1,10 @@
+import { motion, AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BookmarkItem } from '@/stores/useWindowStore';
+
 import AquaDropdown from '@/components/ui/AquaDropdown';
 import { cn, getHostnameFromUrl } from '@/lib/utils';
+import { BookmarkItem } from '@/stores/useWindowStore';
 
 interface BookmarkDialogProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ const BookmarkDialog = ({
   const selectedFolderRef = useRef<string>('');
 
   const folders = bookmarks.filter((item) => item.type === 'folder');
-  
+
   const dropdownItems = [
     { label: 'Bookmarks Bar', value: '' },
     ...folders.map((folder) => ({ label: folder.title, value: folder.title })),
@@ -98,18 +99,18 @@ const BookmarkDialog = ({
     const rect = anchorRef.current.getBoundingClientRect();
     const dialogWidth = 400;
     const spacing = 8;
-    
-    let top = rect.bottom + spacing;
+
+    const top = rect.bottom + spacing;
     let left = rect.right - dialogWidth;
-    
+
     if (left < spacing) {
       left = spacing;
     }
-    
+
     if (left + dialogWidth > window.innerWidth - spacing) {
       left = window.innerWidth - dialogWidth - spacing;
     }
-    
+
     return { top, left };
   }, [anchorRef]);
 
@@ -128,7 +129,7 @@ const BookmarkDialog = ({
       type="button"
       className={cn(
         'font-ui flex w-full items-center justify-between rounded px-2 py-1 text-[11px]',
-        'focus:outline-none focus:ring-1 focus:ring-[#3b9cff]'
+        'focus:ring-1 focus:ring-[#3b9cff] focus:outline-none'
       )}
       style={{
         background: '#fff',
@@ -140,13 +141,7 @@ const BookmarkDialog = ({
       onClick={(e) => e.stopPropagation()}
     >
       <span>{selectedFolder || 'Bookmarks Bar'}</span>
-      <svg
-        width="8"
-        height="8"
-        viewBox="0 0 8 8"
-        fill="none"
-        style={{ marginLeft: '8px' }}
-      >
+      <svg width="8" height="8" viewBox="0 0 8 8" fill="none" style={{ marginLeft: '8px' }}>
         <path
           d="M2 3 L4 5 L6 3"
           stroke="currentColor"
@@ -239,7 +234,7 @@ const BookmarkDialog = ({
                     value={bookmarkName}
                     onChange={(e) => setBookmarkName(e.target.value)}
                     onKeyDown={handleNameKeyDown}
-                    className="font-ui w-full px-2 py-1 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#3b9cff]"
+                    className="font-ui w-full px-2 py-1 text-[12px] focus:ring-1 focus:ring-[#3b9cff] focus:outline-none"
                     style={{
                       background: '#fff',
                       border: '1px solid #8a8a8a',
@@ -282,4 +277,3 @@ const BookmarkDialog = ({
 };
 
 export default BookmarkDialog;
-

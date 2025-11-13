@@ -1,4 +1,5 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+
 import { cn } from '@/lib/utils';
 
 interface AquaDropdownItem {
@@ -22,22 +23,20 @@ const AquaDropdown = ({
   value,
   onValueChange,
   trigger,
-  placeholder = 'Select...',
+  placeholder: _placeholder = 'Select...',
   align = 'start',
   side = 'bottom',
   sideOffset = 4,
 }: AquaDropdownProps) => {
-  const selectedItem = items.find((item) => item.value === value);
+  const _selectedItem = items.find((item) => item.value === value);
 
   return (
     <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        {trigger}
-      </DropdownMenu.Trigger>
+      <DropdownMenu.Trigger asChild>{trigger}</DropdownMenu.Trigger>
 
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          className="font-ui min-w-[200px] max-h-[300px] overflow-y-auto"
+          className="font-ui max-h-[300px] min-w-[200px] overflow-y-auto"
           style={{
             background: 'linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%)',
             border: '1px solid #999',
@@ -56,7 +55,7 @@ const AquaDropdown = ({
               <DropdownMenu.Item
                 key={item.value}
                 className={cn(
-                  'font-ui relative flex items-center justify-between rounded px-3 py-1.5 text-[11px] outline-none cursor-pointer',
+                  'font-ui relative flex cursor-pointer items-center justify-between rounded px-3 py-1.5 text-[11px] outline-none',
                   'hover:bg-[#3b9cff] hover:text-white',
                   'focus:bg-[#3b9cff] focus:text-white'
                 )}
@@ -83,5 +82,3 @@ const AquaDropdown = ({
 };
 
 export default AquaDropdown;
-
-

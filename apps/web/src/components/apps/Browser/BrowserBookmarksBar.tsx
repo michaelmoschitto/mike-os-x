@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+
 import { BookmarkItem } from '@/stores/useWindowStore';
 
 interface BrowserBookmarksBarProps {
@@ -9,7 +10,11 @@ interface BrowserBookmarksBarProps {
 
 const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps) => {
   const [openFolder, setOpenFolder] = useState<string | null>(null);
-  const [dropdownPosition, setDropdownPosition] = useState<{ left: number; top: number; width: number } | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    left: number;
+    top: number;
+    width: number;
+  } | null>(null);
   const folderRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
 
   useEffect(() => {
@@ -21,17 +26,17 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
         const viewportHeight = window.innerHeight;
         const dropdownWidth = Math.max(200, rect.width);
         const dropdownMaxHeight = 400;
-        
+
         let left = rect.left;
         if (left + dropdownWidth > viewportWidth) {
           left = Math.max(0, viewportWidth - dropdownWidth);
         }
-        
+
         let top = rect.bottom + 4;
         if (top + dropdownMaxHeight > viewportHeight && rect.top > dropdownMaxHeight) {
           top = rect.top - dropdownMaxHeight - 4;
         }
-        
+
         setDropdownPosition({
           left,
           top,
@@ -48,7 +53,7 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
       if (openFolder) {
         const buttonElement = folderRefs.current[openFolder];
         const dropdownElement = document.querySelector('[data-bookmark-dropdown]');
-        
+
         if (
           buttonElement &&
           !buttonElement.contains(event.target as Node) &&
@@ -71,13 +76,14 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
       <div
         className="aqua-pinstripe font-ui flex h-[28px] items-center px-3 text-[11px] text-gray-700"
         style={{
-          background: 'repeating-linear-gradient(0deg, #f0f0f0, #f0f0f0 1px, #e4e4e4 1px, #e4e4e4 2px)',
+          background:
+            'repeating-linear-gradient(0deg, #f0f0f0, #f0f0f0 1px, #e4e4e4 1px, #e4e4e4 2px)',
           borderBottom: '1px solid #999999',
           boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.9)',
         }}
       >
-        <span className="font-semibold mr-2">Favorites:</span>
-        <span className="italic text-gray-600">Click the Favorites button to add bookmarks</span>
+        <span className="mr-2 font-semibold">Favorites:</span>
+        <span className="text-gray-600 italic">Click the Favorites button to add bookmarks</span>
       </div>
     );
   }
@@ -98,7 +104,8 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
     <div
       className="aqua-pinstripe relative flex h-[28px] items-center gap-1 overflow-x-auto px-3"
       style={{
-        background: 'repeating-linear-gradient(0deg, #f0f0f0, #f0f0f0 1px, #e4e4e4 1px, #e4e4e4 2px)',
+        background:
+          'repeating-linear-gradient(0deg, #f0f0f0, #f0f0f0 1px, #e4e4e4 1px, #e4e4e4 2px)',
         borderBottom: '1px solid #999999',
         boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.9)',
         scrollbarWidth: 'thin',
@@ -113,23 +120,27 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
             onClick={() => handleFolderClick(folder.title)}
             className="font-ui flex items-center gap-1 rounded px-2 py-0.5 text-[11px] transition-all"
             style={{
-              background: openFolder === folder.title
-                ? 'linear-gradient(to bottom, #e0e0e0 0%, #d8d8d8 100%)'
-                : 'linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%)',
+              background:
+                openFolder === folder.title
+                  ? 'linear-gradient(to bottom, #e0e0e0 0%, #d8d8d8 100%)'
+                  : 'linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%)',
               border: '1px solid #a0a0a0',
-              boxShadow: openFolder === folder.title
-                ? 'inset 1px 1px 0 #777, inset -1px -1px 0 #f9f9f9'
-                : '0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+              boxShadow:
+                openFolder === folder.title
+                  ? 'inset 1px 1px 0 #777, inset -1px -1px 0 #f9f9f9'
+                  : '0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
               color: '#2c2c2c',
             }}
             onMouseEnter={(e) => {
               if (openFolder !== folder.title) {
-                e.currentTarget.style.background = 'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)';
+                e.currentTarget.style.background =
+                  'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)';
               }
             }}
             onMouseLeave={(e) => {
               if (openFolder !== folder.title) {
-                e.currentTarget.style.background = 'linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%)';
+                e.currentTarget.style.background =
+                  'linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%)';
               }
             }}
             type="button"
@@ -166,7 +177,7 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
           return createPortal(
             <div
               data-bookmark-dropdown
-              className="fixed z-[1000] max-h-[400px] overflow-y-auto scrollbar-hide"
+              className="scrollbar-hide fixed z-[1000] max-h-[400px] overflow-y-auto"
               style={{
                 left: `${dropdownPosition.left}px`,
                 top: `${dropdownPosition.top}px`,
@@ -181,7 +192,7 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
                 <button
                   key={bookmark.url}
                   onClick={() => handleBookmarkClick(bookmark.url)}
-                  className="font-ui w-full truncate px-3 py-1.5 text-left text-[11px] hover:bg-blue-500 hover:text-white transition-colors"
+                  className="font-ui w-full truncate px-3 py-1.5 text-left text-[11px] transition-colors hover:bg-blue-500 hover:text-white"
                   title={bookmark.url}
                   type="button"
                 >
@@ -205,18 +216,23 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
             color: '#2c2c2c',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)';
+            e.currentTarget.style.background =
+              'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%)';
+            e.currentTarget.style.background =
+              'linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%)';
           }}
           onMouseDown={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(to bottom, #e0e0e0 0%, #d8d8d8 100%)';
+            e.currentTarget.style.background =
+              'linear-gradient(to bottom, #e0e0e0 0%, #d8d8d8 100%)';
             e.currentTarget.style.boxShadow = 'inset 1px 1px 0 #777, inset -1px -1px 0 #f9f9f9';
           }}
           onMouseUp={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)';
-            e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+            e.currentTarget.style.background =
+              'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)';
+            e.currentTarget.style.boxShadow =
+              '0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
           }}
           title={bookmark.url}
           type="button"

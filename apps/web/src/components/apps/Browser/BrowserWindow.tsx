@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import BookmarkDialog from '@/components/apps/Browser/BookmarkDialog';
 import BrowserBookmarksBar from '@/components/apps/Browser/BrowserBookmarksBar';
@@ -48,23 +48,23 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
     navigateToUrl(windowData.id, url, title);
   };
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (canGoBack) {
       navigateBack(windowData.id);
     }
-  };
+  }, [canGoBack, navigateBack, windowData.id]);
 
-  const handleForward = () => {
+  const handleForward = useCallback(() => {
     if (canGoForward) {
       navigateForward(windowData.id);
     }
-  };
+  }, [canGoForward, navigateForward, windowData.id]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     if (currentUrl) {
       navigateToUrl(windowData.id, currentUrl);
     }
-  };
+  }, [currentUrl, navigateToUrl, windowData.id]);
 
   const handleStop = () => {
     // In a real browser, this would stop loading, but with iframe we have limited control
@@ -158,7 +158,16 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
 
     globalThis.window.addEventListener('keydown', handleKeyDown);
     return () => globalThis.window.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, windowData.id, canGoBack, canGoForward, currentUrl]);
+  }, [
+    isActive,
+    windowData.id,
+    canGoBack,
+    canGoForward,
+    currentUrl,
+    handleBack,
+    handleForward,
+    handleRefresh,
+  ]);
 
   const getWindowTitle = () => {
     return 'Internet Explorer';
@@ -234,5 +243,3 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
 };
 
 export default BrowserWindow;
-
-

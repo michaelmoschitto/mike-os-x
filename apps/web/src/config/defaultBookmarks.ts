@@ -1,9 +1,9 @@
 /**
  * Default bookmarks configuration
- * 
+ *
  * This file defines the default bookmarks and folders that appear when a new browser window is opened.
  * You can add, remove, or modify bookmarks here without touching the store logic.
- * 
+ *
  * Structure:
  * - type: 'folder' creates a folder that can contain multiple bookmarks
  * - type: 'bookmark' creates a standalone bookmark (not in a folder)
@@ -29,5 +29,3 @@ export const DEFAULT_BOOKMARKS: BookmarkItem[] = [
     items: [],
   },
 ];
-
-

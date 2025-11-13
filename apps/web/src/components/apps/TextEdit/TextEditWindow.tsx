@@ -33,7 +33,7 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
       const htmlContent = windowData.content.replace(/\n/g, '<br>');
       editorRef.current.innerHTML = htmlContent;
     }
-  }, []);
+  }, [windowData.content]);
 
   const handleContentChange = () => {
     if (editorRef.current) {

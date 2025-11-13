@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { BookmarkItem } from '@/stores/useWindowStore';
+
 import { findBookmarkLocation, getHostnameFromUrl, isUrlBookmarked } from '@/lib/utils';
+import { BookmarkItem } from '@/stores/useWindowStore';
 
 interface BrowserBookmarksProps {
   bookmarks: BookmarkItem[];
@@ -30,8 +31,16 @@ const BrowserBookmarks = ({
   const [newUrl, setNewUrl] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string>('');
 
-  const folders = bookmarks.filter((item) => item.type === 'folder') as Array<{ type: 'folder'; title: string; items: Array<{ title: string; url: string }> }>;
-  const regularBookmarks = bookmarks.filter((item) => item.type === 'bookmark') as Array<{ type: 'bookmark'; title: string; url: string }>;
+  const folders = bookmarks.filter((item) => item.type === 'folder') as Array<{
+    type: 'folder';
+    title: string;
+    items: Array<{ title: string; url: string }>;
+  }>;
+  const regularBookmarks = bookmarks.filter((item) => item.type === 'bookmark') as Array<{
+    type: 'bookmark';
+    title: string;
+    url: string;
+  }>;
 
   // Check if current URL is bookmarked (in any folder or regular)
   const isCurrentUrlBookmarked = () => {
@@ -78,10 +87,7 @@ const BrowserBookmarks = ({
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-[1000]"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-[1000]" onClick={onClose} />
 
       {/* Dropdown */}
       <div
@@ -133,7 +139,7 @@ const BrowserBookmarks = ({
                   <select
                     value={selectedFolder}
                     onChange={(e) => setSelectedFolder(e.target.value)}
-                    className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-blue-500 focus:outline-none"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <option value="">Add to Favorites</option>
@@ -169,10 +175,7 @@ const BrowserBookmarks = ({
                     </div>
                   ) : (
                     folder.items.map((bookmark) => (
-                      <div
-                        key={bookmark.url}
-                        className="group flex items-center gap-2 px-2 py-0.5"
-                      >
+                      <div key={bookmark.url} className="group flex items-center gap-2 px-2 py-0.5">
                         <button
                           className="font-ui flex-1 truncate rounded px-2 py-1.5 text-left text-[11px] hover:bg-blue-500 hover:text-white"
                           onClick={() => {
@@ -184,7 +187,7 @@ const BrowserBookmarks = ({
                           {bookmark.title}
                         </button>
                         <button
-                          className="font-ui flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] opacity-0 transition-opacity hover:bg-red-500 hover:text-white group-hover:opacity-100"
+                          className="font-ui flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-500 hover:text-white"
                           onClick={() => handleRemoveBookmark(bookmark.url, folder.title)}
                           title="Remove bookmark"
                         >
@@ -205,10 +208,7 @@ const BrowserBookmarks = ({
                     </div>
                   )}
                   {regularBookmarks.map((bookmark) => (
-                    <div
-                      key={bookmark.url}
-                      className="group flex items-center gap-2 px-2 py-0.5"
-                    >
+                    <div key={bookmark.url} className="group flex items-center gap-2 px-2 py-0.5">
                       <button
                         className="font-ui flex-1 truncate rounded px-2 py-1.5 text-left text-[11px] hover:bg-blue-500 hover:text-white"
                         onClick={() => {
@@ -220,7 +220,7 @@ const BrowserBookmarks = ({
                         {bookmark.title}
                       </button>
                       <button
-                        className="font-ui flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] opacity-0 transition-opacity hover:bg-red-500 hover:text-white group-hover:opacity-100"
+                        className="font-ui flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-500 hover:text-white"
                         onClick={() => handleRemoveBookmark(bookmark.url)}
                         title="Remove bookmark"
                       >
@@ -248,20 +248,20 @@ const BrowserBookmarks = ({
                 placeholder="Title"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-blue-500 focus:outline-none"
               />
               <input
                 type="text"
                 placeholder="URL"
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
-                className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-blue-500 focus:outline-none"
               />
               {folders.length > 0 && (
                 <select
                   value={selectedFolder}
                   onChange={(e) => setSelectedFolder(e.target.value)}
-                  className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 >
                   <option value="">Add to Favorites</option>
                   {folders.map((folder) => (

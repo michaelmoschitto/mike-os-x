@@ -25,18 +25,12 @@ const TrafficLights = ({
   const foreground = isForeground !== undefined ? isForeground : isActive;
 
   return (
-    <div
-      className="traffic-lights flex items-center gap-2 ml-1.5 relative"
-      data-titlebar-controls
-    >
+    <div className="traffic-lights relative ml-1.5 flex items-center gap-2" data-titlebar-controls>
       {/* Close Button (Red) */}
-      <div
-        className="relative"
-        style={{ width: '13px', height: '13px' }}
-      >
+      <div className="relative" style={{ width: '13px', height: '13px' }}>
         <div
           aria-hidden="true"
-          className="rounded-full relative overflow-hidden cursor-default outline-none box-border"
+          className="relative box-border cursor-default overflow-hidden rounded-full outline-none"
           style={{
             width: '13px',
             height: '13px',
@@ -50,11 +44,10 @@ const TrafficLights = ({
         >
           {/* Top shine */}
           <div
-            className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{
               height: '28%',
-              background:
-                'linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))',
+              background: 'linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))',
               width: 'calc(100% - 6px)',
               borderRadius: '6px 6px 0 0',
               top: '1px',
@@ -64,11 +57,10 @@ const TrafficLights = ({
           />
           {/* Bottom glow */}
           <div
-            className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{
               height: '33%',
-              background:
-                'linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5))',
+              background: 'linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5))',
               width: 'calc(100% - 3px)',
               borderRadius: '0 0 6px 6px',
               bottom: '1px',
@@ -79,7 +71,7 @@ const TrafficLights = ({
         <button
           aria-label="Close"
           className={cn(
-            'absolute -inset-2 z-10 rounded-none outline-none cursor-default',
+            'absolute -inset-2 z-10 cursor-default rounded-none outline-none',
             debugMode ? 'bg-red-500/50' : 'opacity-0'
           )}
           onClick={(e) => {
@@ -93,13 +85,10 @@ const TrafficLights = ({
       </div>
 
       {/* Minimize Button (Yellow) */}
-      <div
-        className="relative"
-        style={{ width: '13px', height: '13px' }}
-      >
+      <div className="relative" style={{ width: '13px', height: '13px' }}>
         <div
           aria-hidden="true"
-          className="rounded-full relative overflow-hidden cursor-default outline-none box-border"
+          className="relative box-border cursor-default overflow-hidden rounded-full outline-none"
           style={{
             width: '13px',
             height: '13px',
@@ -113,11 +102,10 @@ const TrafficLights = ({
         >
           {/* Top shine */}
           <div
-            className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{
               height: '28%',
-              background:
-                'linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))',
+              background: 'linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))',
               width: 'calc(100% - 6px)',
               borderRadius: '6px 6px 0 0',
               top: '1px',
@@ -127,11 +115,10 @@ const TrafficLights = ({
           />
           {/* Bottom glow */}
           <div
-            className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{
               height: '33%',
-              background:
-                'linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5))',
+              background: 'linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5))',
               width: 'calc(100% - 3px)',
               borderRadius: '0 0 6px 6px',
               bottom: '1px',
@@ -142,7 +129,7 @@ const TrafficLights = ({
         <button
           aria-label="Minimize"
           className={cn(
-            'absolute -inset-2 z-10 rounded-none outline-none cursor-default',
+            'absolute -inset-2 z-10 cursor-default rounded-none outline-none',
             debugMode ? 'bg-yellow-500/50' : 'opacity-0'
           )}
           onClick={(e) => {
@@ -156,13 +143,10 @@ const TrafficLights = ({
       </div>
 
       {/* Maximize Button (Green) */}
-      <div
-        className="relative"
-        style={{ width: '13px', height: '13px' }}
-      >
+      <div className="relative" style={{ width: '13px', height: '13px' }}>
         <div
           aria-hidden="true"
-          className="rounded-full relative overflow-hidden cursor-default outline-none box-border"
+          className="relative box-border cursor-default overflow-hidden rounded-full outline-none"
           style={{
             width: '13px',
             height: '13px',
@@ -176,11 +160,10 @@ const TrafficLights = ({
         >
           {/* Top shine */}
           <div
-            className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{
               height: '28%',
-              background:
-                'linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))',
+              background: 'linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))',
               width: 'calc(100% - 6px)',
               borderRadius: '6px 6px 0 0',
               top: '1px',
@@ -190,11 +173,10 @@ const TrafficLights = ({
           />
           {/* Bottom glow */}
           <div
-            className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{
               height: '33%',
-              background:
-                'linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5))',
+              background: 'linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5))',
               width: 'calc(100% - 3px)',
               borderRadius: '0 0 6px 6px',
               bottom: '1px',
@@ -205,7 +187,7 @@ const TrafficLights = ({
         <button
           aria-label="Maximize"
           className={cn(
-            'absolute -inset-2 z-10 rounded-none outline-none cursor-default',
+            'absolute -inset-2 z-10 cursor-default rounded-none outline-none',
             debugMode ? 'bg-green-500/50' : 'opacity-0'
           )}
           onClick={(e) => {
