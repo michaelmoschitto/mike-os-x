@@ -44,49 +44,43 @@ const BrowserToolbar = ({
   const isUserTypingRef = useRef(false);
 
   useEffect(() => {
-    // Only update address bar value if user isn't actively typing
-    // This prevents autocomplete from showing on programmatic navigation
+    // Prevents autocomplete from showing on programmatic navigation
     if (!isUserTypingRef.current) {
       setAddressBarValue(url);
       setShowSuggestions(false);
     }
   }, [url]);
 
-  // Notify parent of address bar value changes
   useEffect(() => {
     onAddressBarValueChange?.(addressBarValue);
   }, [addressBarValue, onAddressBarValueChange]);
 
-  // Filter history based on input - only when user is typing
   useEffect(() => {
-    // Only show suggestions if user is actively typing
     if (!isUserTypingRef.current) {
       return;
     }
 
     const value = addressBarValue.trim().toLowerCase();
-    
+
     if (value.length === 0) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
     }
 
-    // Filter history entries that match the input
     const filtered = browsingHistory
       .filter((entry) => {
         const urlMatch = entry.url.toLowerCase().includes(value);
         const titleMatch = entry.title.toLowerCase().includes(value);
         return urlMatch || titleMatch;
       })
-      .slice(0, 8); // Show max 8 suggestions
+      .slice(0, 8);
 
     setSuggestions(filtered);
     setShowSuggestions(filtered.length > 0);
     setSelectedIndex(-1);
   }, [addressBarValue, browsingHistory]);
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -108,31 +102,25 @@ const BrowserToolbar = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     let processedUrl = addressBarValue.trim();
-    
-    // If a suggestion is selected, use that URL
+
     if (selectedIndex >= 0 && suggestions[selectedIndex]) {
       processedUrl = suggestions[selectedIndex].url;
     } else {
-      // Validate and normalize URL (adds https:// if needed and validates)
       const normalizedUrl = validateAndNormalizeUrl(processedUrl);
       if (!normalizedUrl) {
-        // Invalid URL - could show error message to user
-        // For now, just don't navigate
         return;
       }
       processedUrl = normalizedUrl;
     }
-    
+
     isUserTypingRef.current = false;
     onNavigate(processedUrl);
     setShowSuggestions(false);
   };
 
   const handleFocus = () => {
-    // Select all text when focusing address bar (classic browser behavior)
     inputRef.current?.select();
     // Only show suggestions if user has typed something (not programmatic updates)
-    // We check if the current value matches the URL prop - if it does, it's likely programmatic
     if (addressBarValue.trim().length > 0 && addressBarValue.trim() !== url) {
       isUserTypingRef.current = true;
       const value = addressBarValue.trim().toLowerCase();
@@ -181,17 +169,16 @@ const BrowserToolbar = ({
     setShowSuggestions(false);
   };
 
-
   return (
     <div
       className="aqua-pinstripe relative flex h-[52px] items-center gap-2 px-3"
       style={{
-        background: 'repeating-linear-gradient(0deg, #f0f0f0, #f0f0f0 1px, #e4e4e4 1px, #e4e4e4 2px)',
+        background:
+          'repeating-linear-gradient(0deg, #f0f0f0, #f0f0f0 1px, #e4e4e4 1px, #e4e4e4 2px)',
         borderBottom: '1px solid #999999',
         boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(0, 0, 0, 0.1)',
       }}
     >
-      {/* Navigation buttons */}
       <div className="flex items-center gap-1">
         <ToolbarButton
           onClick={onBack}
@@ -252,7 +239,13 @@ const BrowserToolbar = ({
                   strokeLinecap="round"
                   fill="none"
                 />
-                <path d="M14 3 L14 6 L11 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M14 3 L14 6 L11 6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             }
           />
@@ -276,7 +269,12 @@ const BrowserToolbar = ({
       </div>
 
       {/* Divider */}
-      <div className="h-[32px] w-px" style={{ background: 'linear-gradient(180deg, transparent, #999 0%, #999 50%, transparent 100%)' }} />
+      <div
+        className="h-[32px] w-px"
+        style={{
+          background: 'linear-gradient(180deg, transparent, #999 0%, #999 50%, transparent 100%)',
+        }}
+      />
 
       {/* Address bar with autocomplete */}
       <form onSubmit={handleSubmit} className="relative flex flex-1 items-center gap-2">
@@ -293,7 +291,7 @@ const BrowserToolbar = ({
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             onBlur={() => {
-              // Reset typing flag after a short delay to allow for programmatic updates
+              // Delay allows programmatic updates to complete before resetting flag
               setTimeout(() => {
                 isUserTypingRef.current = false;
               }, 100);
@@ -307,12 +305,11 @@ const BrowserToolbar = ({
               boxShadow: 'inset 1px 1px 2px rgba(0, 0, 0, 0.1)',
             }}
           />
-          
-          {/* Autocomplete suggestions dropdown */}
+
           {showSuggestions && suggestions.length > 0 && (
             <div
               ref={suggestionsRef}
-              className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[300px] overflow-y-auto"
+              className="absolute top-full right-0 left-0 z-50 mt-1 max-h-[300px] overflow-y-auto"
               style={{
                 background: 'linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%)',
                 border: '1px solid #999',
@@ -332,14 +329,33 @@ const BrowserToolbar = ({
                   type="button"
                 >
                   <div className="flex items-center gap-2">
-                    {/* History icon */}
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-                      <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                      <path d="M8 4 L8 8 L11 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      className="flex-shrink-0"
+                    >
+                      <circle
+                        cx="8"
+                        cy="8"
+                        r="7"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        fill="none"
+                      />
+                      <path
+                        d="M8 4 L8 8 L11 11"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
                     </svg>
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{entry.title}</div>
-                      <div className="truncate text-[10px] opacity-70">{getDomainFromUrl(entry.url)}</div>
+                      <div className="truncate text-[10px] opacity-70">
+                        {getDomainFromUrl(entry.url)}
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -349,10 +365,13 @@ const BrowserToolbar = ({
         </div>
       </form>
 
-      {/* Divider */}
-      <div className="h-[32px] w-px" style={{ background: 'linear-gradient(180deg, transparent, #999 0%, #999 50%, transparent 100%)' }} />
+      <div
+        className="h-[32px] w-px"
+        style={{
+          background: 'linear-gradient(180deg, transparent, #999 0%, #999 50%, transparent 100%)',
+        }}
+      />
 
-      {/* Bookmarks button */}
       <ToolbarButton
         buttonRef={bookmarkButtonRef}
         onClick={onBookmarksClick}
@@ -384,11 +403,18 @@ interface ToolbarButtonProps {
   buttonRef?: (node: HTMLButtonElement | null) => void;
 }
 
-const ToolbarButton = ({ onClick, disabled = false, title, ariaLabel, icon, buttonRef }: ToolbarButtonProps) => {
+const ToolbarButton = ({
+  onClick,
+  disabled = false,
+  title,
+  ariaLabel,
+  icon,
+  buttonRef,
+}: ToolbarButtonProps) => {
   return (
     <button
       ref={buttonRef}
-      className="font-ui relative flex h-[28px] w-[28px] items-center justify-center text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+      className="font-ui relative flex h-[28px] w-[28px] items-center justify-center text-xs transition-all disabled:cursor-not-allowed disabled:opacity-40"
       aria-label={ariaLabel || title}
       style={{
         background: disabled
@@ -424,7 +450,8 @@ const ToolbarButton = ({ onClick, disabled = false, title, ariaLabel, icon, butt
       onMouseUp={(e) => {
         if (!disabled) {
           e.currentTarget.style.background = 'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)';
-          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+          e.currentTarget.style.boxShadow =
+            '0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
         }
       }}
     >

@@ -12,7 +12,6 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
   const [dropdownPosition, setDropdownPosition] = useState<{ left: number; top: number; width: number } | null>(null);
   const folderRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
 
-  // Calculate dropdown position when folder opens
   useEffect(() => {
     if (openFolder) {
       const buttonElement = folderRefs.current[openFolder];
@@ -23,16 +22,12 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
         const dropdownWidth = Math.max(200, rect.width);
         const dropdownMaxHeight = 400;
         
-        // Calculate left position
         let left = rect.left;
-        // If dropdown would overflow right edge, align to right edge
         if (left + dropdownWidth > viewportWidth) {
           left = Math.max(0, viewportWidth - dropdownWidth);
         }
         
-        // Calculate top position
         let top = rect.bottom + 4;
-        // If dropdown would overflow bottom, position above button instead
         if (top + dropdownMaxHeight > viewportHeight && rect.top > dropdownMaxHeight) {
           top = rect.top - dropdownMaxHeight - 4;
         }
@@ -48,7 +43,6 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
     }
   }, [openFolder]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (openFolder) {
@@ -163,7 +157,6 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
         </div>
       ))}
 
-      {/* Dropdown menu via Portal */}
       {openFolder &&
         dropdownPosition &&
         (() => {
@@ -200,7 +193,6 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
           );
         })()}
 
-      {/* Regular bookmarks (not in folders) */}
       {regularBookmarks.map((bookmark) => (
         <button
           key={bookmark.url}

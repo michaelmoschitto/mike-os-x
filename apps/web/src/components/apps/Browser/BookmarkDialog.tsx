@@ -30,25 +30,21 @@ const BookmarkDialog = ({
   const nameInputRef = useRef<HTMLInputElement>(null);
   const selectedFolderRef = useRef<string>('');
 
-  // Extract folders from bookmarks
   const folders = bookmarks.filter((item) => item.type === 'folder');
   
-  // Create dropdown items - include "Bookmarks Bar" as default
   const dropdownItems = [
     { label: 'Bookmarks Bar', value: '' },
     ...folders.map((folder) => ({ label: folder.title, value: folder.title })),
   ];
 
-  // Initialize bookmark name and folder when dialog opens
   useEffect(() => {
     if (isOpen) {
-      // Set default name from current title or URL hostname
       const defaultName = currentTitle || getHostnameFromUrl(currentUrl);
       setBookmarkName(defaultName);
-      setSelectedFolder(''); // Default to "Bookmarks Bar" (empty string = Bookmarks Bar)
+      // Empty string = "Bookmarks Bar" (default)
+      setSelectedFolder('');
       selectedFolderRef.current = '';
 
-      // Focus and select name input so user can immediately edit
       setTimeout(() => {
         nameInputRef.current?.focus();
         nameInputRef.current?.select();
@@ -56,7 +52,6 @@ const BookmarkDialog = ({
     }
   }, [isOpen, currentUrl, currentTitle]);
 
-  // Handle Escape key - close without saving
   useEffect(() => {
     if (!isOpen) return;
 
@@ -74,10 +69,8 @@ const BookmarkDialog = ({
     const name = bookmarkName.trim() || currentTitle || getHostnameFromUrl(currentUrl);
 
     if (name && currentUrl) {
-      // Use ref to get the most current value (in case state hasn't updated yet)
+      // Use ref to get most current value (state may not have updated yet)
       const currentFolder = selectedFolderRef.current || selectedFolder;
-      // Empty string means "Bookmarks Bar" (add as regular bookmark)
-      // Non-empty string means add to that folder
       const folderName = currentFolder.trim() === '' ? undefined : currentFolder;
       onAddBookmark(name, currentUrl, folderName);
     }
@@ -91,15 +84,12 @@ const BookmarkDialog = ({
     }
   };
 
-  // Get favicon letter (first letter of domain)
   const getFaviconLetter = () => {
     const hostname = getHostnameFromUrl(currentUrl);
     if (!hostname) return '?';
     return hostname.charAt(0).toUpperCase();
   };
 
-  // Calculate position based on anchor - position below bookmark button, aligned to right edge
-  // Memoized to prevent unnecessary recalculations and ensure proper dependency tracking
   const calculatePosition = useCallback(() => {
     if (!anchorRef.current) {
       return { top: 100, left: 100 };
@@ -109,18 +99,13 @@ const BookmarkDialog = ({
     const dialogWidth = 400;
     const spacing = 8;
     
-    // Position below the button
     let top = rect.bottom + spacing;
-    
-    // Align to the right edge of the button (like Chrome)
     let left = rect.right - dialogWidth;
     
-    // Ensure it doesn't go off the left edge of the viewport
     if (left < spacing) {
       left = spacing;
     }
     
-    // Ensure it doesn't go off the right edge of the viewport
     if (left + dialogWidth > window.innerWidth - spacing) {
       left = window.innerWidth - dialogWidth - spacing;
     }
@@ -128,7 +113,6 @@ const BookmarkDialog = ({
     return { top, left };
   }, [anchorRef]);
 
-  // Recalculate position when dialog opens or anchor changes
   useEffect(() => {
     if (isOpen) {
       // Small delay to ensure button is positioned
@@ -139,7 +123,6 @@ const BookmarkDialog = ({
     }
   }, [isOpen, calculatePosition]);
 
-  // Create trigger button for dropdown
   const folderTrigger = (
     <button
       type="button"
@@ -175,19 +158,16 @@ const BookmarkDialog = ({
     </button>
   );
 
-  // Render dialog in a portal to avoid clipping and layout issues
   const dialogContent = (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <div
             className="fixed inset-0 z-[999]"
             onClick={handleSave}
             style={{ background: 'transparent' }}
           />
 
-          {/* Dialog */}
           <motion.div
             className="fixed z-[1000]"
             style={{
@@ -206,7 +186,6 @@ const BookmarkDialog = ({
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div
               className="flex items-center justify-between px-3 py-2"
               style={{
@@ -230,9 +209,7 @@ const BookmarkDialog = ({
               </button>
             </div>
 
-            {/* Content */}
             <div className="flex gap-3 p-4">
-              {/* Favicon area */}
               <div
                 className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded"
                 style={{
@@ -248,9 +225,7 @@ const BookmarkDialog = ({
                 </span>
               </div>
 
-              {/* Form fields */}
               <div className="flex-1 space-y-3">
-                {/* Name field */}
                 <div>
                   <label
                     className="font-ui mb-1 block text-[11px] font-medium"
@@ -275,7 +250,6 @@ const BookmarkDialog = ({
                   />
                 </div>
 
-                {/* Folder dropdown */}
                 <div>
                   <label
                     className="font-ui mb-1 block text-[11px] font-medium"
@@ -304,7 +278,6 @@ const BookmarkDialog = ({
     </AnimatePresence>
   );
 
-  // Render in portal at document body level
   return createPortal(dialogContent, document.body);
 };
 

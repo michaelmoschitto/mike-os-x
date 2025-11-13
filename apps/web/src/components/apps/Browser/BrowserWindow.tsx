@@ -61,7 +61,6 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   };
 
   const handleRefresh = () => {
-    // Force iframe reload by navigating to same URL
     if (currentUrl) {
       navigateToUrl(windowData.id, currentUrl);
     }
@@ -73,7 +72,6 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   };
 
   const handleHome = () => {
-    // Navigate to about:blank as home
     navigateToUrl(windowData.id, 'about:blank');
   };
 
@@ -86,19 +84,14 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   };
 
   const handleBookmarksClick = () => {
-    // Use address bar value if available, otherwise fall back to current URL
     const urlToBookmark = addressBarValue.trim() || currentUrl;
-
-    // Chrome-like behavior: if not bookmarked, show dialog to add it
-    // If already bookmarked, remove it (unbookmark)
     if (!urlToBookmark) return;
 
+    // Chrome-like behavior: toggle bookmark (add if not bookmarked, remove if bookmarked)
     if (isUrlBookmarked(urlToBookmark, bookmarks)) {
-      // Already bookmarked - remove it
       const location = findBookmarkLocation(urlToBookmark, bookmarks);
       handleRemoveBookmark(urlToBookmark, location?.folderName);
     } else {
-      // Not bookmarked - show dialog to add it
       setShowBookmarkDialog(true);
     }
   };
@@ -113,35 +106,29 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   };
 
   const getBookmarkTitle = () => {
-    // Use address bar value if available, otherwise fall back to current URL
     const urlToUse = addressBarValue.trim() || currentUrl;
     if (!urlToUse) return '';
     return getHostnameFromUrl(urlToUse);
   };
 
   const getBookmarkUrl = () => {
-    // Use address bar value if available, otherwise fall back to current URL
     return addressBarValue.trim() || currentUrl;
   };
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isActive) return;
 
-      // Cmd/Ctrl + L for address bar focus
       if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
         e.preventDefault();
-        // Focus address bar
         const addressBar = document.querySelector(
           `#browser-${windowData.id} input[type="text"]`
         ) as HTMLInputElement;
         addressBar?.focus();
       }
 
-      // Cmd/Ctrl + R for refresh
-      // Only intercept if Shift is NOT held (Shift+Cmd+R = hard refresh page)
-      // Also check if focus is actually within the browser content area
+      // Only intercept Cmd+R if Shift is NOT held (Shift+Cmd+R = hard refresh)
+      // and focus is within browser window (allows normal refresh when not focused)
       if ((e.metaKey || e.ctrlKey) && e.key === 'r' && !e.shiftKey) {
         const activeElement = document.activeElement;
         const browserElement = document.querySelector(`#browser-${windowData.id}`);
@@ -152,22 +139,17 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
             activeElement.tagName === 'INPUT' ||
             activeElement.tagName === 'TEXTAREA');
 
-        // Only prevent default if focus is actually in the browser window
-        // This allows Cmd+R to refresh the page when not focused on browser content
         if (isFocusedInBrowser) {
           e.preventDefault();
           handleRefresh();
         }
-        // Otherwise, let the browser handle the refresh normally
       }
 
-      // Cmd/Ctrl + [ for back
       if ((e.metaKey || e.ctrlKey) && e.key === '[') {
         e.preventDefault();
         handleBack();
       }
 
-      // Cmd/Ctrl + ] for forward
       if ((e.metaKey || e.ctrlKey) && e.key === ']') {
         e.preventDefault();
         handleForward();
@@ -197,7 +179,6 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
       onResize={(size) => updateWindowSize(windowData.id, size)}
     >
       <div id={`browser-${windowData.id}`} className="relative flex h-full flex-col">
-        {/* Toolbar */}
         <div ref={toolbarRef} className="relative z-20">
           <BrowserToolbar
             url={currentUrl}
@@ -217,21 +198,25 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
           />
         </div>
 
-        {/* Bookmarks Bar - needs to be able to render dropdown over content below */}
+        {/* z-10 allows dropdown to render over content below */}
         <div className="relative z-10">
           <BrowserBookmarksBar bookmarks={bookmarks} onNavigate={handleNavigate} />
         </div>
 
-        {/* Browser Content */}
         <div className="relative z-0 flex-1 overflow-hidden">
           <BrowserContent
             url={currentUrl}
             onLoadStart={handleLoadStart}
             onLoadEnd={handleLoadEnd}
+            onUrlChange={(newUrl) => {
+              // Only update if different to avoid unnecessary re-renders from iframe navigation
+              if (newUrl !== currentUrl) {
+                handleNavigate(newUrl);
+              }
+            }}
           />
         </div>
 
-        {/* Bookmark Dialog - Chrome-like "Bookmark added" experience */}
         {getBookmarkUrl() && (
           <BookmarkDialog
             isOpen={showBookmarkDialog}
