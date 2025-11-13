@@ -11,8 +11,14 @@ interface TextEditWindowProps {
 }
 
 const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) => {
-  const { closeWindow, focusWindow, updateWindowPosition, minimizeWindow, updateWindowContent } =
-    useWindowStore();
+  const {
+    closeWindow,
+    focusWindow,
+    updateWindowPosition,
+    minimizeWindow,
+    updateWindowContent,
+    updateWindowSize,
+  } = useWindowStore();
 
   const [alignment, setAlignment] = useState<'left' | 'center' | 'right' | 'justify'>('left');
   const [fontSize, setFontSize] = useState(12);
@@ -20,12 +26,14 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
 
   const editorRef = useRef<HTMLDivElement>(null);
 
+  // Initialize content
   useEffect(() => {
     if (editorRef.current && windowData.content) {
+      // Convert line breaks to HTML breaks for proper display
       const htmlContent = windowData.content.replace(/\n/g, '<br>');
       editorRef.current.innerHTML = htmlContent;
     }
-  }, [windowData.id, windowData.content]);
+  }, []);
 
   const handleContentChange = () => {
     if (editorRef.current) {
@@ -97,6 +105,7 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
       onMinimize={() => minimizeWindow(windowData.id)}
       onFocus={() => focusWindow(windowData.id)}
       onDragEnd={(position) => updateWindowPosition(windowData.id, position)}
+      onResize={(size) => updateWindowSize(windowData.id, size)}
     >
       {/* Toolbar */}
       <TextEditToolbar

@@ -2,6 +2,7 @@ import { motion, useMotionValue, useSpring, useTransform, type MotionValue } fro
 import { Fragment, useRef, useState } from 'react';
 
 import { useUI } from '@/lib/store';
+import { useWindowStore } from '@/stores/useWindowStore';
 
 type DockIconType =
   | 'finder'
@@ -38,7 +39,8 @@ const INFLUENCE_DISTANCE = 120; // Distance in pixels where magnification effect
 
 const Dock = () => {
   const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
-  const { activeApp } = useUI();
+  const { activeApp, setActiveApp } = useUI();
+  const { openWindow } = useWindowStore();
   const dockRef = useRef<HTMLDivElement>(null);
   const mouseX = useMotionValue(Infinity);
 
@@ -51,6 +53,27 @@ const Dock = () => {
   const handleMouseLeave = () => {
     mouseX.set(Infinity);
     setHoveredIcon(null);
+  };
+
+  const handleIconClick = (iconId: DockIconType) => {
+    console.log('Dock icon clicked:', iconId);
+    if (iconId === 'browser') {
+      console.log('Opening browser window...');
+      // Open a new browser window
+      openWindow({
+        type: 'browser',
+        title: 'Internet Explorer',
+        content: '',
+        position: { x: 100, y: 80 },
+        size: { width: 800, height: 600 },
+        url: '',
+        history: [],
+        historyIndex: -1,
+        // bookmarks will be initialized with default folders (Projects, Previous Work) by the store
+      });
+      setActiveApp('browser');
+      console.log('Browser window opened');
+    }
   };
 
   return (
@@ -75,6 +98,7 @@ const Dock = () => {
               isActive={activeApp === item.id}
               isHovered={hoveredIcon === item.id}
               onHover={setHoveredIcon}
+              onClick={handleIconClick}
             />
             {/* Divider before Trash icon */}
             {item.id === 'ai' && <div className="mx-1 h-12 w-px self-end bg-white/20" />}
@@ -91,9 +115,10 @@ interface DockIconProps {
   isActive: boolean;
   isHovered: boolean;
   onHover: (id: string | null) => void;
+  onClick: (id: DockIconType) => void;
 }
 
-const DockIcon = ({ icon, mouseX, isActive, isHovered, onHover }: DockIconProps) => {
+const DockIcon = ({ icon, mouseX, isActive, isHovered, onHover, onClick }: DockIconProps) => {
   const iconRef = useRef<HTMLDivElement>(null);
 
   // Calculate distance from mouse to this icon's center
@@ -129,27 +154,42 @@ const DockIcon = ({ icon, mouseX, isActive, isHovered, onHover }: DockIconProps)
   // Y offset to lift icons when magnified (keeps bottoms aligned)
   const y = useTransform(smoothScale, (s) => -(s - 1) * (BASE_SIZE / 2));
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Icon clicked:', icon.id);
+    onClick(icon.id);
+  };
+
   return (
     <div ref={iconRef} className="relative flex flex-col items-center">
-      <motion.div
-        className="relative flex cursor-pointer items-center justify-center"
+      <button
+        type="button"
+        className="relative flex cursor-pointer items-center justify-center border-0 bg-transparent p-0"
         onMouseEnter={() => onHover(icon.id)}
         onMouseLeave={() => onHover(null)}
+        onClick={handleClick}
         style={{
           width: BASE_SIZE,
           height: BASE_SIZE,
-          scale: smoothScale,
-          y,
-          filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4))',
         }}
       >
-        <img
-          src={icon.icon}
-          alt={icon.label}
-          className="h-full w-full object-contain"
-          draggable={false}
-        />
-      </motion.div>
+        <motion.div
+          className="relative flex h-full w-full items-center justify-center"
+          style={{
+            scale: smoothScale,
+            y,
+            filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4))',
+          }}
+        >
+          <img
+            src={icon.icon}
+            alt={icon.label}
+            className="h-full w-full object-contain pointer-events-none"
+            draggable={false}
+          />
+        </motion.div>
+      </button>
 
       {isActive && (
         <motion.div

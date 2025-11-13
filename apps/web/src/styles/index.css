@@ -144,6 +144,16 @@ body {
       inset 1px 1px 0 #777,
       inset -1px -1px 0 #f9f9f9 !important;
   }
+
+  /* Hide scrollbar while maintaining scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
 }
 
 /* TextEdit contentEditable styling */
