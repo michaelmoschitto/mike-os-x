@@ -6,7 +6,9 @@ const config: Config = {
     extend: {
       colors: {
         aqua: {
-          blue: '#3b9cff',
+          blue: '#5A8DD9',
+          'blue-hover': '#6B9DE5',
+          'blue-active': '#4978C8',
           graphite: '#7b7b7b',
         },
         bezel: {

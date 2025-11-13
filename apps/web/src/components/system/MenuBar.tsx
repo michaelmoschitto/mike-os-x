@@ -22,22 +22,22 @@ const MenuBar = () => {
           <img src="/icons/apple.png" alt="Apple" className="h-4 w-4" />
         </div>
         <span className="ml-1 font-semibold">{appName}</span>
-        <span className="cursor-default rounded px-1.5 py-0.5 transition-colors hover:bg-blue-500/90 hover:text-white">
+        <span className="cursor-default rounded px-1.5 py-0.5 transition-colors hover:bg-[var(--color-highlight)] hover:text-white">
           File
         </span>
-        <span className="cursor-default rounded px-1.5 py-0.5 transition-colors hover:bg-blue-500/90 hover:text-white">
+        <span className="cursor-default rounded px-1.5 py-0.5 transition-colors hover:bg-[var(--color-highlight)] hover:text-white">
           Edit
         </span>
-        <span className="cursor-default rounded px-1.5 py-0.5 transition-colors hover:bg-blue-500/90 hover:text-white">
+        <span className="cursor-default rounded px-1.5 py-0.5 transition-colors hover:bg-[var(--color-highlight)] hover:text-white">
           View
         </span>
-        <span className="cursor-default rounded px-1.5 py-0.5 transition-colors hover:bg-blue-500/90 hover:text-white">
+        <span className="cursor-default rounded px-1.5 py-0.5 transition-colors hover:bg-[var(--color-highlight)] hover:text-white">
           Go
         </span>
-        <span className="cursor-default rounded px-1.5 py-0.5 transition-colors hover:bg-blue-500/90 hover:text-white">
+        <span className="cursor-default rounded px-1.5 py-0.5 transition-colors hover:bg-[var(--color-highlight)] hover:text-white">
           Window
         </span>
-        <span className="cursor-default rounded px-1.5 py-0.5 transition-colors hover:bg-blue-500/90 hover:text-white">
+        <span className="cursor-default rounded px-1.5 py-0.5 transition-colors hover:bg-[var(--color-highlight)] hover:text-white">
           Help
         </span>
       </div>
