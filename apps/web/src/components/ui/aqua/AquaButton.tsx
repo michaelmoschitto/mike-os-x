@@ -8,7 +8,6 @@ interface AquaButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
 }
 
 export const AquaButton = ({
-  variant = 'default',
   size = 'md',
   active = false,
   className,
@@ -31,4 +30,3 @@ export const AquaButton = ({
     </button>
   );
 };
-

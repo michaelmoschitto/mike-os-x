@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { getDomainFromUrl, validateAndNormalizeUrl } from '@/lib/utils';
+import { getDomainFromUrl, validateAndNormalizeUrl, cn } from '@/lib/utils';
 import { HistoryEntry } from '@/stores/useWindowStore';
-import { cn } from '@/lib/utils';
 
 interface BrowserToolbarProps {
   url: string;

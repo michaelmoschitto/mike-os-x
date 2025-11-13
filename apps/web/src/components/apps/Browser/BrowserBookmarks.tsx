@@ -139,7 +139,7 @@ const BrowserBookmarks = ({
                   <select
                     value={selectedFolder}
                     onChange={(e) => setSelectedFolder(e.target.value)}
-                    className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-[var(--color-highlight)]"
+                    className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-[var(--color-highlight)] focus:outline-none"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <option value="">Add to Favorites</option>
@@ -248,20 +248,20 @@ const BrowserBookmarks = ({
                 placeholder="Title"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-[var(--color-highlight)]"
+                className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-[var(--color-highlight)] focus:outline-none"
               />
               <input
                 type="text"
                 placeholder="URL"
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
-                className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-[var(--color-highlight)]"
+                className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-[var(--color-highlight)] focus:outline-none"
               />
               {folders.length > 0 && (
                 <select
                   value={selectedFolder}
                   onChange={(e) => setSelectedFolder(e.target.value)}
-                  className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-[var(--color-highlight)]"
+                  className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-[var(--color-highlight)] focus:outline-none"
                 >
                   <option value="">Add to Favorites</option>
                   {folders.map((folder) => (

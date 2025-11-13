@@ -2,9 +2,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { BookmarkItem } from '@/stores/useWindowStore';
 import { AquaDropdown } from '@/components/ui/aqua';
 import { cn, getHostnameFromUrl } from '@/lib/utils';
+import { BookmarkItem } from '@/stores/useWindowStore';
 
 interface BookmarkDialogProps {
   isOpen: boolean;
@@ -129,7 +129,7 @@ const BookmarkDialog = ({
       type="button"
       className={cn(
         'font-ui flex w-full items-center justify-between rounded px-2 py-1 text-[11px]',
-        'focus:outline-none focus:ring-1 focus:ring-[var(--color-highlight)]'
+        'focus:ring-1 focus:ring-[var(--color-highlight)] focus:outline-none'
       )}
       style={{
         background: '#fff',
@@ -234,7 +234,7 @@ const BookmarkDialog = ({
                     value={bookmarkName}
                     onChange={(e) => setBookmarkName(e.target.value)}
                     onKeyDown={handleNameKeyDown}
-                    className="font-ui w-full px-2 py-1 text-[12px] focus:outline-none focus:ring-1 focus:ring-[var(--color-highlight)]"
+                    className="font-ui w-full px-2 py-1 text-[12px] focus:ring-1 focus:ring-[var(--color-highlight)] focus:outline-none"
                     style={{
                       background: '#fff',
                       border: '1px solid #8a8a8a',

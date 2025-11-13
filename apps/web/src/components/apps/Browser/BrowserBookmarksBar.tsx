@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-import { BookmarkItem } from '@/stores/useWindowStore';
 import { cn } from '@/lib/utils';
+import { BookmarkItem } from '@/stores/useWindowStore';
 
 interface BrowserBookmarksBarProps {
   bookmarks: BookmarkItem[];
@@ -121,7 +121,8 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
             onClick={() => handleFolderClick(folder.title)}
             className={cn(
               'aqua-button-base flex items-center gap-1 rounded px-2 py-0.5 text-[11px]',
-              openFolder === folder.title && 'bg-[var(--gradient-button-active)] shadow-[var(--shadow-button-active)]'
+              openFolder === folder.title &&
+                'bg-[var(--gradient-button-active)] shadow-[var(--shadow-button-active)]'
             )}
             type="button"
           >
@@ -157,7 +158,7 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
           return createPortal(
             <div
               data-bookmark-dropdown
-              className="fixed z-[10000] max-h-[400px] overflow-y-auto scrollbar-hide"
+              className="scrollbar-hide fixed z-[10000] max-h-[400px] overflow-y-auto"
               style={{
                 left: `${dropdownPosition.left}px`,
                 top: `${dropdownPosition.top}px`,
@@ -173,7 +174,7 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
                 <button
                   key={bookmark.url}
                   onClick={() => handleBookmarkClick(bookmark.url)}
-                  className="font-ui relative flex w-full items-center truncate px-3 py-1.5 text-left text-[11px] outline-none transition-colors"
+                  className="font-ui relative flex w-full items-center truncate px-3 py-1.5 text-left text-[11px] transition-colors outline-none"
                   style={{
                     color: '#2c2c2c',
                     cursor: 'pointer',

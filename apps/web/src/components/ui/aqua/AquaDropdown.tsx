@@ -34,7 +34,7 @@ export const AquaDropdown = ({
 
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          className="aqua-dropdown-menu font-ui min-w-[200px] max-h-[300px] overflow-y-auto p-1"
+          className="aqua-dropdown-menu font-ui max-h-[300px] min-w-[200px] overflow-y-auto p-1"
           style={{
             zIndex: 10000,
           }}
