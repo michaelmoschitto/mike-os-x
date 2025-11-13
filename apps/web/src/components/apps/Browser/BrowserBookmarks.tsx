@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BookmarkItem } from '@/stores/useWindowStore';
+import { findBookmarkLocation, getHostnameFromUrl, isUrlBookmarked } from '@/lib/utils';
 
 interface BrowserBookmarksProps {
   bookmarks: BookmarkItem[];
@@ -35,41 +36,12 @@ const BrowserBookmarks = ({
   // Check if current URL is bookmarked (in any folder or regular)
   const isCurrentUrlBookmarked = () => {
     if (!currentUrl) return false;
-    
-    // Check regular bookmarks
-    if (regularBookmarks.some((b) => b.url === currentUrl)) {
-      return true;
-    }
-    
-    // Check folders
-    for (const folder of folders) {
-      if (folder.items.some((b) => b.url === currentUrl)) {
-        return true;
-      }
-    }
-    
-    return false;
-  };
-
-  const findBookmarkLocation = (url: string): { folderName?: string } | null => {
-    // Check regular bookmarks
-    if (regularBookmarks.some((b) => b.url === url)) {
-      return {};
-    }
-    
-    // Check folders
-    for (const folder of folders) {
-      if (folder.items.some((b) => b.url === url)) {
-        return { folderName: folder.title };
-      }
-    }
-    
-    return null;
+    return isUrlBookmarked(currentUrl, bookmarks);
   };
 
   const handleAddCurrentPage = () => {
     if (currentUrl) {
-      const title = currentTitle || new URL(currentUrl).hostname;
+      const title = currentTitle || getHostnameFromUrl(currentUrl);
       onAddBookmark(title, currentUrl, selectedFolder || undefined);
       setSelectedFolder('');
     }
@@ -77,7 +49,7 @@ const BrowserBookmarks = ({
 
   const handleRemoveCurrentPage = () => {
     if (currentUrl) {
-      const location = findBookmarkLocation(currentUrl);
+      const location = findBookmarkLocation(currentUrl, bookmarks);
       onRemoveBookmark(currentUrl, location?.folderName);
     }
   };

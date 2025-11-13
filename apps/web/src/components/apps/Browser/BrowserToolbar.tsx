@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { HistoryEntry } from '@/stores/useWindowStore';
+import { getDomainFromUrl, validateAndNormalizeUrl } from '@/lib/utils';
 
 interface BrowserToolbarProps {
   url: string;
@@ -112,10 +113,14 @@ const BrowserToolbar = ({
     if (selectedIndex >= 0 && suggestions[selectedIndex]) {
       processedUrl = suggestions[selectedIndex].url;
     } else {
-      // Add https:// if no protocol specified
-      if (processedUrl && !processedUrl.startsWith('http://') && !processedUrl.startsWith('https://')) {
-        processedUrl = 'https://' + processedUrl;
+      // Validate and normalize URL (adds https:// if needed and validates)
+      const normalizedUrl = validateAndNormalizeUrl(processedUrl);
+      if (!normalizedUrl) {
+        // Invalid URL - could show error message to user
+        // For now, just don't navigate
+        return;
       }
+      processedUrl = normalizedUrl;
     }
     
     isUserTypingRef.current = false;
@@ -176,13 +181,6 @@ const BrowserToolbar = ({
     setShowSuggestions(false);
   };
 
-  const getDomainFromUrl = (urlString: string) => {
-    try {
-      return new URL(urlString).hostname;
-    } catch {
-      return urlString;
-    }
-  };
 
   return (
     <div
@@ -199,6 +197,7 @@ const BrowserToolbar = ({
           onClick={onBack}
           disabled={!canGoBack}
           title="Back"
+          ariaLabel="Navigate back"
           icon={
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path
@@ -215,6 +214,7 @@ const BrowserToolbar = ({
           onClick={onForward}
           disabled={!canGoForward}
           title="Forward"
+          ariaLabel="Navigate forward"
           icon={
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path
@@ -231,6 +231,7 @@ const BrowserToolbar = ({
           <ToolbarButton
             onClick={onStop}
             title="Stop"
+            ariaLabel="Stop loading page"
             icon={
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <rect x="6" y="6" width="8" height="8" fill="currentColor" rx="1" />
@@ -241,6 +242,7 @@ const BrowserToolbar = ({
           <ToolbarButton
             onClick={onRefresh}
             title="Refresh"
+            ariaLabel="Refresh page"
             icon={
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path
@@ -258,6 +260,7 @@ const BrowserToolbar = ({
         <ToolbarButton
           onClick={onHome}
           title="Home"
+          ariaLabel="Go to home page"
           icon={
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path
@@ -354,6 +357,7 @@ const BrowserToolbar = ({
         buttonRef={bookmarkButtonRef}
         onClick={onBookmarksClick}
         title="Favorites"
+        ariaLabel="Manage bookmarks"
         icon={
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path
@@ -375,15 +379,17 @@ interface ToolbarButtonProps {
   onClick: () => void;
   disabled?: boolean;
   title: string;
+  ariaLabel?: string;
   icon: React.ReactNode;
   buttonRef?: (node: HTMLButtonElement | null) => void;
 }
 
-const ToolbarButton = ({ onClick, disabled = false, title, icon, buttonRef }: ToolbarButtonProps) => {
+const ToolbarButton = ({ onClick, disabled = false, title, ariaLabel, icon, buttonRef }: ToolbarButtonProps) => {
   return (
     <button
       ref={buttonRef}
       className="font-ui relative flex h-[28px] w-[28px] items-center justify-center text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+      aria-label={ariaLabel || title}
       style={{
         background: disabled
           ? 'linear-gradient(to bottom, #d0d0d0 0%, #b8b8b8 100%)'

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { DEFAULT_BOOKMARKS } from '@/config/defaultBookmarks';
+import { getHostnameFromUrl } from '@/lib/utils';
 
 export type BookmarkItem = 
   | { type: 'bookmark'; title: string; url: string }
@@ -148,7 +149,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
           
           // Add to browsing history for autocomplete
           const browsingHistory = w.browsingHistory || [];
-          const pageTitle = title || new URL(url).hostname;
+          const pageTitle = title || getHostnameFromUrl(url);
           const newHistoryEntry: HistoryEntry = {
             url,
             title: pageTitle,

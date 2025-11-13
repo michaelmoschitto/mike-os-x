@@ -1,35 +1,84 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { getHostnameFromUrl } from '@/lib/utils';
 
 interface BrowserContentProps {
   url: string;
   onLoadStart: () => void;
   onLoadEnd: () => void;
+  onUrlChange?: (newUrl: string) => void;
 }
 
-const BrowserContent = ({ url, onLoadStart, onLoadEnd }: BrowserContentProps) => {
+// Configurable loading timeout (in milliseconds)
+const LOADING_TIMEOUT_MS = 2000;
+
+const BrowserContent = ({ url, onLoadStart, onLoadEnd, onUrlChange }: BrowserContentProps) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const timeoutRef = useRef<number | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const lastKnownUrlRef = useRef<string>(url);
+  const isInternalNavigationRef = useRef(false);
+
+  // Function to check and update URL from iframe
+  const checkIframeUrl = useCallback(() => {
+    if (iframeRef.current?.contentWindow) {
+      try {
+        const iframeUrl = iframeRef.current.contentWindow.location.href;
+        // Only update if the URL has actually changed
+        if (iframeUrl && iframeUrl !== lastKnownUrlRef.current) {
+          lastKnownUrlRef.current = iframeUrl;
+          // Mark as internal navigation so we don't reload the iframe
+          isInternalNavigationRef.current = true;
+          onUrlChange?.(iframeUrl);
+        }
+      } catch (e) {
+        // Cross-origin restriction - can't access iframe location
+        // This is expected for most websites and not an error
+      }
+    }
+  }, [onUrlChange]);
 
   useEffect(() => {
+    // If this URL change came from internal navigation (iframe redirect), 
+    // and the iframe is already at this URL, don't reload
+    if (isInternalNavigationRef.current) {
+      isInternalNavigationRef.current = false;
+      // Check if iframe is already at this URL
+      if (iframeRef.current?.contentWindow) {
+        try {
+          const currentIframeUrl = iframeRef.current.contentWindow.location.href;
+          if (currentIframeUrl === url) {
+            // Iframe is already at this URL, no need to reload
+            return;
+          }
+        } catch (e) {
+          // Cross-origin - can't check, so we'll reload (better safe than sorry)
+        }
+      }
+    }
+
     // Clear any existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
 
+    // Update last known URL when prop changes
+    lastKnownUrlRef.current = url;
+
     if (url && url !== 'about:blank') {
       setError(null);
       setIsLoading(true);
       onLoadStart();
 
-      // Set a shorter timeout - for cross-origin iframes, onLoad might not fire reliably
-      // After 2 seconds, hide the loading spinner but let the iframe continue loading
+      // Set a timeout - for cross-origin iframes, onLoad might not fire reliably
+      // After the timeout, hide the loading spinner but let the iframe continue loading
       timeoutRef.current = window.setTimeout(() => {
         setIsLoading(false);
         onLoadEnd();
-      }, 2000);
+        // Check URL after load completes
+        checkIframeUrl();
+      }, LOADING_TIMEOUT_MS);
     } else {
       setIsLoading(false);
       onLoadEnd();
@@ -44,6 +93,43 @@ const BrowserContent = ({ url, onLoadStart, onLoadEnd }: BrowserContentProps) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
 
+  // Poll for URL changes (helps catch redirects and navigation)
+  useEffect(() => {
+    if (!url || url === 'about:blank') return;
+
+    // Check URL periodically to catch redirects and navigation
+    // This will only work for same-origin iframes due to security restrictions
+    const intervalId = setInterval(() => {
+      checkIframeUrl();
+    }, 500); // Check every 500ms
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [url, checkIframeUrl]);
+
+  // Listen for postMessage from iframe (if website wants to communicate)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Only accept messages from our iframe
+      if (iframeRef.current?.contentWindow === event.source) {
+        // Check if message contains URL update
+        if (event.data && typeof event.data === 'object' && event.data.type === 'url-change') {
+          const newUrl = event.data.url;
+          if (newUrl && newUrl !== lastKnownUrlRef.current) {
+            lastKnownUrlRef.current = newUrl;
+            onUrlChange?.(newUrl);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [onUrlChange]);
+
   const handleIframeLoad = () => {
     // Clear timeout if page loads successfully
     if (timeoutRef.current) {
@@ -53,6 +139,12 @@ const BrowserContent = ({ url, onLoadStart, onLoadEnd }: BrowserContentProps) =>
     setIsLoading(false);
     setError(null);
     onLoadEnd();
+
+    // Check URL after load completes
+    // Small delay to ensure iframe has finished navigating
+    setTimeout(() => {
+      checkIframeUrl();
+    }, 100);
   };
 
   const handleIframeError = () => {
@@ -181,6 +273,18 @@ const BrowserContent = ({ url, onLoadStart, onLoadEnd }: BrowserContentProps) =>
         onError={handleIframeError}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       />
+      {/* 
+        Iframe sandbox permissions explained:
+        - allow-same-origin: Allows the iframe to access its origin (needed for cookies, localStorage, etc.)
+        - allow-scripts: Allows JavaScript execution (required for most websites)
+        - allow-popups: Allows window.open() to create popups
+        - allow-forms: Allows form submission
+        - allow-popups-to-escape-sandbox: Allows popups to escape sandbox restrictions
+        - allow-top-navigation: Allows navigation of the top-level browsing context (parent window)
+          ⚠️ SECURITY NOTE: This allows embedded pages to navigate the parent window. 
+          This is necessary for some websites to function properly, but could be a security concern.
+          Consider removing if not needed for your use case.
+      */}
     </div>
   );
 };

@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookmarkItem } from '@/stores/useWindowStore';
 import AquaDropdown from '@/components/ui/AquaDropdown';
-import { cn } from '@/lib/utils';
+import { cn, getHostnameFromUrl } from '@/lib/utils';
 
 interface BookmarkDialogProps {
   isOpen: boolean;
@@ -43,13 +43,7 @@ const BookmarkDialog = ({
   useEffect(() => {
     if (isOpen) {
       // Set default name from current title or URL hostname
-      const defaultName = currentTitle || (() => {
-        try {
-          return new URL(currentUrl).hostname;
-        } catch {
-          return currentUrl;
-        }
-      })();
+      const defaultName = currentTitle || getHostnameFromUrl(currentUrl);
       setBookmarkName(defaultName);
       setSelectedFolder(''); // Default to "Bookmarks Bar" (empty string = Bookmarks Bar)
       selectedFolderRef.current = '';
@@ -77,13 +71,7 @@ const BookmarkDialog = ({
   }, [isOpen, onClose]);
 
   const handleSave = () => {
-    const name = bookmarkName.trim() || currentTitle || (() => {
-      try {
-        return new URL(currentUrl).hostname;
-      } catch {
-        return currentUrl;
-      }
-    })();
+    const name = bookmarkName.trim() || currentTitle || getHostnameFromUrl(currentUrl);
 
     if (name && currentUrl) {
       // Use ref to get the most current value (in case state hasn't updated yet)
@@ -105,16 +93,14 @@ const BookmarkDialog = ({
 
   // Get favicon letter (first letter of domain)
   const getFaviconLetter = () => {
-    try {
-      const hostname = new URL(currentUrl).hostname;
-      return hostname.charAt(0).toUpperCase();
-    } catch {
-      return '?';
-    }
+    const hostname = getHostnameFromUrl(currentUrl);
+    if (!hostname) return '?';
+    return hostname.charAt(0).toUpperCase();
   };
 
   // Calculate position based on anchor - position below bookmark button, aligned to right edge
-  const calculatePosition = () => {
+  // Memoized to prevent unnecessary recalculations and ensure proper dependency tracking
+  const calculatePosition = useCallback(() => {
     if (!anchorRef.current) {
       return { top: 100, left: 100 };
     }
@@ -140,9 +126,9 @@ const BookmarkDialog = ({
     }
     
     return { top, left };
-  };
+  }, [anchorRef]);
 
-  // Recalculate position when dialog opens
+  // Recalculate position when dialog opens or anchor changes
   useEffect(() => {
     if (isOpen) {
       // Small delay to ensure button is positioned
@@ -151,7 +137,7 @@ const BookmarkDialog = ({
       }, 0);
       return () => clearTimeout(timeoutId);
     }
-  }, [isOpen]);
+  }, [isOpen, calculatePosition]);
 
   // Create trigger button for dropdown
   const folderTrigger = (

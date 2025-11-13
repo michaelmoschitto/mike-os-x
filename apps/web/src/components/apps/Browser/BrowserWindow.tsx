@@ -5,6 +5,7 @@ import BrowserBookmarksBar from '@/components/apps/Browser/BrowserBookmarksBar';
 import BrowserContent from '@/components/apps/Browser/BrowserContent';
 import BrowserToolbar from '@/components/apps/Browser/BrowserToolbar';
 import Window from '@/components/window/Window';
+import { findBookmarkLocation, getHostnameFromUrl, isUrlBookmarked } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
 interface BrowserWindowProps {
@@ -84,27 +85,6 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
     setIsLoading(false);
   };
 
-  // Check if URL is bookmarked (using address bar value or current URL)
-  const isUrlBookmarked = (urlToCheck: string) => {
-    if (!urlToCheck) return false;
-
-    // Check regular bookmarks
-    const regularBookmarks = bookmarks.filter((item) => item.type === 'bookmark');
-    if (regularBookmarks.some((b) => b.url === urlToCheck)) {
-      return true;
-    }
-
-    // Check folders
-    const folders = bookmarks.filter((item) => item.type === 'folder');
-    for (const folder of folders) {
-      if (folder.items.some((b) => b.url === urlToCheck)) {
-        return true;
-      }
-    }
-
-    return false;
-  };
-
   const handleBookmarksClick = () => {
     // Use address bar value if available, otherwise fall back to current URL
     const urlToBookmark = addressBarValue.trim() || currentUrl;
@@ -113,32 +93,14 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
     // If already bookmarked, remove it (unbookmark)
     if (!urlToBookmark) return;
 
-    if (isUrlBookmarked(urlToBookmark)) {
+    if (isUrlBookmarked(urlToBookmark, bookmarks)) {
       // Already bookmarked - remove it
-      const location = findBookmarkLocation(urlToBookmark);
+      const location = findBookmarkLocation(urlToBookmark, bookmarks);
       handleRemoveBookmark(urlToBookmark, location?.folderName);
     } else {
       // Not bookmarked - show dialog to add it
       setShowBookmarkDialog(true);
     }
-  };
-
-  const findBookmarkLocation = (url: string): { folderName?: string } | null => {
-    // Check regular bookmarks
-    const regularBookmarks = bookmarks.filter((item) => item.type === 'bookmark');
-    if (regularBookmarks.some((b) => b.url === url)) {
-      return {};
-    }
-
-    // Check folders
-    const folders = bookmarks.filter((item) => item.type === 'folder');
-    for (const folder of folders) {
-      if (folder.items.some((b) => b.url === url)) {
-        return { folderName: folder.title };
-      }
-    }
-
-    return null;
   };
 
   const handleAddBookmark = (title: string, url: string, folderName?: string) => {
@@ -154,11 +116,7 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
     // Use address bar value if available, otherwise fall back to current URL
     const urlToUse = addressBarValue.trim() || currentUrl;
     if (!urlToUse) return '';
-    try {
-      return new URL(urlToUse).hostname;
-    } catch {
-      return urlToUse;
-    }
+    return getHostnameFromUrl(urlToUse);
   };
 
   const getBookmarkUrl = () => {

@@ -56,9 +56,7 @@ const Dock = () => {
   };
 
   const handleIconClick = (iconId: DockIconType) => {
-    console.log('Dock icon clicked:', iconId);
     if (iconId === 'browser') {
-      console.log('Opening browser window...');
       // Open a new browser window
       openWindow({
         type: 'browser',
@@ -72,7 +70,6 @@ const Dock = () => {
         // bookmarks will be initialized with default folders (Projects, Previous Work) by the store
       });
       setActiveApp('browser');
-      console.log('Browser window opened');
     }
   };
 
@@ -157,7 +154,6 @@ const DockIcon = ({ icon, mouseX, isActive, isHovered, onHover, onClick }: DockI
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Icon clicked:', icon.id);
     onClick(icon.id);
   };
 
