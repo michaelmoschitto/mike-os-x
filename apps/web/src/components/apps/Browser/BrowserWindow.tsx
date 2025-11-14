@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import BookmarkDialog from '@/components/apps/Browser/BookmarkDialog';
 import BrowserBookmarksBar from '@/components/apps/Browser/BrowserBookmarksBar';
@@ -14,6 +15,7 @@ interface BrowserWindowProps {
 }
 
 const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => {
+  const navigate = useNavigate();
   const {
     closeWindow,
     focusWindow,
@@ -36,7 +38,7 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
 
   const currentUrl = windowData.url || '';
   const [addressBarValue, setAddressBarValue] = useState(currentUrl);
-  const history = windowData.history || [];
+  const history = useMemo(() => windowData.history || [], [windowData.history]);
   const historyIndex = windowData.historyIndex ?? -1;
   const bookmarks = windowData.bookmarks || [];
   const browsingHistory = windowData.browsingHistory || [];
@@ -46,19 +48,31 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
 
   const handleNavigate = (url: string, title?: string) => {
     navigateToUrl(windowData.id, url, title);
+
+    if (url.startsWith('/')) {
+      navigate({ to: url });
+    }
   };
 
   const handleBack = useCallback(() => {
     if (canGoBack) {
       navigateBack(windowData.id);
+      const prevUrl = history[historyIndex - 1];
+      if (prevUrl && prevUrl.startsWith('/')) {
+        navigate({ to: prevUrl });
+      }
     }
-  }, [canGoBack, navigateBack, windowData.id]);
+  }, [canGoBack, navigateBack, windowData.id, history, historyIndex, navigate]);
 
   const handleForward = useCallback(() => {
     if (canGoForward) {
       navigateForward(windowData.id);
+      const nextUrl = history[historyIndex + 1];
+      if (nextUrl && nextUrl.startsWith('/')) {
+        navigate({ to: nextUrl });
+      }
     }
-  }, [canGoForward, navigateForward, windowData.id]);
+  }, [canGoForward, navigateForward, windowData.id, history, historyIndex, navigate]);
 
   const handleRefresh = useCallback(() => {
     if (currentUrl) {
