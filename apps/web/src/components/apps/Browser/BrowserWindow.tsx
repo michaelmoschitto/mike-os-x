@@ -6,6 +6,8 @@ import BrowserBookmarksBar from '@/components/apps/Browser/BrowserBookmarksBar';
 import BrowserContent from '@/components/apps/Browser/BrowserContent';
 import BrowserToolbar from '@/components/apps/Browser/BrowserToolbar';
 import Window from '@/components/window/Window';
+import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
+import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { findBookmarkLocation, getHostnameFromUrl, isUrlBookmarked } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
@@ -16,19 +18,16 @@ interface BrowserWindowProps {
 
 const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => {
   const navigate = useNavigate();
-  const {
-    closeWindow,
-    focusWindow,
-    updateWindowPosition,
-    updateWindowSize,
-    minimizeWindow,
-    navigateToUrl,
-    navigateBack,
-    navigateForward,
-    addBookmark,
-    removeBookmark,
-    routeNavigationWindowId,
-  } = useWindowStore();
+  const { navigateToUrl, navigateBack, navigateForward, addBookmark, removeBookmark } =
+    useWindowStore();
+
+  const routeStrategy = getRouteStrategy('browser');
+  const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
+    useWindowLifecycle({
+      window: windowData,
+      isActive,
+      routeStrategy,
+    });
 
   const [isLoading, setIsLoading] = useState(false);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
@@ -136,20 +135,6 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   };
 
   useEffect(() => {
-    if (!isActive) return;
-
-    if (routeNavigationWindowId === windowData.id) return;
-
-    const browserUrl = currentUrl && currentUrl !== 'about:blank' ? currentUrl : '';
-    const siteUrl = browserUrl ? `/browser?url=${encodeURIComponent(browserUrl)}` : '/browser';
-
-    navigate({
-      to: siteUrl,
-      replace: true,
-    });
-  }, [isActive, currentUrl, navigate, routeNavigationWindowId, windowData.id]);
-
-  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isActive) return;
 
@@ -215,11 +200,11 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
       position={windowData.position}
       size={windowData.size}
       zIndex={windowData.zIndex}
-      onClose={() => closeWindow(windowData.id)}
-      onMinimize={() => minimizeWindow(windowData.id)}
-      onFocus={() => focusWindow(windowData.id)}
-      onDragEnd={(position) => updateWindowPosition(windowData.id, position)}
-      onResize={(size) => updateWindowSize(windowData.id, size)}
+      onClose={handleClose}
+      onMinimize={handleMinimize}
+      onFocus={handleFocus}
+      onDragEnd={handleDragEnd}
+      onResize={handleResize}
     >
       <div id={`browser-${windowData.id}`} className="relative flex h-full flex-col">
         <div ref={toolbarRef} className="relative z-20">

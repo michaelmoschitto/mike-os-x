@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import TextEditRuler from '@/components/apps/TextEdit/TextEditRuler';
 import TextEditToolbar from '@/components/apps/TextEdit/TextEditToolbar';
 import Window from '@/components/window/Window';
+import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
+import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
 interface TextEditWindowProps {
@@ -11,14 +13,15 @@ interface TextEditWindowProps {
 }
 
 const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) => {
-  const {
-    closeWindow,
-    focusWindow,
-    updateWindowPosition,
-    minimizeWindow,
-    updateWindowContent,
-    updateWindowSize,
-  } = useWindowStore();
+  const { updateWindowContent } = useWindowStore();
+
+  const routeStrategy = getRouteStrategy('textedit');
+  const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
+    useWindowLifecycle({
+      window: windowData,
+      isActive,
+      routeStrategy,
+    });
 
   const [alignment, setAlignment] = useState<'left' | 'center' | 'right' | 'justify'>('left');
   const [fontSize, setFontSize] = useState(12);
@@ -101,11 +104,11 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
       position={windowData.position}
       size={windowData.size}
       zIndex={windowData.zIndex}
-      onClose={() => closeWindow(windowData.id)}
-      onMinimize={() => minimizeWindow(windowData.id)}
-      onFocus={() => focusWindow(windowData.id)}
-      onDragEnd={(position) => updateWindowPosition(windowData.id, position)}
-      onResize={(size) => updateWindowSize(windowData.id, size)}
+      onClose={handleClose}
+      onMinimize={handleMinimize}
+      onFocus={handleFocus}
+      onDragEnd={handleDragEnd}
+      onResize={handleResize}
     >
       {/* Toolbar */}
       <TextEditToolbar
