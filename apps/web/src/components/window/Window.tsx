@@ -153,9 +153,9 @@ const Window = ({
       dragListener={false}
       dragConstraints={{
         left: 0,
-        top: 22,
+        top: 0,
         right: globalThis.window.innerWidth - currentSize.width,
-        bottom: globalThis.window.innerHeight - currentSize.height - 60,
+        bottom: globalThis.window.innerHeight - currentSize.height,
       }}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
