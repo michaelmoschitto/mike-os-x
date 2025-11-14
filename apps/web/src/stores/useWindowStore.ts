@@ -28,6 +28,8 @@ export interface Window {
   historyIndex?: number;
   browsingHistory?: HistoryEntry[]; // Full browsing history for autocomplete
   bookmarks?: BookmarkItem[];
+  // URL routing properties
+  urlPath?: string; // The URL path that opened this window (for duplicate prevention)
 }
 
 interface WindowStore {
@@ -49,6 +51,12 @@ interface WindowStore {
   removeBookmark: (id: string, url: string, folderName?: string) => void;
   addBookmarkToFolder: (id: string, folderName: string, title: string, url: string) => void;
   removeBookmarkFromFolder: (id: string, folderName: string, url: string) => void;
+  // URL routing helper
+  openWindowFromUrl: (
+    urlPath: string,
+    content: string,
+    entry: { appType: string; metadata: { title?: string }; fileExtension: string }
+  ) => void;
 }
 
 export const useWindowStore = create<WindowStore>((set, get) => ({
@@ -90,6 +98,15 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
 
   closeWindow: (id) => {
     const state = get();
+    const windowToClose = state.windows.find((w) => w.id === id);
+
+    // If window was opened from a URL, navigate back in browser history
+    if (windowToClose?.urlPath) {
+      // Use browser history to navigate back
+      // This handles multiple windows correctly - closing one goes back to previous URL
+      window.history.back();
+    }
+
     const windows = state.windows.filter((w) => w.id !== id);
     const activeWindowId =
       state.activeWindowId === id
@@ -354,5 +371,40 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
         return w;
       }),
     }));
+  },
+
+  openWindowFromUrl: (urlPath, content, entry) => {
+    const state = get();
+
+    // Check if file is already open (prevent duplicates)
+    const existingWindow = state.windows.find((w) => w.urlPath === urlPath && !w.isMinimized);
+    if (existingWindow) {
+      // Focus existing window instead of creating duplicate
+      get().focusWindow(existingWindow.id);
+      return;
+    }
+
+    // Determine window type from app type
+    const windowType = entry.appType === 'browser' ? 'browser' : 'textedit';
+
+    // Calculate centered position for direct-linked files
+    const windowWidth = 600;
+    const windowHeight = 500;
+    const centerX = (window.innerWidth - windowWidth) / 2;
+    const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2; // Account for menubar and dock
+
+    // Get title from metadata or generate from URL
+    const title = entry.metadata.title || urlPath.split('/').pop() || 'Untitled';
+
+    const newWindow: Omit<Window, 'id' | 'zIndex' | 'isMinimized'> = {
+      type: windowType,
+      title,
+      content,
+      position: { x: centerX, y: centerY + 22 },
+      size: { width: windowWidth, height: windowHeight },
+      urlPath,
+    };
+
+    get().openWindow(newWindow);
   },
 }));
