@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 
 import { DEFAULT_BOOKMARKS } from '@/config/defaultBookmarks';
+import { useUI } from '@/lib/store';
 import { getHostnameFromUrl } from '@/lib/utils';
+import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 
 export type BookmarkItem =
   | { type: 'bookmark'; title: string; url: string }
@@ -37,18 +39,25 @@ export interface Window {
   browsingHistory?: HistoryEntry[];
   bookmarks?: BookmarkItem[];
   urlPath?: string;
+  route?: string;
 }
+
+const getAppTypeForDock = (windowType: 'textedit' | 'browser'): 'browser' | 'textedit' | null => {
+  return windowType;
+};
 
 interface WindowStore {
   windows: Window[];
   activeWindowId: string | null;
   maxZIndex: number;
   routeNavigationWindowId: string | null;
+  routeStack: string[];
   openWindow: (
     window: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { appName?: string }
   ) => void;
   closeWindow: (id: string) => void;
   focusWindow: (id: string) => void;
+  getRouteToNavigateOnClose: (id: string) => string | null;
   updateWindowPosition: (id: string, position: { x: number; y: number }) => void;
   updateWindowSize: (id: string, size: { width: number; height: number }) => void;
   updateWindowContent: (id: string, content: string) => void;
@@ -74,6 +83,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
   activeWindowId: null,
   maxZIndex: 100,
   routeNavigationWindowId: null,
+  routeStack: [],
 
   openWindow: (window) => {
     const state = get();
@@ -89,6 +99,11 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     const bookmarks =
       window.type === 'browser' && !window.bookmarks ? DEFAULT_BOOKMARKS : window.bookmarks;
 
+    const strategy = getRouteStrategy(window.type);
+    const route = strategy.shouldSyncRoute(window as Window)
+      ? strategy.getRouteForWindow(window as Window)
+      : undefined;
+
     const newWindow: Window = {
       ...window,
       id,
@@ -97,22 +112,27 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       zIndex,
       isMinimized: false,
       bookmarks,
+      route,
     };
+
+    const routeStack = route ? [...state.routeStack, route] : state.routeStack;
+    const appType = getAppTypeForDock(window.type);
 
     set({
       windows: [...state.windows, newWindow],
       activeWindowId: id,
       maxZIndex: zIndex,
+      routeStack,
     });
+
+    if (appType) {
+      useUI.getState().setActiveApp(appType);
+    }
   },
 
   closeWindow: (id) => {
     const state = get();
     const windowToClose = state.windows.find((w) => w.id === id);
-
-    if (windowToClose?.urlPath) {
-      window.history.back();
-    }
 
     const windows = state.windows.filter((w) => w.id !== id);
     const activeWindowId =
@@ -122,19 +142,59 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
           : null
         : state.activeWindowId;
 
-    set({ windows, activeWindowId });
+    const nextActiveWindow = activeWindowId ? windows.find((w) => w.id === activeWindowId) : null;
+    const nextAppType = nextActiveWindow ? getAppTypeForDock(nextActiveWindow.type) : null;
+
+    const routeStack = windowToClose?.route
+      ? state.routeStack.filter((r) => r !== windowToClose.route)
+      : state.routeStack;
+
+    set({ windows, activeWindowId, routeStack });
+
+    useUI.getState().setActiveApp(nextAppType);
+  },
+
+  getRouteToNavigateOnClose: (id) => {
+    const state = get();
+    const windowToClose = state.windows.find((w) => w.id === id);
+    if (!windowToClose) return null;
+
+    const windows = state.windows.filter((w) => w.id !== id);
+    if (windows.length === 0) {
+      return '/';
+    }
+
+    const nextActiveWindow = windows[windows.length - 1];
+    if (nextActiveWindow?.route) {
+      return nextActiveWindow.route;
+    }
+
+    if (state.routeStack.length > 0) {
+      return state.routeStack[state.routeStack.length - 1];
+    }
+
+    return '/';
   },
 
   focusWindow: (id) => {
     const state = get();
+    const window = state.windows.find((w) => w.id === id);
+    if (!window) return;
+
     const zIndex = state.maxZIndex + 1;
     const windows = state.windows.map((w) => (w.id === id ? { ...w, zIndex } : w));
+
+    const appType = getAppTypeForDock(window.type);
 
     set({
       windows,
       activeWindowId: id,
       maxZIndex: zIndex,
     });
+
+    if (appType) {
+      useUI.getState().setActiveApp(appType);
+    }
   },
 
   updateWindowPosition: (id, position) => {
@@ -169,8 +229,9 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       }, 200);
     }
 
-    set((state) => ({
-      windows: state.windows.map((w) => {
+    set((state) => {
+      const strategy = getRouteStrategy('browser');
+      const updatedWindows = state.windows.map((w) => {
         if (w.id === id && w.type === 'browser') {
           const history = w.history || [];
           const historyIndex = w.historyIndex ?? -1;
@@ -187,7 +248,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
           const filteredHistory = browsingHistory.filter((entry) => entry.url !== url);
           const updatedBrowsingHistory = [newHistoryEntry, ...filteredHistory].slice(0, 100);
 
-          return {
+          const updatedWindow = {
             ...w,
             url,
             urlPath: url.startsWith('/') ? url : w.urlPath,
@@ -195,10 +256,29 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
             historyIndex: newHistory.length - 1,
             browsingHistory: updatedBrowsingHistory,
           };
+
+          const newRoute = strategy.getRouteForWindow(updatedWindow);
+
+          return {
+            ...updatedWindow,
+            route: newRoute,
+          };
         }
         return w;
-      }),
-    }));
+      });
+
+      const updatedWindow = updatedWindows.find((w) => w.id === id);
+      const oldWindow = state.windows.find((w) => w.id === id);
+      let routeStack = state.routeStack;
+
+      if (oldWindow?.route && updatedWindow?.route && oldWindow.route !== updatedWindow.route) {
+        routeStack = routeStack
+          .map((r) => (r === oldWindow.route ? updatedWindow.route : r))
+          .filter((r): r is string => r !== undefined);
+      }
+
+      return { windows: updatedWindows, routeStack };
+    });
   },
 
   navigateBack: (id) => {
@@ -407,6 +487,10 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     };
 
     get().openWindow(newWindow);
+    const createdWindow = get().windows[get().windows.length - 1];
+    if (createdWindow) {
+      get().focusWindow(createdWindow.id);
+    }
   },
 
   getActiveBrowserWindow: () => {
