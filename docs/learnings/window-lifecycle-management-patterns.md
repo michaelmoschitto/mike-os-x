@@ -50,7 +50,7 @@ const textEditStrategy: WindowRouteStrategy = {
 - **Single Responsibility**: Each strategy handles one window type's routing logic
 - **Testability**: Strategies can be unit tested independently
 
-**Interview Answer:**
+**Key Insight:**
 > "We used the Strategy pattern to encapsulate window-type-specific routing behavior. This allows us to add new window types (like Finder, Photos viewer) by simply implementing a new strategy, without touching existing code. Each strategy knows how to generate routes for its window type and whether route syncing should occur."
 
 ### 2. Hook Composition Pattern: Shared Lifecycle Logic
@@ -97,7 +97,7 @@ export const useWindowLifecycle = ({
 - **Testability**: Hook can be tested independently of UI components
 - **Consistency**: All windows behave identically for lifecycle events
 
-**Interview Answer:**
+**Key Insight:**
 > "We extracted shared window lifecycle logic into a custom hook using the Composition pattern. This hook handles route synchronization, navigation on close, and delegates to the store for state management. Window components become thin wrappers that compose this hook with their app-specific logic. This ensures consistent behavior across all window types and makes adding new windows trivial—just use the hook."
 
 ### 3. State Management Pattern: Centralized Window Store
@@ -127,7 +127,7 @@ closeWindow: (id) => {
 - **Predictable Navigation**: Route stack ensures correct navigation on close
 - **Separation of Concerns**: Store manages state, hooks handle side effects (navigation)
 
-**Interview Answer:**
+**Key Insight:**
 > "We centralized window state in a Zustand store with a route stack. When windows open, we push their routes to the stack. On close, we calculate the correct route to navigate to—either the next active window's route, the last route in the stack, or `/` if no windows remain. This ensures predictable navigation behavior that matches user expectations."
 
 ### 4. Observer Pattern: Dock Synchronization
@@ -155,7 +155,7 @@ focusWindow: (id) => {
 - **Loose Coupling**: Dock doesn't need to know about window store internals
 - **Consistency**: Single source of truth for active app
 
-**Interview Answer:**
+**Key Insight:**
 > "We implemented automatic synchronization between the window store and UI store. When a window is focused, the store updates both its internal state and the UI store's `activeApp`. This ensures the dock indicator always reflects the currently focused window without requiring the dock component to subscribe to window state changes."
 
 ## Architecture Decisions
@@ -309,27 +309,27 @@ useEffect(() => {
 
 **UX Benefit:** Browser back/forward works correctly, URLs are shareable
 
-## Technical Interview Talking Points
+## Key Points
 
-### "How did you ensure code reusability?"
+### Code Reusability
 
-> "We identified common window lifecycle behaviors (close, focus, minimize, route sync) and extracted them into a reusable hook. We used the Strategy pattern for window-type-specific routing, allowing new window types to be added with minimal code. This reduced boilerplate by 90% and ensures consistent behavior across all windows."
+We identified common window lifecycle behaviors (close, focus, minimize, route sync) and extracted them into a reusable hook. The Strategy pattern handles window-type-specific routing, allowing new window types to be added with minimal code. This reduced boilerplate by 90% and ensures consistent behavior across all windows.
 
-### "How do you handle state management?"
+### State Management Approach
 
-> "We use Zustand for window state with a route stack. The store manages window state, z-index, and route history. We separate concerns: the store handles state, hooks handle side effects like navigation. This makes the system predictable and testable."
+We use Zustand for window state with a route stack. The store manages window state, z-index, and route history. We separate concerns: the store handles state, hooks handle side effects like navigation. This makes the system predictable and testable.
 
-### "What design patterns did you use?"
+### Design Patterns Summary
 
-> "Three main patterns: Strategy for route management (allows extensibility), Composition via hooks (shared lifecycle logic), and Observer pattern for dock synchronization (automatic state sync). Each pattern solves a specific problem while keeping the code maintainable."
+Three main patterns: Strategy for route management (allows extensibility), Composition via hooks (shared lifecycle logic), and Observer pattern for dock synchronization (automatic state sync). Each pattern solves a specific problem while keeping the code maintainable.
 
-### "How would you add a new window type?"
+### Adding New Window Types
 
-> "Three steps: 1) Define a route strategy for the new type, 2) Add it to the strategy map, 3) Use the lifecycle hook in the component. The hook handles all lifecycle events, route sync, and navigation automatically. This takes about 10 lines of code vs 50+ before."
+Three steps: 1) Define a route strategy for the new type, 2) Add it to the strategy map, 3) Use the lifecycle hook in the component. The hook handles all lifecycle events, route sync, and navigation automatically. This takes about 10 lines of code vs 50+ before.
 
-### "How do you ensure windows behave consistently?"
+### Consistent Window Behavior
 
-> "All windows use the same lifecycle hook, which enforces consistent behavior. The hook handles route synchronization, navigation on close, and delegates to the store for state management. Window components only contain app-specific logic, ensuring the OS-level behaviors are identical."
+All windows use the same lifecycle hook, which enforces consistent behavior. The hook handles route synchronization, navigation on close, and delegates to the store for state management. Window components only contain app-specific logic, ensuring the OS-level behaviors are identical.
 
 ## Key Metrics
 
