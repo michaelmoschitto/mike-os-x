@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router';
 import { motion, useMotionValue } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
@@ -26,6 +27,7 @@ const DesktopIcon = ({
   const isDragging = useRef(false);
   const lastClickTime = useRef(0);
   const openWindow = useWindowStore((state) => state.openWindow);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isDragging.current) {
@@ -50,7 +52,13 @@ const DesktopIcon = ({
   };
 
   const handleDoubleClick = () => {
-    // Only open text files (.txt, .md) in TextEdit
+    // If icon has a URL path, navigate to it (this will open the file via routing)
+    if (icon.urlPath) {
+      navigate({ to: icon.urlPath });
+      return;
+    }
+
+    // Fallback: Only open text files (.txt, .md) in TextEdit if no URL path
     if (icon.type === 'file' && (icon.fileExtension === 'txt' || icon.fileExtension === 'md')) {
       // Calculate centered position for window
       const windowWidth = 600;
