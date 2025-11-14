@@ -27,6 +27,7 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
     navigateForward,
     addBookmark,
     removeBookmark,
+    routeNavigationWindowId,
   } = useWindowStore();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -46,8 +47,13 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   const canGoBack = historyIndex > 0;
   const canGoForward = historyIndex < history.length - 1;
 
-  const handleNavigate = (url: string, title?: string) => {
-    navigateToUrl(windowData.id, url, title);
+  const handleNavigate = (
+    url: string,
+    title?: string,
+    syncSource?: 'user' | 'route' | 'internal'
+  ) => {
+    const fromRoute = syncSource === 'route';
+    navigateToUrl(windowData.id, url, title, fromRoute);
 
     if (url.startsWith('/')) {
       navigate({ to: url });
@@ -130,6 +136,20 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   };
 
   useEffect(() => {
+    if (!isActive) return;
+
+    if (routeNavigationWindowId === windowData.id) return;
+
+    const browserUrl = currentUrl && currentUrl !== 'about:blank' ? currentUrl : '';
+    const siteUrl = browserUrl ? `/browser?url=${encodeURIComponent(browserUrl)}` : '/browser';
+
+    navigate({
+      to: siteUrl,
+      replace: true,
+    });
+  }, [isActive, currentUrl, navigate, routeNavigationWindowId, windowData.id]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isActive) return;
 
@@ -209,7 +229,7 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
             canGoForward={canGoForward}
             isLoading={isLoading}
             browsingHistory={browsingHistory}
-            onNavigate={handleNavigate}
+            onNavigate={(url) => handleNavigate(url, undefined, 'user')}
             onBack={handleBack}
             onForward={handleForward}
             onRefresh={handleRefresh}
@@ -223,7 +243,10 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
 
         {/* z-10 allows dropdown to render over content below */}
         <div className="relative z-10">
-          <BrowserBookmarksBar bookmarks={bookmarks} onNavigate={handleNavigate} />
+          <BrowserBookmarksBar
+            bookmarks={bookmarks}
+            onNavigate={(url) => handleNavigate(url, undefined, 'user')}
+          />
         </div>
 
         <div className="relative z-0 flex-1 overflow-hidden">
@@ -234,7 +257,7 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
             onUrlChange={(newUrl) => {
               // Only update if different to avoid unnecessary re-renders from iframe navigation
               if (newUrl !== currentUrl) {
-                handleNavigate(newUrl);
+                handleNavigate(newUrl, undefined, 'internal');
               }
             }}
           />

@@ -43,6 +43,7 @@ interface WindowStore {
   windows: Window[];
   activeWindowId: string | null;
   maxZIndex: number;
+  routeNavigationWindowId: string | null;
   openWindow: (
     window: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { appName?: string }
   ) => void;
@@ -52,7 +53,7 @@ interface WindowStore {
   updateWindowSize: (id: string, size: { width: number; height: number }) => void;
   updateWindowContent: (id: string, content: string) => void;
   minimizeWindow: (id: string) => void;
-  navigateToUrl: (id: string, url: string, title?: string) => void;
+  navigateToUrl: (id: string, url: string, title?: string, fromRoute?: boolean) => void;
   navigateBack: (id: string) => void;
   navigateForward: (id: string) => void;
   addBookmark: (id: string, title: string, url: string, folderName?: string) => void;
@@ -64,12 +65,15 @@ interface WindowStore {
     content: string,
     entry: { appType: string; metadata: { title?: string }; fileExtension: string }
   ) => void;
+  getActiveBrowserWindow: () => Window | null;
+  getOrCreateBrowserWindow: (initialUrl?: string) => Window;
 }
 
 export const useWindowStore = create<WindowStore>((set, get) => ({
   windows: [],
   activeWindowId: null,
   maxZIndex: 100,
+  routeNavigationWindowId: null,
 
   openWindow: (window) => {
     const state = get();
@@ -157,7 +161,14 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     }));
   },
 
-  navigateToUrl: (id, url, title?: string) => {
+  navigateToUrl: (id, url, title?: string, fromRoute?: boolean) => {
+    if (fromRoute) {
+      set({ routeNavigationWindowId: id });
+      setTimeout(() => {
+        set({ routeNavigationWindowId: null });
+      }, 200);
+    }
+
     set((state) => ({
       windows: state.windows.map((w) => {
         if (w.id === id && w.type === 'browser') {
@@ -396,5 +407,45 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     };
 
     get().openWindow(newWindow);
+  },
+
+  getActiveBrowserWindow: () => {
+    const state = get();
+    const browserWindows = state.windows.filter((w) => w.type === 'browser' && !w.isMinimized);
+    if (browserWindows.length === 0) return null;
+
+    const activeBrowser = browserWindows.find((w) => w.id === state.activeWindowId);
+    if (activeBrowser) return activeBrowser;
+
+    return browserWindows.reduce((prev, curr) => (curr.zIndex > prev.zIndex ? curr : prev));
+  },
+
+  getOrCreateBrowserWindow: (initialUrl?: string) => {
+    const state = get();
+    const existingBrowser = state.getActiveBrowserWindow();
+
+    if (existingBrowser) {
+      return existingBrowser;
+    }
+
+    const windowWidth = 1100;
+    const windowHeight = 640;
+    const centerX = (window.innerWidth - windowWidth) / 2;
+    const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
+
+    const newWindow: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> = {
+      type: 'browser',
+      title: 'Internet Explorer',
+      content: '',
+      position: { x: centerX, y: centerY + 22 },
+      size: { width: windowWidth, height: windowHeight },
+      url: initialUrl || '',
+      history: initialUrl ? [initialUrl] : [],
+      historyIndex: initialUrl ? 0 : -1,
+    };
+
+    get().openWindow(newWindow);
+    const createdWindow = get().windows[get().windows.length - 1];
+    return createdWindow;
   },
 }));

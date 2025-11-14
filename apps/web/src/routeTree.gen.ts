@@ -9,9 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as BrowserRouteImport } from './routes/browser'
 import { Route as PathRouteImport } from './routes/$path'
 import { Route as IndexRouteImport } from './routes/index'
 
+const BrowserRoute = BrowserRouteImport.update({
+  id: '/browser',
+  path: '/browser',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PathRoute = PathRouteImport.update({
   id: '/$path',
   path: '/$path',
@@ -26,31 +32,42 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$path': typeof PathRoute
+  '/browser': typeof BrowserRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$path': typeof PathRoute
+  '/browser': typeof BrowserRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$path': typeof PathRoute
+  '/browser': typeof BrowserRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$path'
+  fullPaths: '/' | '/$path' | '/browser'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$path'
-  id: '__root__' | '/' | '/$path'
+  to: '/' | '/$path' | '/browser'
+  id: '__root__' | '/' | '/$path' | '/browser'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PathRoute: typeof PathRoute
+  BrowserRoute: typeof BrowserRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/browser': {
+      id: '/browser'
+      path: '/browser'
+      fullPath: '/browser'
+      preLoaderRoute: typeof BrowserRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$path': {
       id: '/$path'
       path: '/$path'
@@ -71,6 +88,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PathRoute: PathRoute,
+  BrowserRoute: BrowserRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

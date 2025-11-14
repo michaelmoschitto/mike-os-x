@@ -9,6 +9,10 @@ import { useWindowStore } from '@/stores/useWindowStore';
 
 export const Route = createFileRoute('/$path')({
   loader: async ({ params }) => {
+    if (params.path === 'browser' || params.path.startsWith('browser/')) {
+      return { resolved: null, error: null, isBrowserRoute: true };
+    }
+
     const indexState = useContentIndex.getState();
     if (!indexState.isIndexed) {
       await initializeContentIndex();
@@ -16,11 +20,12 @@ export const Route = createFileRoute('/$path')({
 
     try {
       const resolved = await resolveUrlToContent(params.path);
-      return { resolved, error: null };
+      return { resolved, error: null, isBrowserRoute: false };
     } catch (error) {
       return {
         resolved: null,
         error: error instanceof Error ? error.message : 'Unknown error',
+        isBrowserRoute: false,
       };
     }
   },
@@ -28,10 +33,14 @@ export const Route = createFileRoute('/$path')({
 });
 
 function PathComponent() {
-  const { resolved, error } = Route.useLoaderData();
+  const { resolved, error, isBrowserRoute } = Route.useLoaderData();
   const openWindowFromUrl = useWindowStore((state) => state.openWindowFromUrl);
 
   useEffect(() => {
+    if (isBrowserRoute) {
+      return;
+    }
+
     if (resolved && !error) {
       const entry: ContentIndexEntry = resolved.entry;
       openWindowFromUrl(entry.urlPath, resolved.content, {
@@ -40,7 +49,7 @@ function PathComponent() {
         fileExtension: entry.fileExtension,
       });
     }
-  }, [resolved, error, openWindowFromUrl]);
+  }, [resolved, error, isBrowserRoute, openWindowFromUrl]);
 
   return (
     <>
