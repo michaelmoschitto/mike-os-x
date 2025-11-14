@@ -13,9 +13,18 @@ export interface HistoryEntry {
   visitTime: number;
 }
 
+const getAppName = (windowType: 'textedit' | 'browser'): string => {
+  const appNames: Record<'textedit' | 'browser', string> = {
+    browser: 'Internet Explorer',
+    textedit: 'TextEdit',
+  };
+  return appNames[windowType];
+};
+
 export interface Window {
   id: string;
   type: 'textedit' | 'browser';
+  appName: string;
   title: string;
   content: string;
   position: { x: number; y: number };
@@ -34,7 +43,9 @@ interface WindowStore {
   windows: Window[];
   activeWindowId: string | null;
   maxZIndex: number;
-  openWindow: (window: Omit<Window, 'id' | 'zIndex' | 'isMinimized'>) => void;
+  openWindow: (
+    window: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { appName?: string }
+  ) => void;
   closeWindow: (id: string) => void;
   focusWindow: (id: string) => void;
   updateWindowPosition: (id: string, position: { x: number; y: number }) => void;
@@ -77,6 +88,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     const newWindow: Window = {
       ...window,
       id,
+      appName: window.appName || getAppName(window.type),
       position,
       zIndex,
       isMinimized: false,
@@ -167,6 +179,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
           return {
             ...w,
             url,
+            urlPath: url.startsWith('/') ? url : w.urlPath,
             history: newHistory,
             historyIndex: newHistory.length - 1,
             browsingHistory: updatedBrowsingHistory,
@@ -368,13 +381,18 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
 
     const title = entry.metadata.title || urlPath.split('/').pop() || 'Untitled';
 
-    const newWindow: Omit<Window, 'id' | 'zIndex' | 'isMinimized'> = {
+    const newWindow: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> = {
       type: windowType,
       title,
       content,
       position: { x: centerX, y: centerY + 22 },
       size: { width: windowWidth, height: windowHeight },
       urlPath,
+      ...(windowType === 'browser' && {
+        url: urlPath,
+        history: [urlPath],
+        historyIndex: 0,
+      }),
     };
 
     get().openWindow(newWindow);
