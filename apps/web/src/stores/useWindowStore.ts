@@ -22,14 +22,12 @@ export interface Window {
   size: { width: number; height: number };
   zIndex: number;
   isMinimized: boolean;
-  // Browser-specific properties
   url?: string;
-  history?: string[]; // Navigation history (back/forward)
+  history?: string[];
   historyIndex?: number;
-  browsingHistory?: HistoryEntry[]; // Full browsing history for autocomplete
+  browsingHistory?: HistoryEntry[];
   bookmarks?: BookmarkItem[];
-  // URL routing properties
-  urlPath?: string; // The URL path that opened this window (for duplicate prevention)
+  urlPath?: string;
 }
 
 interface WindowStore {
@@ -43,7 +41,6 @@ interface WindowStore {
   updateWindowSize: (id: string, size: { width: number; height: number }) => void;
   updateWindowContent: (id: string, content: string) => void;
   minimizeWindow: (id: string) => void;
-  // Browser-specific actions
   navigateToUrl: (id: string, url: string, title?: string) => void;
   navigateBack: (id: string) => void;
   navigateForward: (id: string) => void;
@@ -51,7 +48,6 @@ interface WindowStore {
   removeBookmark: (id: string, url: string, folderName?: string) => void;
   addBookmarkToFolder: (id: string, folderName: string, title: string, url: string) => void;
   removeBookmarkFromFolder: (id: string, folderName: string, url: string) => void;
-  // URL routing helper
   openWindowFromUrl: (
     urlPath: string,
     content: string,
@@ -69,14 +65,12 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     const id = `window-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const zIndex = state.maxZIndex + 1;
 
-    // Offset each new window by 20px to cascade them
     const offset = state.windows.length * 20;
     const position = {
       x: window.position.x + offset,
       y: window.position.y + offset,
     };
 
-    // Initialize browser windows with default folders from config
     const bookmarks =
       window.type === 'browser' && !window.bookmarks ? DEFAULT_BOOKMARKS : window.bookmarks;
 
@@ -100,10 +94,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     const state = get();
     const windowToClose = state.windows.find((w) => w.id === id);
 
-    // If window was opened from a URL, navigate back in browser history
     if (windowToClose?.urlPath) {
-      // Use browser history to navigate back
-      // This handles multiple windows correctly - closing one goes back to previous URL
       window.history.back();
     }
 
@@ -154,17 +145,14 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     }));
   },
 
-  // Browser-specific actions
   navigateToUrl: (id, url, title?: string) => {
     set((state) => ({
       windows: state.windows.map((w) => {
         if (w.id === id && w.type === 'browser') {
           const history = w.history || [];
           const historyIndex = w.historyIndex ?? -1;
-          // Remove forward history when navigating to a new URL
           const newHistory = [...history.slice(0, historyIndex + 1), url];
 
-          // Add to browsing history for autocomplete
           const browsingHistory = w.browsingHistory || [];
           const pageTitle = title || getHostnameFromUrl(url);
           const newHistoryEntry: HistoryEntry = {
@@ -173,9 +161,8 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
             visitTime: Date.now(),
           };
 
-          // Remove duplicate if exists and add to front (most recent first)
           const filteredHistory = browsingHistory.filter((entry) => entry.url !== url);
-          const updatedBrowsingHistory = [newHistoryEntry, ...filteredHistory].slice(0, 100); // Keep last 100 entries
+          const updatedBrowsingHistory = [newHistoryEntry, ...filteredHistory].slice(0, 100);
 
           return {
             ...w,
@@ -240,13 +227,11 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
         if (w.id === id && w.type === 'browser') {
           const bookmarks = w.bookmarks || [];
 
-          // If folderName is provided, add to that folder
           if (folderName) {
             let folderFound = false;
             const updatedBookmarks = bookmarks.map((item) => {
               if (item.type === 'folder' && item.title === folderName) {
                 folderFound = true;
-                // Check for duplicates
                 if (item.items.some((b) => b.url === url)) {
                   return item;
                 }
@@ -258,7 +243,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
               return item;
             });
 
-            // If folder was found, return the updated bookmarks
             if (folderFound) {
               return {
                 ...w,
@@ -266,8 +250,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
               };
             }
 
-            // If folder wasn't found, fall back to adding as regular bookmark
-            // Check for duplicates
             if (bookmarks.some((b) => b.type === 'bookmark' && b.url === url)) {
               return w;
             }
@@ -277,8 +259,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
             };
           }
 
-          // Otherwise add as a regular bookmark (not in a folder)
-          // Check for duplicates
           if (bookmarks.some((b) => b.type === 'bookmark' && b.url === url)) {
             return w;
           }
@@ -298,7 +278,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
         if (w.id === id && w.type === 'browser') {
           const bookmarks = w.bookmarks || [];
 
-          // If folderName is provided, remove from that folder
           if (folderName) {
             return {
               ...w,
@@ -314,7 +293,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
             };
           }
 
-          // Otherwise remove regular bookmark
           return {
             ...w,
             bookmarks: bookmarks.filter((b) => (b.type === 'bookmark' ? b.url !== url : true)),
@@ -333,7 +311,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
             ...w,
             bookmarks: (w.bookmarks || []).map((item) => {
               if (item.type === 'folder' && item.title === folderName) {
-                // Check for duplicates
                 if (item.items.some((b) => b.url === url)) {
                   return item;
                 }
@@ -376,24 +353,19 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
   openWindowFromUrl: (urlPath, content, entry) => {
     const state = get();
 
-    // Check if file is already open (prevent duplicates)
     const existingWindow = state.windows.find((w) => w.urlPath === urlPath && !w.isMinimized);
     if (existingWindow) {
-      // Focus existing window instead of creating duplicate
       get().focusWindow(existingWindow.id);
       return;
     }
 
-    // Determine window type from app type
     const windowType = entry.appType === 'browser' ? 'browser' : 'textedit';
 
-    // Calculate centered position for direct-linked files
     const windowWidth = 600;
     const windowHeight = 500;
     const centerX = (window.innerWidth - windowWidth) / 2;
-    const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2; // Account for menubar and dock
+    const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
 
-    // Get title from metadata or generate from URL
     const title = entry.metadata.title || urlPath.split('/').pop() || 'Untitled';
 
     const newWindow: Omit<Window, 'id' | 'zIndex' | 'isMinimized'> = {

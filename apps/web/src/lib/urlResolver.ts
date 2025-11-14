@@ -12,25 +12,14 @@ export interface ResolvedContent {
  * Returns the content index entry and loaded content
  */
 export const resolveUrlToContent = async (urlPath: string): Promise<ResolvedContent> => {
-  // Normalize URL path (ensure it starts with /)
   const normalizedPath = urlPath.startsWith('/') ? urlPath : `/${urlPath}`;
 
-  console.log('[UrlResolver] Looking up:', normalizedPath);
-  console.log(
-    '[UrlResolver] Available entries:',
-    Array.from(useContentIndex.getState().entries.keys())
-  );
-
-  // Look up in content index
   const entry = useContentIndex.getState().getEntry(normalizedPath);
 
   if (!entry) {
     throw new Error(`Content not found for URL: ${normalizedPath}`);
   }
 
-  console.log('[UrlResolver] Found entry:', entry);
-
-  // Load the actual file content
   const loaded = await loadContentFile(entry.filePath);
 
   return {

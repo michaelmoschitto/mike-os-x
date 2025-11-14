@@ -19,12 +19,10 @@ const TrafficLights = ({
   isForeground,
   debugMode = false,
 }: TrafficLightsProps) => {
-  // Support both isActive and isForeground for backward compatibility
   const foreground = isForeground !== undefined ? isForeground : isActive;
 
   return (
     <div className="traffic-lights relative ml-1.5 flex items-center gap-2" data-titlebar-controls>
-      {/* Close Button (Red) */}
       <div className="relative" style={{ width: '13px', height: '13px' }}>
         <div
           aria-hidden="true"
@@ -82,7 +80,6 @@ const TrafficLights = ({
         />
       </div>
 
-      {/* Minimize Button (Yellow) - Disabled */}
       <div className="pointer-events-none relative" style={{ width: '13px', height: '13px' }}>
         <div
           aria-hidden="true"
@@ -98,7 +95,6 @@ const TrafficLights = ({
               : '0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb',
           }}
         >
-          {/* Top shine */}
           <div
             className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{
@@ -111,7 +107,6 @@ const TrafficLights = ({
               zIndex: 2,
             }}
           />
-          {/* Bottom glow */}
           <div
             className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{
@@ -126,7 +121,6 @@ const TrafficLights = ({
         </div>
       </div>
 
-      {/* Maximize Button (Green) - Disabled */}
       <div className="pointer-events-none relative" style={{ width: '13px', height: '13px' }}>
         <div
           aria-hidden="true"
@@ -142,7 +136,6 @@ const TrafficLights = ({
               : '0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb',
           }}
         >
-          {/* Top shine */}
           <div
             className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{
@@ -155,7 +148,6 @@ const TrafficLights = ({
               zIndex: 2,
             }}
           />
-          {/* Bottom glow */}
           <div
             className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{

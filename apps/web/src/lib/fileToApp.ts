@@ -26,17 +26,12 @@ const EXTENSION_TO_APP: Record<string, AppType> = {
  * Determines which app should open a file based on its extension and optional metadata override
  */
 export const getAppForFile = (fileExtension: string, metadata?: ContentMetadata): AppType => {
-  // Allow frontmatter to override default mapping
   if (metadata?.app) {
     return metadata.app;
   }
 
-  // Normalize extension (ensure it starts with a dot)
   const normalizedExt = fileExtension.startsWith('.') ? fileExtension : `.${fileExtension}`;
-
-  // Look up app type from extension mapping
   const appType = EXTENSION_TO_APP[normalizedExt.toLowerCase()];
 
-  // Default to textedit if extension not found
   return appType || 'textedit';
 };

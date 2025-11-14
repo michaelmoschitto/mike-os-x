@@ -9,13 +9,11 @@ import { useWindowStore } from '@/stores/useWindowStore';
 
 export const Route = createFileRoute('/$path')({
   loader: async ({ params }) => {
-    // Ensure content index is initialized
     const indexState = useContentIndex.getState();
     if (!indexState.isIndexed) {
       await initializeContentIndex();
     }
 
-    // Resolve the URL to content
     try {
       const resolved = await resolveUrlToContent(params.path);
       return { resolved, error: null };
@@ -35,7 +33,6 @@ function PathComponent() {
 
   useEffect(() => {
     if (resolved && !error) {
-      // Open the file in the appropriate app
       const entry: ContentIndexEntry = resolved.entry;
       openWindowFromUrl(entry.urlPath, resolved.content, {
         appType: entry.appType,
@@ -45,7 +42,6 @@ function PathComponent() {
     }
   }, [resolved, error, openWindowFromUrl]);
 
-  // Always render the desktop
   return (
     <>
       <Desktop />

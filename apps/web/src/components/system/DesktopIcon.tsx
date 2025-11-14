@@ -52,25 +52,22 @@ const DesktopIcon = ({
   };
 
   const handleDoubleClick = () => {
-    // If icon has a URL path, navigate to it (this will open the file via routing)
     if (icon.urlPath) {
       navigate({ to: icon.urlPath });
       return;
     }
 
-    // Fallback: Only open text files (.txt, .md) in TextEdit if no URL path
     if (icon.type === 'file' && (icon.fileExtension === 'txt' || icon.fileExtension === 'md')) {
-      // Calculate centered position for window
       const windowWidth = 600;
       const windowHeight = 500;
       const centerX = (window.innerWidth - windowWidth) / 2;
-      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2; // Account for menubar and dock
+      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
 
       openWindow({
         type: 'textedit',
         title: icon.label,
         content: icon.content || '',
-        position: { x: centerX, y: centerY + 22 }, // Add menubar height
+        position: { x: centerX, y: centerY + 22 },
         size: { width: windowWidth, height: windowHeight },
       });
     }

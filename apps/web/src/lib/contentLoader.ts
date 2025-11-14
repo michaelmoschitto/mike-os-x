@@ -7,7 +7,6 @@ export interface LoadedContent {
   metadata: ContentMetadata;
 }
 
-// Cache the glob modules so we can reuse them
 let globModulesCache: Record<string, () => Promise<string | { default: string }>> | null = null;
 
 const getGlobModules = (): Record<string, () => Promise<string | { default: string }>> => {
@@ -31,20 +30,12 @@ const getGlobModules = (): Record<string, () => Promise<string | { default: stri
 export const loadContentFile = async (globKey: string): Promise<LoadedContent> => {
   try {
     const contentModules = getGlobModules();
-    console.log('[ContentLoader] Looking for:', globKey);
-    console.log('[ContentLoader] Available glob keys:', Object.keys(contentModules));
-    console.log('[ContentLoader] Full glob object:', contentModules);
-
     const importFn = contentModules[globKey];
-    console.log('[ContentLoader] Import function:', importFn, 'Type:', typeof importFn);
 
     if (!importFn) {
-      // Try to find the file with a different key format
       const normalizedKey = Object.keys(contentModules).find(
         (key) => key === globKey || key.endsWith(globKey.replace(/^\.\.\/\.\.\/content\//, ''))
       );
-
-      console.log('[ContentLoader] Normalized key found:', normalizedKey);
 
       if (!normalizedKey) {
         throw new Error(
@@ -67,16 +58,9 @@ export const loadContentFile = async (globKey: string): Promise<LoadedContent> =
       };
     }
 
-    // Call the import function to get the raw content
-    console.log('[ContentLoader] Calling import function...');
     const fileContent = await importFn();
-    console.log('[ContentLoader] File content loaded:', typeof fileContent, fileContent);
     const rawContent = typeof fileContent === 'string' ? fileContent : fileContent.default || '';
-    console.log('[ContentLoader] Raw content:', rawContent?.substring(0, 100));
-
-    // Parse frontmatter using gray-matter
     const parsed = matter(rawContent);
-    console.log('[ContentLoader] Parsed metadata:', parsed.data);
 
     return {
       content: parsed.content,
@@ -88,7 +72,6 @@ export const loadContentFile = async (globKey: string): Promise<LoadedContent> =
       },
     };
   } catch (error) {
-    // If file doesn't exist or can't be loaded, throw error
     console.error('[ContentLoader] Error loading file:', error);
     throw new Error(`Failed to load content file: ${globKey}`, { cause: error });
   }
@@ -111,7 +94,6 @@ export const parseContent = (rawContent: string): LoadedContent => {
       },
     };
   } catch (error) {
-    // If parsing fails, return content without metadata
     return {
       content: rawContent,
       metadata: {},

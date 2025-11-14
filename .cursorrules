@@ -11,7 +11,7 @@ This is a **Mac OS X 10.1 (Aqua era) themed portfolio** that feels like a real d
 1. **Mac OS X 10.1 Aqua Design First**: Every component should feel authentic to the Aqua era - gel buttons, pinstripes, soft shadows, and that signature blue
 2. **Desktop App in Browser**: This should feel like using a real OS, not a website - window chrome, menubar, dock, keyboard shortcuts
 3. **Radical Simplicity**: Don't boil the ocean. Simple, working code beats complex, clever code every time
-4. **Self-Documenting Code**: Write code that explains itself. Comment like a senior developer - explain "why" not "what", document non-obvious decisions, but never comment obvious code
+4. **Self-Documenting Code**: Write code that explains itself. Code should be self-documenting by default. Only add comments when truly necessary - for obscure components, tricky logic, or non-obvious decisions. Comments should be natural and human-like, not verbose or robotic. Generally refrain from commenting since the code should speak for itself.
 5. **Small Iterations**: Ship small features quickly. Iterate. No massive PRs or rewrites
 6. **Security Conscious**: Always consider security implications, especially with user-generated content
 
@@ -223,10 +223,12 @@ This is a **Mac OS X 10.1 (Aqua era) themed portfolio** that feels like a real d
 - Run `bun run format` for Prettier + Tailwind class sorting
 - Keep functions small (< 50 lines)
 - Keep components focused (single responsibility)
-- Comment like a senior developer:
-  - Explain "why" not "what"
-  - Document complex algorithms or business logic
-  - Clarify non-obvious decisions or workarounds
+- **Comments Philosophy**: Code should be self-documenting. Only comment when necessary:
+  - Obscure components or functions that aren't immediately clear
+  - Tricky bits of logic that require explanation
+  - Non-obvious decisions or workarounds
+  - Write comments naturally, like a human would - explain the "why" not the "what"
+  - Generally refrain from commenting - if the code needs a comment, consider if it can be made clearer instead
   - Never comment obvious code (e.g., `// Set loading to true`)
 
 ## Examples
@@ -321,7 +323,7 @@ const Window = ({ title, onClose, children }: WindowProps) => {
 - **Aqua aesthetic is non-negotiable** - if it doesn't look like Mac OS X 10.1, it's wrong
 - **Desktop app feel** - windows, menubars, keyboard shortcuts, not hamburger menus
 - **Simple beats clever** - readable code over smart code
-- **Comment wisely** - explain why, not what; clear code needs fewer comments
+- **Self-documenting code first** - only comment obscure components or tricky logic; write naturally, not verbosely
 - **Ship small, ship often** - don't build the whole window system in one PR
 
 When in doubt, look at screenshots of Mac OS X 10.1-10.3 for inspiration. That's the vibe.
