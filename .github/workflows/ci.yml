@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run tests
+        run: bun --cwd apps/web test
+
+      - name: Type check
+        working-directory: apps/web
+        run: bunx tsc --noEmit
+
+      - name: Lint
+        run: bun --cwd apps/web run lint
+
+      - name: Check formatting
+        run: bun --cwd apps/web run format:check
