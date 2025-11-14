@@ -2,13 +2,18 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import tailwindcss from '@tailwindcss/vite';
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    TanStackRouterVite(),
+    tailwindcss(),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -18,6 +23,23 @@ export default defineConfig({
       '@/styles': path.resolve(__dirname, './src/styles'),
       '@/lib': path.resolve(__dirname, './src/lib'),
       '@/stores': path.resolve(__dirname, './src/stores'),
+      // Polyfill Buffer for gray-matter in browser
+      buffer: 'buffer',
     },
+  },
+  define: {
+    // Make Buffer available globally for gray-matter
+    global: 'globalThis',
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
+  },
+  test: {
+    globals: true,
+    environment: 'node',
   },
 });
