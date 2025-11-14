@@ -8,7 +8,16 @@ import { resolveUrlToContent } from '@/lib/urlResolver';
 import { useWindowStore } from '@/stores/useWindowStore';
 
 export const Route = createFileRoute('/$path')({
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      url: (search.url as string) || undefined,
+    };
+  },
   loader: async ({ params }) => {
+    if (params.path === 'browser' || params.path.startsWith('browser/')) {
+      return { isBrowserRoute: true, resolved: null, error: null };
+    }
+
     const indexState = useContentIndex.getState();
     if (!indexState.isIndexed) {
       await initializeContentIndex();
@@ -16,9 +25,10 @@ export const Route = createFileRoute('/$path')({
 
     try {
       const resolved = await resolveUrlToContent(params.path);
-      return { resolved, error: null };
+      return { isBrowserRoute: false, resolved, error: null };
     } catch (error) {
       return {
+        isBrowserRoute: false,
         resolved: null,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
@@ -28,10 +38,32 @@ export const Route = createFileRoute('/$path')({
 });
 
 function PathComponent() {
-  const { resolved, error } = Route.useLoaderData();
-  const openWindowFromUrl = useWindowStore((state) => state.openWindowFromUrl);
+  const { resolved, error, isBrowserRoute } = Route.useLoaderData();
+  const { url } = Route.useSearch();
+  const { getOrCreateBrowserWindow, focusWindow, navigateToUrl, openWindowFromUrl } =
+    useWindowStore();
 
   useEffect(() => {
+    if (isBrowserRoute) {
+      const browserWindow = getOrCreateBrowserWindow();
+
+      if (browserWindow) {
+        focusWindow(browserWindow.id);
+
+        if (url) {
+          try {
+            const decodedUrl = decodeURIComponent(url);
+            if (decodedUrl !== browserWindow.url) {
+              navigateToUrl(browserWindow.id, decodedUrl, undefined, true);
+            }
+          } catch (e) {
+            console.error('Failed to decode URL:', e);
+          }
+        }
+      }
+      return;
+    }
+
     if (resolved && !error) {
       const entry: ContentIndexEntry = resolved.entry;
       openWindowFromUrl(entry.urlPath, resolved.content, {
@@ -40,7 +72,16 @@ function PathComponent() {
         fileExtension: entry.fileExtension,
       });
     }
-  }, [resolved, error, openWindowFromUrl]);
+  }, [
+    isBrowserRoute,
+    url,
+    getOrCreateBrowserWindow,
+    focusWindow,
+    navigateToUrl,
+    resolved,
+    error,
+    openWindowFromUrl,
+  ]);
 
   return (
     <>
