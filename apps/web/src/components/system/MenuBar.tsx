@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+
 import { useWindowStore } from '@/stores/useWindowStore';
 
 const MenuBar = () => {
@@ -7,13 +9,37 @@ const MenuBar = () => {
   const activeWindow = windows.find((w) => w.id === activeWindowId);
   const appName = activeWindow ? 'TextEdit' : 'Finder';
 
-  const now = new Date();
-  const currentTime = now.toLocaleString('en-US', {
-    weekday: 'short',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
+  const [currentTime, setCurrentTime] = useState(() => {
+    const now = new Date();
+    return now.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
   });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(
+        now.toLocaleString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true,
+        })
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="aqua-menubar font-ui fixed top-0 right-0 left-0 z-50 flex h-[22px] items-center justify-between px-3 text-[13px] text-black/90">
