@@ -2,18 +2,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import tailwindcss from '@tailwindcss/vite';
-import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
+import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vitest/config';
+import { defineConfig as defineViteConfig } from 'vite';
+import { defineConfig as defineVitestConfig, mergeConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export default defineConfig({
-  plugins: [
-    react(),
-    TanStackRouterVite(),
-    tailwindcss(),
-  ],
+const viteConfig = defineViteConfig({
+  plugins: [react(), tanstackRouter(), tailwindcss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -23,12 +20,10 @@ export default defineConfig({
       '@/styles': path.resolve(__dirname, './src/styles'),
       '@/lib': path.resolve(__dirname, './src/lib'),
       '@/stores': path.resolve(__dirname, './src/stores'),
-      // Polyfill Buffer for gray-matter in browser
       buffer: 'buffer',
     },
   },
   define: {
-    // Make Buffer available globally for gray-matter
     global: 'globalThis',
   },
   optimizeDeps: {
@@ -38,8 +33,13 @@ export default defineConfig({
       },
     },
   },
+});
+
+const vitestConfig = defineVitestConfig({
   test: {
     globals: true,
     environment: 'node',
   },
 });
+
+export default mergeConfig(viteConfig, vitestConfig);

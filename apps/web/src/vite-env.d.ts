@@ -5,3 +5,10 @@ declare module '*.md?raw' {
   const content: string;
   export default content;
 }
+
+// Extend Window interface for Buffer polyfill
+declare global {
+  interface Window {
+    Buffer: typeof Buffer;
+  }
+}

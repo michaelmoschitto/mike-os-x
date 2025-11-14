@@ -6,7 +6,7 @@ import ReactDOM from 'react-dom/client';
 
 // Polyfill Buffer for gray-matter in browser
 if (typeof window !== 'undefined') {
-  window.Buffer = Buffer;
+  (window as unknown as Window & { Buffer: typeof Buffer }).Buffer = Buffer;
 }
 
 import '@/styles/index.css';
