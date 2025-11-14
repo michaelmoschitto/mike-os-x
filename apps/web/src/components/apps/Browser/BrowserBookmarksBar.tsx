@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
+import { cn } from '@/lib/utils';
 import { BookmarkItem } from '@/stores/useWindowStore';
 
 interface BrowserBookmarksBarProps {
@@ -118,31 +119,11 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
           <button
             ref={(el) => (folderRefs.current[folder.title] = el)}
             onClick={() => handleFolderClick(folder.title)}
-            className="font-ui flex items-center gap-1 rounded px-2 py-0.5 text-[11px] transition-all"
-            style={{
-              background:
-                openFolder === folder.title
-                  ? 'linear-gradient(to bottom, #e0e0e0 0%, #d8d8d8 100%)'
-                  : 'linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%)',
-              border: '1px solid #a0a0a0',
-              boxShadow:
-                openFolder === folder.title
-                  ? 'inset 1px 1px 0 #777, inset -1px -1px 0 #f9f9f9'
-                  : '0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-              color: '#2c2c2c',
-            }}
-            onMouseEnter={(e) => {
-              if (openFolder !== folder.title) {
-                e.currentTarget.style.background =
-                  'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (openFolder !== folder.title) {
-                e.currentTarget.style.background =
-                  'linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%)';
-              }
-            }}
+            className={cn(
+              'aqua-button-base flex items-center gap-1 rounded px-2 py-0.5 text-[11px]',
+              openFolder === folder.title &&
+                'bg-[var(--gradient-button-active)] shadow-[var(--shadow-button-active)]'
+            )}
             type="button"
           >
             <span>{folder.title}</span>
@@ -177,7 +158,7 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
           return createPortal(
             <div
               data-bookmark-dropdown
-              className="scrollbar-hide fixed z-[1000] max-h-[400px] overflow-y-auto"
+              className="scrollbar-hide fixed z-[10000] max-h-[400px] overflow-y-auto"
               style={{
                 left: `${dropdownPosition.left}px`,
                 top: `${dropdownPosition.top}px`,
@@ -186,13 +167,26 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
                 border: '1px solid #999',
                 borderRadius: '4px',
                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+                padding: '4px',
               }}
             >
               {folder.items.map((bookmark) => (
                 <button
                   key={bookmark.url}
                   onClick={() => handleBookmarkClick(bookmark.url)}
-                  className="font-ui w-full truncate px-3 py-1.5 text-left text-[11px] transition-colors hover:bg-blue-500 hover:text-white"
+                  className="font-ui relative flex w-full items-center truncate px-3 py-1.5 text-left text-[11px] transition-colors outline-none"
+                  style={{
+                    color: '#2c2c2c',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#5A8DD9';
+                    e.currentTarget.style.color = '#ffffff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#2c2c2c';
+                  }}
                   title={bookmark.url}
                   type="button"
                 >
@@ -208,32 +202,7 @@ const BrowserBookmarksBar = ({ bookmarks, onNavigate }: BrowserBookmarksBarProps
         <button
           key={bookmark.url}
           onClick={() => handleBookmarkClick(bookmark.url)}
-          className="font-ui flex-shrink-0 rounded px-2 py-0.5 text-[11px] transition-all"
-          style={{
-            background: 'linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%)',
-            border: '1px solid #a0a0a0',
-            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-            color: '#2c2c2c',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background =
-              'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background =
-              'linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%)';
-          }}
-          onMouseDown={(e) => {
-            e.currentTarget.style.background =
-              'linear-gradient(to bottom, #e0e0e0 0%, #d8d8d8 100%)';
-            e.currentTarget.style.boxShadow = 'inset 1px 1px 0 #777, inset -1px -1px 0 #f9f9f9';
-          }}
-          onMouseUp={(e) => {
-            e.currentTarget.style.background =
-              'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)';
-            e.currentTarget.style.boxShadow =
-              '0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
-          }}
+          className="aqua-button-base flex-shrink-0 rounded px-2 py-0.5 text-[11px]"
           title={bookmark.url}
           type="button"
         >

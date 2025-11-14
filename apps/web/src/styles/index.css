@@ -2,8 +2,23 @@
 
 /* Aqua Design Tokens */
 :root {
-  --aqua-blue: #3b9cff;
+  /* ===== COLORS ===== */
+  --aqua-blue: #5a8dd9;
+  --aqua-blue-hover: #6b9de5;
+  --aqua-blue-active: #4978c8;
   --aqua-graphite: #7b7b7b;
+
+  /* Semantic Colors */
+  --color-highlight: var(--aqua-blue);
+  --color-highlight-hover: var(--aqua-blue-hover);
+  --color-selection-bg: var(--aqua-blue);
+  --color-selection-text: #ffffff;
+  --color-border-strong: #999999;
+  --color-border-subtle: #cccccc;
+  --color-text-primary: #2c2c2c;
+  --color-text-secondary: #666666;
+
+  /* Legacy/Existing Colors */
   --pinstripe-light: #f7f9fc;
   --pinstripe-dark: #e9edf3;
   --bezel-dark: #7b7b7b;
@@ -15,6 +30,33 @@
   --aqua-pinstripe-light-2: #e4e4e4;
   --aqua-pinstripe-dark-1: rgba(255, 255, 255, 0.08);
   --aqua-pinstripe-dark-2: rgba(0, 0, 0, 0.15);
+
+  /* ===== SHADOWS ===== */
+  --shadow-window:
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset, 0 15px 40px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  --shadow-button-active: inset 1px 1px 0 #777, inset -1px -1px 0 #f9f9f9;
+
+  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  /* ===== GRADIENTS ===== */
+  --gradient-toolbar: linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%);
+  --gradient-button: linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%);
+  --gradient-button-hover: linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%);
+  --gradient-button-active: linear-gradient(to bottom, #e0e0e0 0%, #d8d8d8 100%);
+  --gradient-dropdown: linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%);
+
+  /* ===== Z-INDEX SCALE ===== */
+  --z-desktop: 0;
+  --z-window: 10;
+  --z-window-active: 20;
+  --z-menubar: 50;
+  --z-dock: 50;
+  --z-dropdown: 10000;
+  --z-modal: 20000;
 }
 
 body {
@@ -145,6 +187,62 @@ body {
       inset -1px -1px 0 #f9f9f9 !important;
   }
 
+  /* ===== BUTTONS ===== */
+  .aqua-button-base {
+    @apply relative flex items-center justify-center transition-all;
+    font-family: var(--font-ui);
+    background-image: var(--gradient-button);
+    border: 1px solid #a0a0a0;
+    border-radius: 4px;
+    box-shadow: var(--shadow-button);
+    color: var(--color-text-primary);
+  }
+
+  .aqua-button-base:hover:not(:disabled) {
+    background-image: var(--gradient-button-hover);
+  }
+
+  .aqua-button-base:active:not(:disabled) {
+    background-image: var(--gradient-button-active);
+    box-shadow: var(--shadow-button-active);
+  }
+
+  .aqua-button-base:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background-image: linear-gradient(to bottom, #d0d0d0 0%, #b8b8b8 100%);
+  }
+
+  /* ===== DROPDOWN MENUS ===== */
+  .aqua-dropdown-menu {
+    background-image: linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%) !important;
+    border: 1px solid #999 !important;
+    border-radius: 4px !important;
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+    padding: 4px;
+  }
+
+  .aqua-dropdown-item {
+    @apply relative flex cursor-pointer items-center px-3 py-1.5 text-[11px] transition-colors outline-none;
+    font-family: var(--font-ui);
+    font-size: 11px;
+    color: var(--color-text-primary);
+  }
+
+  .aqua-dropdown-item:hover,
+  .aqua-dropdown-item:focus {
+    background: var(--color-highlight) !important;
+    color: var(--color-selection-text) !important;
+  }
+
+  /* ===== TOOLBAR PATTERNS ===== */
+  .aqua-toolbar-divider {
+    @apply h-[32px] w-px;
+    background: linear-gradient(180deg, transparent, #999 0%, #999 50%, transparent 100%);
+  }
+
   /* Hide scrollbar while maintaining scroll functionality */
   .scrollbar-hide {
     -ms-overflow-style: none; /* IE and Edge */
@@ -154,6 +252,17 @@ body {
   .scrollbar-hide::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
   }
+}
+
+/* ===== AQUA DROPDOWN OVERRIDES (outside @layer for specificity) ===== */
+div[data-bookmark-dropdown].aqua-dropdown-menu {
+  background-image: linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%) !important;
+  border: 1px solid #999 !important;
+  border-radius: 4px !important;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  padding: 4px !important;
 }
 
 /* TextEdit contentEditable styling */

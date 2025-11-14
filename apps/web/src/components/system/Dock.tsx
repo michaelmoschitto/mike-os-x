@@ -63,7 +63,7 @@ const Dock = () => {
         title: 'Internet Explorer',
         content: '',
         position: { x: 100, y: 80 },
-        size: { width: 800, height: 600 },
+        size: { width: 1100, height: 640 },
         url: '',
         history: [],
         historyIndex: -1,

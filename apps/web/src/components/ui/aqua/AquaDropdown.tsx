@@ -1,7 +1,5 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
-import { cn } from '@/lib/utils';
-
 interface AquaDropdownItem {
   label: string;
   value: string;
@@ -18,7 +16,7 @@ interface AquaDropdownProps {
   sideOffset?: number;
 }
 
-const AquaDropdown = ({
+export const AquaDropdown = ({
   items,
   value,
   onValueChange,
@@ -36,14 +34,9 @@ const AquaDropdown = ({
 
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          className="font-ui max-h-[300px] min-w-[200px] overflow-y-auto"
+          className="aqua-dropdown-menu font-ui max-h-[300px] min-w-[200px] overflow-y-auto p-1"
           style={{
-            background: 'linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%)',
-            border: '1px solid #999',
-            borderRadius: '4px',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
-            padding: '4px',
-            zIndex: 1000,
+            zIndex: 10000,
           }}
           align={align}
           side={side}
@@ -54,14 +47,7 @@ const AquaDropdown = ({
             return (
               <DropdownMenu.Item
                 key={item.value}
-                className={cn(
-                  'font-ui relative flex cursor-pointer items-center justify-between rounded px-3 py-1.5 text-[11px] outline-none',
-                  'hover:bg-[#3b9cff] hover:text-white',
-                  'focus:bg-[#3b9cff] focus:text-white'
-                )}
-                style={{
-                  color: '#2c2c2c',
-                }}
+                className="aqua-dropdown-item justify-between rounded"
                 onSelect={() => {
                   onValueChange(item.value);
                 }}
@@ -80,5 +66,3 @@ const AquaDropdown = ({
     </DropdownMenu.Root>
   );
 };
-
-export default AquaDropdown;

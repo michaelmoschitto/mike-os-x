@@ -122,7 +122,7 @@ const BrowserBookmarks = ({
           >
             {isCurrentUrlBookmarked() ? (
               <button
-                className="font-ui w-full rounded px-2 py-1.5 text-left text-[11px] hover:bg-blue-500 hover:text-white"
+                className="font-ui w-full rounded px-2 py-1.5 text-left text-[11px] hover:bg-[var(--color-highlight)] hover:text-white"
                 onClick={handleRemoveCurrentPage}
               >
                 ✓ Remove Current Page
@@ -130,7 +130,7 @@ const BrowserBookmarks = ({
             ) : (
               <div className="space-y-1.5">
                 <button
-                  className="font-ui w-full rounded px-2 py-1.5 text-left text-[11px] hover:bg-blue-500 hover:text-white"
+                  className="font-ui w-full rounded px-2 py-1.5 text-left text-[11px] hover:bg-[var(--color-highlight)] hover:text-white"
                   onClick={handleAddCurrentPage}
                 >
                   + Add Current Page
@@ -139,7 +139,7 @@ const BrowserBookmarks = ({
                   <select
                     value={selectedFolder}
                     onChange={(e) => setSelectedFolder(e.target.value)}
-                    className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                    className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-[var(--color-highlight)] focus:outline-none"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <option value="">Add to Favorites</option>
@@ -177,7 +177,7 @@ const BrowserBookmarks = ({
                     folder.items.map((bookmark) => (
                       <div key={bookmark.url} className="group flex items-center gap-2 px-2 py-0.5">
                         <button
-                          className="font-ui flex-1 truncate rounded px-2 py-1.5 text-left text-[11px] hover:bg-blue-500 hover:text-white"
+                          className="font-ui flex-1 truncate rounded px-2 py-1.5 text-left text-[11px] hover:bg-[var(--color-highlight)] hover:text-white"
                           onClick={() => {
                             onNavigate(bookmark.url);
                             onClose();
@@ -210,7 +210,7 @@ const BrowserBookmarks = ({
                   {regularBookmarks.map((bookmark) => (
                     <div key={bookmark.url} className="group flex items-center gap-2 px-2 py-0.5">
                       <button
-                        className="font-ui flex-1 truncate rounded px-2 py-1.5 text-left text-[11px] hover:bg-blue-500 hover:text-white"
+                        className="font-ui flex-1 truncate rounded px-2 py-1.5 text-left text-[11px] hover:bg-[var(--color-highlight)] hover:text-white"
                         onClick={() => {
                           onNavigate(bookmark.url);
                           onClose();
@@ -248,20 +248,20 @@ const BrowserBookmarks = ({
                 placeholder="Title"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-[var(--color-highlight)] focus:outline-none"
               />
               <input
                 type="text"
                 placeholder="URL"
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
-                className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-[var(--color-highlight)] focus:outline-none"
               />
               {folders.length > 0 && (
                 <select
                   value={selectedFolder}
                   onChange={(e) => setSelectedFolder(e.target.value)}
-                  className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                  className="font-ui w-full rounded border border-gray-400 px-2 py-1 text-[11px] focus:ring-1 focus:ring-[var(--color-highlight)] focus:outline-none"
                 >
                   <option value="">Add to Favorites</option>
                   {folders.map((folder) => (
@@ -273,7 +273,7 @@ const BrowserBookmarks = ({
               )}
               <div className="flex gap-1.5">
                 <button
-                  className="font-ui flex-1 rounded bg-blue-500 px-2 py-1 text-[11px] text-white hover:bg-blue-600"
+                  className="font-ui flex-1 rounded bg-[var(--color-highlight)] px-2 py-1 text-[11px] text-white hover:bg-[var(--color-highlight-hover)]"
                   onClick={handleAddCustomBookmark}
                 >
                   Add
@@ -293,7 +293,7 @@ const BrowserBookmarks = ({
             </div>
           ) : (
             <button
-              className="font-ui w-full rounded px-2 py-1.5 text-left text-[11px] hover:bg-blue-500 hover:text-white"
+              className="font-ui w-full rounded px-2 py-1.5 text-left text-[11px] hover:bg-[var(--color-highlight)] hover:text-white"
               onClick={() => setIsAdding(true)}
             >
               + Add Bookmark...

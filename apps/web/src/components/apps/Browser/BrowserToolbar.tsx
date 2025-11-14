@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { getDomainFromUrl, validateAndNormalizeUrl } from '@/lib/utils';
+import { getDomainFromUrl, validateAndNormalizeUrl, cn } from '@/lib/utils';
 import { HistoryEntry } from '@/stores/useWindowStore';
 
 interface BrowserToolbarProps {
@@ -270,12 +270,7 @@ const BrowserToolbar = ({
       </div>
 
       {/* Divider */}
-      <div
-        className="h-[32px] w-px"
-        style={{
-          background: 'linear-gradient(180deg, transparent, #999 0%, #999 50%, transparent 100%)',
-        }}
-      />
+      <div className="aqua-toolbar-divider" />
 
       {/* Address bar with autocomplete */}
       <form onSubmit={handleSubmit} className="relative flex flex-1 items-center gap-2">
@@ -310,22 +305,16 @@ const BrowserToolbar = ({
           {showSuggestions && suggestions.length > 0 && (
             <div
               ref={suggestionsRef}
-              className="absolute top-full right-0 left-0 z-50 mt-1 max-h-[300px] overflow-y-auto"
-              style={{
-                background: 'linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%)',
-                border: '1px solid #999',
-                borderRadius: '4px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
-              }}
+              className="aqua-dropdown-menu absolute top-full right-0 left-0 z-50 mt-1 max-h-[300px] overflow-y-auto"
             >
               {suggestions.map((entry, index) => (
                 <button
                   key={`${entry.url}-${entry.visitTime}`}
                   onClick={() => handleSuggestionClick(entry)}
-                  className="font-ui w-full px-3 py-2 text-left text-[11px] hover:bg-blue-500 hover:text-white"
-                  style={{
-                    background: selectedIndex === index ? 'rgba(59, 156, 255, 0.2)' : 'transparent',
-                  }}
+                  className={cn(
+                    'aqua-dropdown-item w-full px-3 py-2 text-left',
+                    selectedIndex === index && 'bg-[var(--color-highlight)]/20'
+                  )}
                   onMouseEnter={() => setSelectedIndex(index)}
                   type="button"
                 >
@@ -366,12 +355,8 @@ const BrowserToolbar = ({
         </div>
       </form>
 
-      <div
-        className="h-[32px] w-px"
-        style={{
-          background: 'linear-gradient(180deg, transparent, #999 0%, #999 50%, transparent 100%)',
-        }}
-      />
+      {/* Divider */}
+      <div className="aqua-toolbar-divider" />
 
       <ToolbarButton
         buttonRef={bookmarkButtonRef}
@@ -415,46 +400,12 @@ const ToolbarButton = ({
   return (
     <button
       ref={buttonRef}
-      className="font-ui relative flex h-[28px] w-[28px] items-center justify-center text-xs transition-all disabled:cursor-not-allowed disabled:opacity-40"
-      aria-label={ariaLabel || title}
-      style={{
-        background: disabled
-          ? 'linear-gradient(to bottom, #d0d0d0 0%, #b8b8b8 100%)'
-          : 'linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%)',
-        border: '1px solid #a0a0a0',
-        borderRadius: '4px',
-        boxShadow: disabled
-          ? 'inset 0 1px 2px rgba(0, 0, 0, 0.2)'
-          : '0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-        color: disabled ? '#666' : '#2c2c2c',
-      }}
+      className="aqua-button-base h-[28px] w-[28px] text-xs"
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-label={ariaLabel || title}
       type="button"
-      onMouseEnter={(e) => {
-        if (!disabled) {
-          e.currentTarget.style.background = 'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!disabled) {
-          e.currentTarget.style.background = 'linear-gradient(to bottom, #ffffff 0%, #e8e8e8 100%)';
-        }
-      }}
-      onMouseDown={(e) => {
-        if (!disabled) {
-          e.currentTarget.style.background = 'linear-gradient(to bottom, #e0e0e0 0%, #d8d8d8 100%)';
-          e.currentTarget.style.boxShadow = 'inset 1px 1px 0 #777, inset -1px -1px 0 #f9f9f9';
-        }
-      }}
-      onMouseUp={(e) => {
-        if (!disabled) {
-          e.currentTarget.style.background = 'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)';
-          e.currentTarget.style.boxShadow =
-            '0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
-        }
-      }}
     >
       {icon}
     </button>

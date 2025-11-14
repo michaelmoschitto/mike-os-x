@@ -21,6 +21,10 @@ export const DEFAULT_BOOKMARKS: BookmarkItem[] = [
         title: 'Mezo × LABITCONF',
         url: 'https://labitconf.mezo.org/en',
       },
+      {
+        title: 'Vegas Baby',
+        url: 'https://mezo.org/vegasbaby',
+      },
     ],
   },
   {
