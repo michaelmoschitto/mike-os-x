@@ -1,13 +1,21 @@
+import { useEffect } from 'react';
+
 import { BrowserWindow } from '@/components/apps/Browser';
 import { TextEditWindow } from '@/components/apps/TextEdit';
 import DesktopIcons from '@/components/system/DesktopIcons';
 import Dock from '@/components/system/Dock';
 import MenuBar from '@/components/system/MenuBar';
+import { useDesktopStore } from '@/stores/useDesktopStore';
 import { useWindowStore } from '@/stores/useWindowStore';
 
 const Desktop = () => {
   const windows = useWindowStore((state) => state.windows);
   const activeWindowId = useWindowStore((state) => state.activeWindowId);
+  const initializeIcons = useDesktopStore((state) => state.initializeIcons);
+
+  useEffect(() => {
+    initializeIcons();
+  }, [initializeIcons]);
 
   return (
     <div className="relative h-screen w-screen overflow-hidden">

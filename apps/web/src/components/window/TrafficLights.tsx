@@ -15,18 +15,14 @@ interface TrafficLightsProps {
  */
 const TrafficLights = ({
   onClose,
-  onMinimize,
-  onMaximize,
   isActive = true,
   isForeground,
   debugMode = false,
 }: TrafficLightsProps) => {
-  // Support both isActive and isForeground for backward compatibility
   const foreground = isForeground !== undefined ? isForeground : isActive;
 
   return (
     <div className="traffic-lights relative ml-1.5 flex items-center gap-2" data-titlebar-controls>
-      {/* Close Button (Red) */}
       <div className="relative" style={{ width: '13px', height: '13px' }}>
         <div
           aria-hidden="true"
@@ -84,8 +80,7 @@ const TrafficLights = ({
         />
       </div>
 
-      {/* Minimize Button (Yellow) */}
-      <div className="relative" style={{ width: '13px', height: '13px' }}>
+      <div className="pointer-events-none relative" style={{ width: '13px', height: '13px' }}>
         <div
           aria-hidden="true"
           className="relative box-border cursor-default overflow-hidden rounded-full outline-none"
@@ -100,7 +95,6 @@ const TrafficLights = ({
               : '0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb',
           }}
         >
-          {/* Top shine */}
           <div
             className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{
@@ -113,7 +107,6 @@ const TrafficLights = ({
               zIndex: 2,
             }}
           />
-          {/* Bottom glow */}
           <div
             className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{
@@ -126,24 +119,9 @@ const TrafficLights = ({
             }}
           />
         </div>
-        <button
-          aria-label="Minimize"
-          className={cn(
-            'absolute -inset-2 z-10 cursor-default rounded-none outline-none',
-            debugMode ? 'bg-yellow-500/50' : 'opacity-0'
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            onMinimize?.();
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          type="button"
-        />
       </div>
 
-      {/* Maximize Button (Green) */}
-      <div className="relative" style={{ width: '13px', height: '13px' }}>
+      <div className="pointer-events-none relative" style={{ width: '13px', height: '13px' }}>
         <div
           aria-hidden="true"
           className="relative box-border cursor-default overflow-hidden rounded-full outline-none"
@@ -158,7 +136,6 @@ const TrafficLights = ({
               : '0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb',
           }}
         >
-          {/* Top shine */}
           <div
             className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{
@@ -171,7 +148,6 @@ const TrafficLights = ({
               zIndex: 2,
             }}
           />
-          {/* Bottom glow */}
           <div
             className="pointer-events-none absolute left-1/2 -translate-x-1/2 transform"
             style={{
@@ -184,20 +160,6 @@ const TrafficLights = ({
             }}
           />
         </div>
-        <button
-          aria-label="Maximize"
-          className={cn(
-            'absolute -inset-2 z-10 cursor-default rounded-none outline-none',
-            debugMode ? 'bg-green-500/50' : 'opacity-0'
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            onMaximize?.();
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          type="button"
-        />
       </div>
     </div>
   );

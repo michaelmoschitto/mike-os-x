@@ -26,8 +26,6 @@ export const AquaDropdown = ({
   side = 'bottom',
   sideOffset = 4,
 }: AquaDropdownProps) => {
-  const _selectedItem = items.find((item) => item.value === value);
-
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>{trigger}</DropdownMenu.Trigger>

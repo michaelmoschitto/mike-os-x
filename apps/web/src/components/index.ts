@@ -16,4 +16,4 @@ export * from './apps/TextEdit';
 export * from './ui';
 
 // Common shared components
-export * from './common';
+// export * from './common'; // TODO: Add common components when needed

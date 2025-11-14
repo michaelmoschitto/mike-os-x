@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router';
 import { motion, useMotionValue } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
@@ -26,6 +27,7 @@ const DesktopIcon = ({
   const isDragging = useRef(false);
   const lastClickTime = useRef(0);
   const openWindow = useWindowStore((state) => state.openWindow);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isDragging.current) {
@@ -50,19 +52,22 @@ const DesktopIcon = ({
   };
 
   const handleDoubleClick = () => {
-    // Only open text files (.txt, .md) in TextEdit
+    if (icon.urlPath) {
+      navigate({ to: icon.urlPath });
+      return;
+    }
+
     if (icon.type === 'file' && (icon.fileExtension === 'txt' || icon.fileExtension === 'md')) {
-      // Calculate centered position for window
       const windowWidth = 600;
       const windowHeight = 500;
       const centerX = (window.innerWidth - windowWidth) / 2;
-      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2; // Account for menubar and dock
+      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
 
       openWindow({
         type: 'textedit',
         title: icon.label,
         content: icon.content || '',
-        position: { x: centerX, y: centerY + 22 }, // Add menubar height
+        position: { x: centerX, y: centerY + 22 },
         size: { width: windowWidth, height: windowHeight },
       });
     }
