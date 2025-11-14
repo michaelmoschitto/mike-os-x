@@ -1,4 +1,11 @@
-import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion';
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  LayoutGroup,
+  type MotionValue,
+} from 'framer-motion';
 import { Fragment, useRef, useState } from 'react';
 
 import { useUI } from '@/lib/store';
@@ -33,9 +40,9 @@ const dockIcons: DockIcon[] = [
   { id: 'trash', label: 'Trash', icon: '/icons/trash.png' },
 ];
 
-const BASE_SIZE = 56; // 56px = 14 in Tailwind (h-14)
-const MAX_SCALE = 2.0;
-const INFLUENCE_DISTANCE = 120; // Distance in pixels where magnification effect applies
+const BASE_SIZE = 56;
+const MAX_SCALE = 2.3;
+const DISTANCE = 140;
 
 const Dock = () => {
   const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
@@ -45,9 +52,7 @@ const Dock = () => {
   const mouseX = useMotionValue(Infinity);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!dockRef.current) return;
-    const rect = dockRef.current.getBoundingClientRect();
-    mouseX.set(e.clientX - rect.left);
+    mouseX.set(e.pageX);
   };
 
   const handleMouseLeave = () => {
@@ -74,7 +79,7 @@ const Dock = () => {
   };
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2">
+    <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2" style={{ overflow: 'visible' }}>
       <motion.div
         ref={dockRef}
         className="aqua-pinstripe-dark flex items-end gap-1 border border-white/20 bg-white/10 px-3 py-2 shadow-2xl backdrop-blur-2xl"
@@ -85,22 +90,26 @@ const Dock = () => {
         onMouseLeave={handleMouseLeave}
         style={{
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+          height: BASE_SIZE + 16,
+          overflow: 'visible',
         }}
       >
-        {dockIcons.map((item) => (
-          <Fragment key={item.id}>
-            <DockIcon
-              icon={item}
-              mouseX={mouseX}
-              isActive={activeApp === item.id}
-              isHovered={hoveredIcon === item.id}
-              onHover={setHoveredIcon}
-              onClick={handleIconClick}
-            />
-            {/* Divider before Trash icon */}
-            {item.id === 'ai' && <div className="mx-1 h-12 w-px self-end bg-white/20" />}
-          </Fragment>
-        ))}
+        <LayoutGroup>
+          {dockIcons.map((item) => (
+            <Fragment key={item.id}>
+              <DockIcon
+                icon={item}
+                mouseX={mouseX}
+                isActive={activeApp === item.id}
+                isHovered={hoveredIcon === item.id}
+                onHover={setHoveredIcon}
+                onClick={handleIconClick}
+              />
+              {/* Divider before Trash icon */}
+              {item.id === 'ai' && <div className="mx-1 h-12 w-px self-end bg-white/20" />}
+            </Fragment>
+          ))}
+        </LayoutGroup>
       </motion.div>
     </div>
   );
@@ -116,40 +125,38 @@ interface DockIconProps {
 }
 
 const DockIcon = ({ icon, mouseX, isActive, isHovered, onHover, onClick }: DockIconProps) => {
-  const iconRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const maxButtonSize = Math.round(BASE_SIZE * MAX_SCALE);
 
-  // Calculate distance from mouse to this icon's center
-  const distance = useTransform(mouseX, (val) => {
-    if (!iconRef.current) return Infinity;
-
-    const rect = iconRef.current.getBoundingClientRect();
-    const iconCenterX =
-      rect.left + rect.width / 2 - iconRef.current.offsetParent!.getBoundingClientRect().left;
-
-    return Math.abs(val - iconCenterX);
+  const distanceCalc = useTransform(mouseX, (val) => {
+    const bounds = wrapperRef.current?.getBoundingClientRect();
+    if (!bounds || !Number.isFinite(val)) return Infinity;
+    return val - (bounds.left + bounds.width / 2);
   });
 
-  // Convert distance to scale using a smooth curve
-  // Uses an exponential falloff for smooth macOS-like magnification
-  const scale = useTransform(distance, (dist) => {
-    if (dist === Infinity) return 1;
+  const sizeTransform = useTransform(
+    distanceCalc,
+    [-DISTANCE, 0, DISTANCE],
+    [BASE_SIZE, maxButtonSize, BASE_SIZE]
+  );
 
-    // Exponential decay function for smooth magnification
-    const influence = Math.max(0, 1 - dist / INFLUENCE_DISTANCE);
-    const magnification = 1 + (MAX_SCALE - 1) * Math.pow(influence, 1.5);
-
-    return Math.max(1, Math.min(MAX_SCALE, magnification));
+  const sizeSpring = useSpring(sizeTransform, {
+    mass: 0.22,
+    stiffness: 130,
+    damping: 16,
   });
 
-  // Apply smooth spring physics to scale changes
-  const smoothScale = useSpring(scale, {
-    stiffness: 400,
-    damping: 28,
-    mass: 0.5,
+  const widthValue = sizeSpring as unknown as number;
+
+  const yOffset = useTransform(sizeSpring, (size) => {
+    return -(size - BASE_SIZE) * 0.5;
   });
 
-  // Y offset to lift icons when magnified (keeps bottoms aligned)
-  const y = useTransform(smoothScale, (s) => -(s - 1) * (BASE_SIZE / 2));
+  const ySpring = useSpring(yOffset, {
+    mass: 0.22,
+    stiffness: 130,
+    damping: 16,
+  });
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -158,33 +165,53 @@ const DockIcon = ({ icon, mouseX, isActive, isHovered, onHover, onClick }: DockI
   };
 
   return (
-    <div ref={iconRef} className="relative flex flex-col items-center">
+    <motion.div
+      ref={wrapperRef}
+      layout
+      layoutId={`dock-icon-${icon.id}`}
+      style={{
+        transformOrigin: 'bottom center',
+        willChange: 'width, height, transform',
+        width: widthValue,
+        height: widthValue,
+        marginLeft: 4,
+        marginRight: 4,
+        overflow: 'visible',
+        y: ySpring,
+      }}
+      className="relative flex flex-shrink-0 flex-col items-center"
+      transition={{
+        layout: {
+          type: 'spring',
+          stiffness: 300,
+          damping: 30,
+          mass: 0.8,
+        },
+      }}
+    >
       <button
         type="button"
-        className="relative flex cursor-pointer items-center justify-center border-0 bg-transparent p-0"
+        aria-label={icon.label}
+        title={icon.label}
+        className="relative flex h-full w-full cursor-pointer items-end justify-center border-0 bg-transparent p-0"
         onMouseEnter={() => onHover(icon.id)}
         onMouseLeave={() => onHover(null)}
         onClick={handleClick}
         style={{
-          width: BASE_SIZE,
-          height: BASE_SIZE,
+          willChange: 'transform',
         }}
       >
-        <motion.div
-          className="relative flex h-full w-full items-center justify-center"
+        <img
+          src={icon.icon}
+          alt={icon.label}
+          className="pointer-events-none h-full w-full object-contain select-none"
+          draggable={false}
           style={{
-            scale: smoothScale,
-            y,
-            filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4))',
+            imageRendering: '-webkit-optimize-contrast',
+            filter:
+              'drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))',
           }}
-        >
-          <img
-            src={icon.icon}
-            alt={icon.label}
-            className="pointer-events-none h-full w-full object-contain"
-            draggable={false}
-          />
-        </motion.div>
+        />
       </button>
 
       {isActive && (
@@ -206,7 +233,7 @@ const DockIcon = ({ icon, mouseX, isActive, isHovered, onHover, onClick }: DockI
           {icon.label}
         </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 };
 
