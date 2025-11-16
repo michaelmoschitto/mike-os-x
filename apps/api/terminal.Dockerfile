@@ -54,7 +54,7 @@ RUN echo '#!/bin/bash' > /entrypoint.sh && \
     echo 'fi' >> /entrypoint.sh && \
     echo 'if [ ! -f /workspace/.zshrc ] || ! grep -q "oh-my-zsh" /workspace/.zshrc; then' >> /entrypoint.sh && \
     echo '  echo "export ZSH=\"\$HOME/.oh-my-zsh\"" > /workspace/.zshrc' >> /entrypoint.sh && \
-    echo '  echo "ZSH_THEME=\"robbyrussell\"" >> /workspace/.zshrc' >> /entrypoint.sh && \
+    echo '  echo "ZSH_THEME=\"random\"" >> /workspace/.zshrc' >> /entrypoint.sh && \
     echo '  echo "plugins=(git fzf zsh-autosuggestions zsh-syntax-highlighting)" >> /workspace/.zshrc' >> /entrypoint.sh && \
     echo '  echo "source \$ZSH/oh-my-zsh.sh" >> /workspace/.zshrc' >> /entrypoint.sh && \
     echo '  echo "[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh" >> /workspace/.zshrc' >> /entrypoint.sh && \

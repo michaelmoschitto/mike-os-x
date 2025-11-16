@@ -31,7 +31,7 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
     const terminal = new Terminal({
       cursorBlink: true,
       fontSize: 15,
-      fontFamily: '"MesloLGS NF", "FiraCode Nerd Font", "MesloLGS Nerd Font", Monaco, Menlo, monospace',
+      fontFamily: '"MesloLGS NF", Monaco, Menlo, monospace',
       theme: {
         background: '#1e1e1e',
         foreground: '#d4d4d4',

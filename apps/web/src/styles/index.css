@@ -284,6 +284,31 @@ div[data-bookmark-dropdown].aqua-dropdown-menu {
   list-style-type: decimal;
 }
 
+/* ===== NERD FONT FOR TERMINAL ===== */
+@font-face {
+  font-family: 'MesloLGS NF';
+  src: url('https://raw.githubusercontent.com/romkatv/powerlevel10k-media/master/MesloLGS%20NF%20Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MesloLGS NF';
+  src: url('https://raw.githubusercontent.com/romkatv/powerlevel10k-media/master/MesloLGS%20NF%20Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MesloLGS NF';
+  src: url('https://raw.githubusercontent.com/romkatv/powerlevel10k-media/master/MesloLGS%20NF%20Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
 /* ===== XTERM.JS OVERRIDES ===== */
 .xterm {
   @apply h-full w-full relative;
