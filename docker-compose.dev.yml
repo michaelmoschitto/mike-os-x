@@ -41,7 +41,7 @@ services:
     cap_drop:
       - ALL
     network_mode: none
-    user: "1000:1000"
+    user: '1000:1000'
     mem_limit: ${CONTAINER_MEMORY:-1g}
     cpus: ${CONTAINER_CPUS:-1.0}
     tmpfs:

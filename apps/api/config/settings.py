@@ -58,8 +58,15 @@ class Settings(BaseSettings):
     cors_origins: str = Field(default="http://localhost:3000,http://localhost:5173")
 
     # Rate Limiting
+    dev_mode: bool = Field(default=False)
     rate_limit_connections: int = Field(default=10)
     rate_limit_commands: int = Field(default=1000)
+
+    @property
+    def effective_rate_limit_connections(self) -> int:
+        if self.dev_mode:
+            return 100
+        return self.rate_limit_connections
 
     # Container Resources
     container_memory: str = Field(default="1g")

@@ -30,7 +30,7 @@ class RateLimiter:
             if count == 1:
                 self.redis_client.expire(key, 60)
 
-            if count > settings.rate_limit_connections:
+            if count > settings.effective_rate_limit_connections:
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     detail="Too many connections. Please try again later.",
