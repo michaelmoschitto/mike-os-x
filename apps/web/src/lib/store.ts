@@ -10,7 +10,6 @@ type App =
   | 'photos'
   | 'reading'
   | 'about'
-  | 'ai'
   | 'trash';
 
 interface UIStore {

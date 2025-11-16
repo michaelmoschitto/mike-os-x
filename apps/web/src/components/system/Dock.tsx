@@ -20,7 +20,6 @@ type DockIconType =
   | 'photos'
   | 'reading'
   | 'about'
-  | 'ai'
   | 'trash';
 
 interface DockIcon {
@@ -32,13 +31,12 @@ interface DockIcon {
 const dockIcons: DockIcon[] = [
   { id: 'finder', label: 'Finder', icon: '/icons/finder.png' },
   { id: 'browser', label: 'Internet Explorer', icon: '/icons/browser.png' },
-  { id: 'terminal', label: 'Terminal', icon: '/icons/terminal.png' },
+  { id: 'terminal', label: 'Terminal', icon: '/icons/ai.png' },
   { id: 'projects', label: 'Projects', icon: '/icons/projects.png' },
   { id: 'writing', label: 'Writing', icon: '/icons/writing.png' },
   { id: 'photos', label: 'Photos', icon: '/icons/photos.png' },
   { id: 'reading', label: 'Reading', icon: '/icons/reading.png' },
   { id: 'about', label: 'About', icon: '/icons/about.png' },
-  { id: 'ai', label: 'AI', icon: '/icons/ai.png' },
   { id: 'trash', label: 'Trash', icon: '/icons/trash.png' },
 ];
 
@@ -115,7 +113,7 @@ const Dock = () => {
                 onClick={handleIconClick}
               />
               {/* Divider before Trash icon */}
-              {item.id === 'ai' && <div className="mx-1 h-12 w-px self-end bg-white/20" />}
+              {item.id === 'about' && <div className="mx-1 h-12 w-px self-end bg-white/20" />}
             </Fragment>
           ))}
         </LayoutGroup>
