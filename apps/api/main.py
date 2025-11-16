@@ -1,6 +1,9 @@
 import logging
+from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.responses import JSONResponse
+
+load_dotenv(override=False)
 
 from config.settings import settings
 from middleware.cors import setup_cors

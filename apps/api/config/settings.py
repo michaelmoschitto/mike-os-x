@@ -1,7 +1,30 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def get_env_file() -> Path | None:
+    current_dir = Path(__file__).parent.parent
+    env_local = current_dir / ".env.local"
+    env_file = current_dir / ".env"
+    if env_local.exists():
+        return env_local
+    if env_file.exists():
+        return env_file
+    return None
+
+
+def load_environment() -> None:
+    env_file = get_env_file()
+    if env_file:
+        load_dotenv(dotenv_path=env_file, override=False)
+    else:
+        load_dotenv(override=False)
+
+
+load_environment()
 
 
 def get_default_docker_host() -> str:
@@ -15,20 +38,9 @@ def get_default_docker_host() -> str:
     return "unix:///var/run/docker.sock"
 
 
-def get_env_file() -> str:
-    current_dir = Path(__file__).parent.parent
-    env_local = current_dir / ".env.local"
-    env_file = current_dir / ".env"
-    if env_local.exists():
-        return str(env_local)
-    if env_file.exists():
-        return str(env_file)
-    return str(env_local)
-
-
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=get_env_file(),
+        env_file=str(get_env_file()) if get_env_file() else None,
         env_file_encoding="utf-8",
         extra="ignore",
     )
