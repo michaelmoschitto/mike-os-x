@@ -79,7 +79,7 @@ const Dock = () => {
         title: 'Terminal',
         content: '',
         position: { x: 150, y: 100 },
-        size: { width: 800, height: 500 },
+        size: { width: 649, height: 436 },
       });
       setActiveApp('terminal');
     }
