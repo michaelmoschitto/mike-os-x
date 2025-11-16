@@ -33,13 +33,17 @@ class TerminalBridge:
 
             exec_id = container.client.api.exec_create(
                 container.id,
-                cmd="/bin/bash -l",
+                cmd="/bin/zsh",
                 stdin=True,
                 stdout=True,
                 stderr=True,
                 tty=True,
                 user="workspace",
-                environment={"TERM": "xterm-256color"},
+                environment={
+                    "TERM": "xterm-256color",
+                    "LANG": "en_US.UTF-8",
+                    "LC_ALL": "en_US.UTF-8",
+                },
             )
             logger.info(f"Created exec instance {exec_id['Id']}")
 
