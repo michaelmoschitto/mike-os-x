@@ -74,6 +74,7 @@ class ContainerManager:
         container = self.client.containers.run(
             "terminal-ubuntu:latest",
             name=self.container_name,
+            hostname="mikeos",
             detach=True,
             auto_remove=False,
             restart_policy={"Name": "unless-stopped"},

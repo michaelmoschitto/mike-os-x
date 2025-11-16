@@ -41,6 +41,13 @@ RUN git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /opt/oh-my-zsh &&
     ./install --all --no-bash --no-fish && \
     chown -R workspace:workspace /opt/oh-my-zsh /opt/fzf
 
+RUN echo 'export ZSH="$HOME/.oh-my-zsh"' > /opt/zshrc-template && \
+    echo 'ZSH_THEME="random"' >> /opt/zshrc-template && \
+    echo 'ZSH_THEME_RANDOM_QUIET=true' >> /opt/zshrc-template && \
+    echo 'plugins=(git fzf zsh-autosuggestions zsh-syntax-highlighting)' >> /opt/zshrc-template && \
+    echo 'source $ZSH/oh-my-zsh.sh' >> /opt/zshrc-template && \
+    echo '[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh' >> /opt/zshrc-template
+
 USER root
 
 RUN echo '#!/bin/bash' > /entrypoint.sh && \
@@ -52,12 +59,8 @@ RUN echo '#!/bin/bash' > /entrypoint.sh && \
     echo '  cp -r /opt/fzf /workspace/.fzf' >> /entrypoint.sh && \
     echo '  chown -R workspace:workspace /workspace/.fzf' >> /entrypoint.sh && \
     echo 'fi' >> /entrypoint.sh && \
-    echo 'if [ ! -f /workspace/.zshrc ] || ! grep -q "oh-my-zsh" /workspace/.zshrc; then' >> /entrypoint.sh && \
-    echo '  echo "export ZSH=\"\$HOME/.oh-my-zsh\"" > /workspace/.zshrc' >> /entrypoint.sh && \
-    echo '  echo "ZSH_THEME=\"random\"" >> /workspace/.zshrc' >> /entrypoint.sh && \
-    echo '  echo "plugins=(git fzf zsh-autosuggestions zsh-syntax-highlighting)" >> /workspace/.zshrc' >> /entrypoint.sh && \
-    echo '  echo "source \$ZSH/oh-my-zsh.sh" >> /workspace/.zshrc' >> /entrypoint.sh && \
-    echo '  echo "[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh" >> /workspace/.zshrc' >> /entrypoint.sh && \
+    echo 'if [ ! -f /workspace/.zshrc ]; then' >> /entrypoint.sh && \
+    echo '  cp /opt/zshrc-template /workspace/.zshrc' >> /entrypoint.sh && \
     echo '  chown workspace:workspace /workspace/.zshrc' >> /entrypoint.sh && \
     echo 'fi' >> /entrypoint.sh && \
     echo 'exec "$@"' >> /entrypoint.sh && \
