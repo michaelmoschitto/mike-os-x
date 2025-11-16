@@ -45,3 +45,5 @@ next-env.d.ts
 # Railway
 .railway/
 
+#pyc files
+__pycache__/
