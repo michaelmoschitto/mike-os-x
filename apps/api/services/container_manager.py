@@ -51,61 +51,27 @@ class ContainerManager:
 
     def ensure_container_running(self) -> Container:
         container = self.get_container()
-        if container:
-            if container.status != "running":
-                container.start()
-            return container
-        return self.create_container()
-
-    def create_container(self) -> Container:
-        try:
-            self.client.images.get("terminal-ubuntu:latest")
-        except NotFound:
+        if not container:
             raise RuntimeError(
-                "Terminal container image 'terminal-ubuntu:latest' not found. "
-                "Please build it first: docker build -f terminal.Dockerfile -t terminal-ubuntu:latest ."
+                f"Terminal container '{self.container_name}' not found. "
+                "Please ensure docker-compose services are running: bun run dev"
             )
-
-        try:
-            volume = self.client.volumes.get(self.volume_name)
-        except NotFound:
-            volume = self.client.volumes.create(name=self.volume_name)
-
-        container = self.client.containers.run(
-            "terminal-ubuntu:latest",
-            name=self.container_name,
-            hostname="mikeos",
-            detach=True,
-            auto_remove=False,
-            restart_policy={"Name": "unless-stopped"},
-            read_only=True,
-            security_opt=["no-new-privileges:true"],
-            cap_drop=["ALL"],
-            network_mode="none",
-            user="1000:1000",
-            mem_limit=settings.container_memory,
-            cpu_quota=int(settings.container_cpus * 100000),
-            tmpfs={
-                "/tmp": "size=256m",
-                "/var/tmp": "size=256m",
-            },
-            volumes={
-                self.volume_name: {
-                    "bind": "/workspace",
-                    "mode": "rw",
-                }
-            },
-        )
+        if container.status != "running":
+            container.start()
         return container
+
 
     def restart_container(self) -> Container:
         container = self.get_container()
-        if container:
-            container.restart()
-            return container
-        return self.create_container()
+        if not container:
+            raise RuntimeError(
+                f"Terminal container '{self.container_name}' not found. "
+                "Please ensure docker-compose services are running: bun run dev"
+            )
+        container.restart()
+        return container
 
-    def reset_container(self) -> Container:
+    def reset_container(self) -> None:
         container = self.get_container()
         if container:
             container.stop()
@@ -116,8 +82,6 @@ class ContainerManager:
             volume.remove()
         except NotFound:
             pass
-
-        return self.create_container()
 
     def get_container_status(self) -> dict:
         container = self.get_container()

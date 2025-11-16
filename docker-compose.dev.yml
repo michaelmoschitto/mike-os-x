@@ -25,7 +25,32 @@ services:
       - CONTAINER_DISK=${CONTAINER_DISK:-5g}
     depends_on:
       - redis
+      - terminal
     command: uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Terminal container
+  terminal:
+    build:
+      context: ./apps/api
+      dockerfile: terminal.Dockerfile
+    container_name: terminal-shared
+    hostname: mikeos
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    network_mode: none
+    user: "1000:1000"
+    mem_limit: ${CONTAINER_MEMORY:-1g}
+    cpus: ${CONTAINER_CPUS:-1.0}
+    tmpfs:
+      - /tmp:size=256m
+      - /var/tmp:size=256m
+    volumes:
+      - terminal-workspace:/workspace:rw
+    restart: unless-stopped
+    command: tail -f /dev/null
 
   # Redis
   redis:
