@@ -19,12 +19,15 @@ RUN apt-get update && apt-get install -y \
     npm \
     && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m -s /bin/bash -u 1000 workspace
+RUN mkdir -p /workspace && \
+    useradd -d /workspace -s /bin/bash -u 1000 workspace && \
+    chown -R workspace:workspace /workspace && \
+    rm -rf /home/workspace 2>/dev/null || true
 
-RUN mkdir -p /workspace && chown workspace:workspace /workspace
+RUN echo 'export PS1="\[\033[01;32m\]\u@terminal\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> /workspace/.bashrc && \
+    chown workspace:workspace /workspace/.bashrc
+
 WORKDIR /workspace
-
-RUN echo 'export PS1="\[\033[01;32m\]\u@terminal\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> /home/workspace/.bashrc
 
 USER workspace
 

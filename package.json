@@ -12,6 +12,7 @@
     "down": "docker compose -f docker-compose.dev.yml down",
     "logs": "docker compose -f docker-compose.dev.yml logs -f",
     "build:terminal": "docker build -f apps/api/terminal.Dockerfile -t terminal-ubuntu:latest apps/api",
+    "build:terminal:no-cache": "docker build --no-cache -f apps/api/terminal.Dockerfile -t terminal-ubuntu:latest apps/api",
     "build": "bun --cwd apps/web build",
     "preview": "bun --cwd apps/web preview",
     "test:api": "cd apps/api && uv run pytest",

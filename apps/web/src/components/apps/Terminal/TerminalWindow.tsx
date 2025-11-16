@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
@@ -6,7 +6,6 @@ import { WebLinksAddon } from 'xterm-addon-web-links';
 import Window from '@/components/window/Window';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 import 'xterm/css/xterm.css';
-import '@/styles/terminal.css';
 
 interface TerminalWindowProps {
   window: WindowType;
@@ -21,7 +20,6 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
   const terminalInstanceRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const websocketRef = useRef<WebSocket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onDataDisposableRef = useRef<{ dispose: () => void } | null>(null);
 
@@ -75,7 +73,6 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
 
         ws.onopen = () => {
           console.log('[Terminal] WebSocket connected');
-          setIsConnected(true);
 
           if (onDataDisposableRef.current) {
             onDataDisposableRef.current.dispose();
@@ -131,7 +128,6 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
 
         ws.onclose = () => {
           console.log('[Terminal] WebSocket closed');
-          setIsConnected(false);
           terminal.write('\r\n\x1b[33mDisconnected. Reconnecting...\x1b[0m\r\n');
           if (onDataDisposableRef.current) {
             onDataDisposableRef.current.dispose();
@@ -279,15 +275,6 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
         className="pinstripe flex h-full flex-col overflow-hidden bg-[#f5f5f5]"
         onClick={handleTerminalClick}
       >
-        <div className="flex items-center gap-2 border-b border-black/10 px-3 py-1">
-          <div
-            className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`}
-            title={isConnected ? 'Connected' : 'Disconnected'}
-          />
-          <span className="font-ui text-[10px] text-black/60">
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </span>
-        </div>
         <div
           ref={terminalRef}
           className="flex-1 cursor-text overflow-hidden"

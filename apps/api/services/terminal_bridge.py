@@ -33,7 +33,7 @@ class TerminalBridge:
 
             exec_id = container.client.api.exec_create(
                 container.id,
-                cmd="/bin/bash",
+                cmd="/bin/bash -l",
                 stdin=True,
                 stdout=True,
                 stderr=True,

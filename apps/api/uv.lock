@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 
 [[package]]
@@ -43,6 +43,7 @@ dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "python-dotenv" },
     { name = "redis" },
 ]
 
@@ -62,6 +63,7 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.121.2" },
     { name = "pydantic", specifier = ">=2.12.4" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "redis", specifier = ">=7.0.1" },
 ]
 
