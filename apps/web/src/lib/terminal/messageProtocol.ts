@@ -1,14 +1,6 @@
-export type ClientMessageType =
-  | 'create_session'
-  | 'input'
-  | 'resize'
-  | 'close_session';
+export type ClientMessageType = 'create_session' | 'input' | 'resize' | 'close_session';
 
-export type ServerMessageType =
-  | 'output'
-  | 'session_created'
-  | 'session_closed'
-  | 'error';
+export type ServerMessageType = 'output' | 'session_created' | 'session_closed' | 'error';
 
 export interface CreateSessionMessage {
   type: 'create_session';
@@ -66,4 +58,3 @@ export type ServerMessage =
   | SessionCreatedMessage
   | SessionClosedMessage
   | ErrorMessage;
-

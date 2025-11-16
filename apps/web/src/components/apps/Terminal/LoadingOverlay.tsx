@@ -9,7 +9,7 @@ const LoadingOverlay = () => {
 
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#1e1e1e]/80">
-      <div className="flex items-center gap-1 text-yellow-400 font-ui text-sm">
+      <div className="font-ui flex items-center gap-1 text-sm text-yellow-400">
         <span>Connecting</span>
         <span className="flex gap-0.5">
           <span
@@ -37,4 +37,3 @@ const LoadingOverlay = () => {
 };
 
 export default LoadingOverlay;
-

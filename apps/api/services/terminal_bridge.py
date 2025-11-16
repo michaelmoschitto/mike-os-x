@@ -6,152 +6,227 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 from services.container_manager import ContainerManager
 from services.rate_limiter import RateLimiter
-from services.pty_session_manager import PTYSessionManager
-from services.message_protocol import ClientMessage, ServerMessage
 
 logger = logging.getLogger(__name__)
+
+MAX_WEBSOCKET_MESSAGE_SIZE = 64 * 1024
+MAX_INPUT_SIZE = 64 * 1024
+MAX_TOTAL_INPUT_PER_SESSION = 10 * 1024 * 1024
+MIN_TERMINAL_COLS = 1
+MAX_TERMINAL_COLS = 1000
+MIN_TERMINAL_ROWS = 1
+MAX_TERMINAL_ROWS = 1000
+SESSION_IDLE_TIMEOUT = 30 * 60
 
 
 class TerminalBridge:
     def __init__(self) -> None:
         self.container_manager = ContainerManager()
         self.rate_limiter = RateLimiter()
-        self.session_manager = PTYSessionManager(self.container_manager)
+        self.session_input_totals: dict[str, int] = {}
+        self.session_last_activity: dict[str, float] = {}
 
     async def handle_websocket(self, websocket: WebSocket, client_ip: str) -> None:
-        await self.rate_limiter.check_connection_limit(client_ip)
-
         await websocket.accept()
         logger.info(f"WebSocket connection accepted from {client_ip}")
 
         connection_id = str(uuid.uuid4())
         user_agent = websocket.headers.get("user-agent", "unknown")
-        self.rate_limiter.track_connection(connection_id, client_ip, user_agent)
-
-        active_sessions: dict[str, asyncio.Task] = {}
-
-        async def send_message(message: ServerMessage) -> None:
-            try:
-                await websocket.send_text(json.dumps(message))
-            except Exception as e:
-                logger.error(f"Error sending message: {e}")
+        exec_socket = None
+        sock = None
+        timeout_task = None
 
         try:
-            while True:
+            await self.rate_limiter.check_connection_limit(client_ip)
+            self.rate_limiter.track_connection(connection_id, client_ip, user_agent)
+            self.session_last_activity[connection_id] = asyncio.get_event_loop().time()
+
+            container = self.container_manager.ensure_container_running()
+            logger.info(f"Container {container.id} is running")
+
+            exec_id = container.client.api.exec_create(
+                container.id,
+                cmd="/bin/zsh",
+                stdin=True,
+                stdout=True,
+                stderr=True,
+                tty=True,
+                user="workspace",
+                environment={
+                    "TERM": "xterm-256color",
+                    "LANG": "en_US.UTF-8",
+                    "LC_ALL": "en_US.UTF-8",
+                },
+            )
+            logger.info(f"Created exec instance {exec_id['Id']}")
+
+            exec_socket = container.client.api.exec_start(
+                exec_id['Id'],
+                socket=True,
+                tty=True,
+            )
+            logger.info("Exec socket started")
+            
+            sock = exec_socket._sock
+            sock.setblocking(False)
+
+            read_task = None
+            write_task = None
+
+            async def read_from_container() -> None:
+                nonlocal read_task
+                loop = asyncio.get_event_loop()
                 try:
-                    data = await websocket.receive_text()
-
-                    try:
-                        msg: ClientMessage = json.loads(data)
-                    except json.JSONDecodeError:
-                        logger.warning(f"Invalid JSON message: {data}")
-                        continue
-
-                    msg_type = msg.get("type")
-                    session_id = msg.get("sessionId", "")
-
-                    if msg_type == "create_session":
-                        if not session_id:
-                            logger.warning("create_session message missing sessionId")
-                            continue
-
-                        if session_id in active_sessions:
-                            logger.warning(f"Session {session_id} already exists")
-                            await send_message({
-                                "type": "session_created",
-                                "sessionId": session_id,
-                            })
-                            continue
-
+                    while True:
                         try:
-                            session = await self.session_manager.create_session(session_id)
-                            await send_message({
-                                "type": "session_created",
-                                "sessionId": session_id,
-                            })
-
-                            async def read_task() -> None:
-                                try:
-                                    await self.session_manager.read_from_session(
-                                        session_id, websocket, send_message
-                                    )
-                                except Exception as e:
-                                    logger.error(f"Read task error for {session_id}: {e}")
-                                finally:
-                                    await self.session_manager.close_session(session_id)
-                                    active_sessions.pop(session_id, None)
-                                    await send_message({
-                                        "type": "session_closed",
-                                        "sessionId": session_id,
-                                    })
-
-                            task = asyncio.create_task(read_task())
-                            active_sessions[session_id] = task
-                            logger.info(f"Created and started read task for session {session_id}")
-
+                            data = await loop.sock_recv(sock, 4096)
+                            if data:
+                                self.session_last_activity[connection_id] = asyncio.get_event_loop().time()
+                                decoded = data.decode("utf-8", errors="replace")
+                                await websocket.send_text(decoded)
+                            else:
+                                logger.info("Socket closed by container")
+                                break
+                        except OSError as e:
+                            logger.info(f"Socket error during read: {e}")
+                            break
                         except Exception as e:
-                            logger.error(f"Error creating session {session_id}: {e}")
-                            await send_message({
-                                "type": "error",
-                                "sessionId": session_id,
-                                "error": str(e),
-                            })
-
-                    elif msg_type == "input":
-                        if not session_id:
-                            logger.warning("input message missing sessionId")
-                            continue
-
-                        if not await self.rate_limiter.check_command_limit(connection_id):
-                            await send_message({
-                                "type": "error",
-                                "sessionId": session_id,
-                                "error": "Rate limit exceeded. Please wait.",
-                            })
-                            continue
-
-                        input_data = msg.get("data", "")
-                        if input_data:
-                            await self.session_manager.write_to_session(
-                                session_id, input_data.encode()
-                            )
-
-                    elif msg_type == "resize":
-                        if not session_id:
-                            logger.warning("resize message missing sessionId")
-                            continue
-
-                        cols = msg.get("cols", 80)
-                        rows = msg.get("rows", 24)
-                        await self.session_manager.resize_session(session_id, cols, rows)
-
-                    elif msg_type == "close_session":
-                        if not session_id:
-                            logger.warning("close_session message missing sessionId")
-                            continue
-
-                        task = active_sessions.pop(session_id, None)
-                        if task:
-                            task.cancel()
-                            try:
-                                await task
-                            except asyncio.CancelledError:
-                                pass
-
-                        await self.session_manager.close_session(session_id)
-                        await send_message({
-                            "type": "session_closed",
-                            "sessionId": session_id,
-                        })
-
-                    else:
-                        logger.warning(f"Unknown message type: {msg_type}")
-
+                            logger.error(f"Error reading from container: {e}")
+                            break
                 except WebSocketDisconnect:
-                    logger.info("WebSocket disconnected")
-                    break
+                    logger.info("WebSocket disconnected during read")
                 except Exception as e:
-                    logger.error(f"Error processing message: {e}", exc_info=True)
+                    logger.error(f"Unexpected error in read_from_container: {e}")
+
+            async def write_to_container() -> None:
+                nonlocal write_task
+                loop = asyncio.get_event_loop()
+                try:
+                    while True:
+                        try:
+                            data = await websocket.receive_text()
+                            
+                            if len(data.encode('utf-8')) > MAX_WEBSOCKET_MESSAGE_SIZE:
+                                logger.warning(f"WebSocket message too large: {len(data.encode('utf-8'))} bytes")
+                                await websocket.send_text(
+                                    "\r\nMessage too large. Maximum size is 64KB.\r\n"
+                                )
+                                continue
+                            
+                            try:
+                                msg = json.loads(data)
+                                if isinstance(msg, dict) and msg.get("type") == "resize":
+                                    cols = msg.get("cols", 80)
+                                    rows = msg.get("rows", 24)
+                                    
+                                    if not isinstance(cols, int) or not isinstance(rows, int):
+                                        logger.warning(f"Invalid resize dimensions type: cols={type(cols)}, rows={type(rows)}")
+                                        continue
+                                    
+                                    if cols < MIN_TERMINAL_COLS or cols > MAX_TERMINAL_COLS:
+                                        logger.warning(f"Invalid cols value: {cols}")
+                                        continue
+                                    
+                                    if rows < MIN_TERMINAL_ROWS or rows > MAX_TERMINAL_ROWS:
+                                        logger.warning(f"Invalid rows value: {rows}")
+                                        continue
+                                    
+                                    logger.info(f"Resize request: {cols}x{rows}")
+                                    try:
+                                        container.client.api.exec_resize(exec_id['Id'], height=rows, width=cols)
+                                        logger.info(f"Resized PTY to {cols}x{rows}")
+                                    except Exception as e:
+                                        logger.error(f"Failed to resize PTY: {e}")
+                                    continue
+                            except json.JSONDecodeError:
+                                pass
+                            
+                            if not await self.rate_limiter.check_command_limit(connection_id):
+                                await websocket.send_text(
+                                    "\r\nRate limit exceeded. Please wait.\r\n"
+                                )
+                                continue
+                            
+                            encoded_data = data.encode('utf-8')
+                            
+                            if len(encoded_data) > MAX_INPUT_SIZE:
+                                logger.warning(f"Input too large: {len(encoded_data)} bytes")
+                                await websocket.send_text(
+                                    "\r\nInput too large. Maximum size is 64KB.\r\n"
+                                )
+                                continue
+                            
+                            try:
+                                encoded_data.decode('utf-8')
+                            except UnicodeDecodeError:
+                                logger.warning("Input contains invalid UTF-8 encoding")
+                                await websocket.send_text(
+                                    "\r\nInvalid character encoding.\r\n"
+                                )
+                                continue
+                            
+                            self.session_input_totals[connection_id] = (
+                                self.session_input_totals.get(connection_id, 0) + len(encoded_data)
+                            )
+                            
+                            if self.session_input_totals[connection_id] > MAX_TOTAL_INPUT_PER_SESSION:
+                                logger.warning(f"Session {connection_id} exceeded total input limit")
+                                await websocket.send_text(
+                                    "\r\nSession input limit exceeded (10MB). Please reconnect.\r\n"
+                                )
+                                break
+                            
+                            self.session_last_activity[connection_id] = asyncio.get_event_loop().time()
+                            
+                            total_sent = 0
+                            while total_sent < len(encoded_data):
+                                try:
+                                    await loop.sock_sendall(sock, encoded_data[total_sent:])
+                                    total_sent = len(encoded_data)
+                                except BlockingIOError:
+                                    await asyncio.sleep(0.01)
+                                except OSError as e:
+                                    logger.error(f"Socket error during write: {e}")
+                                    return
+                        except OSError as e:
+                            logger.error(f"OSError during write: {e}")
+                            break
+                except WebSocketDisconnect:
+                    logger.info("WebSocket disconnected during write")
+                except Exception as e:
+                    logger.error(f"Unexpected error in write_to_container: {e}")
+
+            async def check_idle_timeout() -> None:
+                while True:
+                    await asyncio.sleep(60)
+                    current_time = asyncio.get_event_loop().time()
+                    last_activity = self.session_last_activity.get(connection_id, current_time)
+                    if current_time - last_activity > SESSION_IDLE_TIMEOUT:
+                        logger.info(f"Session {connection_id} idle timeout, closing")
+                        if sock:
+                            try:
+                                sock.close()
+                            except Exception:
+                                pass
+                        break
+
+            read_task = asyncio.create_task(read_from_container())
+            write_task = asyncio.create_task(write_to_container())
+            timeout_task = asyncio.create_task(check_idle_timeout())
+
+            _, pending = await asyncio.wait(
+                [read_task, write_task, timeout_task],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+
+            for task in pending:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+
+            logger.info("WebSocket connection closed")
 
         except Exception as e:
             logger.error(f"Error in handle_websocket: {e}", exc_info=True)
@@ -160,15 +235,44 @@ class TerminalBridge:
             except Exception:
                 pass
         finally:
-            for task in active_sessions.values():
-                task.cancel()
+            self.rate_limiter.untrack_connection(connection_id)
+            self.session_input_totals.pop(connection_id, None)
+            self.session_last_activity.pop(connection_id, None)
+            if timeout_task:
                 try:
-                    await task
-                except asyncio.CancelledError:
+                    timeout_task.cancel()
+                    try:
+                        await timeout_task
+                    except asyncio.CancelledError:
+                        pass
+                except Exception:
+                    pass
+            if read_task:
+                try:
+                    read_task.cancel()
+                    try:
+                        await read_task
+                    except asyncio.CancelledError:
+                        pass
+                except Exception:
+                    pass
+            if write_task:
+                try:
+                    write_task.cancel()
+                    try:
+                        await write_task
+                    except asyncio.CancelledError:
+                        pass
+                except Exception:
+                    pass
+            if sock:
+                try:
+                    sock.close()
+                except Exception:
+                    pass
+            if exec_socket:
+                try:
+                    exec_socket.close()
+                except Exception:
                     pass
 
-            for session_id in list(active_sessions.keys()):
-                await self.session_manager.close_session(session_id)
-
-            self.rate_limiter.untrack_connection(connection_id)
-            logger.info("WebSocket connection closed and cleaned up")

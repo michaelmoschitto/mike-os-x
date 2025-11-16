@@ -39,4 +39,3 @@ export const getRouteStrategy = (
 ): WindowRouteStrategy => {
   return windowRouteStrategies[windowType];
 };
-

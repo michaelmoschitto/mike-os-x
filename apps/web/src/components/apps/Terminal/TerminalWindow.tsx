@@ -5,8 +5,6 @@ import { WebLinksAddon } from 'xterm-addon-web-links';
 
 import Window from '@/components/window/Window';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
-import { useWebSocketManager } from '@/stores/useWebSocketManager';
-import LoadingOverlay from './LoadingOverlay';
 import 'xterm/css/xterm.css';
 
 interface TerminalWindowProps {
@@ -21,16 +19,12 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminalInstanceRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const sessionIdRef = useRef<string | null>(null);
+  const websocketRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onDataDisposableRef = useRef<{ dispose: () => void } | null>(null);
-
-  const { registerSession, unregisterSession, sendMessage, connectionState } =
-    useWebSocketManager();
 
   useEffect(() => {
     if (!terminalRef.current) return;
-
-    console.log('[Terminal] Initializing terminal');
 
     const terminal = new Terminal({
       cursorBlink: true,
@@ -71,70 +65,89 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
     terminalInstanceRef.current = terminal;
     fitAddonRef.current = fitAddon;
 
-    console.log('[Terminal] Terminal opened');
+    const connectWebSocket = () => {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      let apiHost = import.meta.env.VITE_API_URL?.replace(/^https?:\/\//, '');
 
-    const sessionId = `term-${windowData.id}`;
-    sessionIdRef.current = sessionId;
+      if (!apiHost) {
+        if (import.meta.env.DEV) {
+          apiHost = 'localhost:8000';
+        } else {
+          apiHost = window.location.host;
+        }
+      }
 
-    const handler = {
-      onOutput: (data: string) => {
-        terminal.write(data);
-      },
-      onError: (error: string) => {
-        terminal.write(`\r\n\x1b[31mError: ${error}\x1b[0m\r\n`);
-      },
-      onSessionCreated: () => {
-        console.log(`[Terminal] Session ${sessionId} created`);
-        setTimeout(() => {
-          const dims = { cols: terminal.cols, rows: terminal.rows };
-          console.log('[Terminal] Sending terminal dimensions:', dims);
-          sendMessage({
-            type: 'resize',
-            sessionId,
-            cols: dims.cols,
-            rows: dims.rows,
+      const wsUrl = `${protocol}//${apiHost}/ws/terminal`;
+
+      try {
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          if (onDataDisposableRef.current) {
+            onDataDisposableRef.current.dispose();
+          }
+
+          const disposable = terminal.onData((data: string) => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(data);
+            }
           });
-        }, 100);
 
-        setTimeout(() => {
-          terminal.focus();
-          console.log('[Terminal] Focused after connection');
-        }, 150);
-      },
-      onSessionClosed: () => {
-        console.log(`[Terminal] Session ${sessionId} closed`);
-      },
+          onDataDisposableRef.current = disposable;
+
+          setTimeout(() => {
+            const dims = { cols: terminal.cols, rows: terminal.rows };
+            ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+          }, 100);
+
+          setTimeout(() => {
+            terminal.focus();
+          }, 150);
+
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+            reconnectTimeoutRef.current = null;
+          }
+        };
+
+        ws.onmessage = (event) => {
+          terminal.write(event.data);
+        };
+
+        ws.onerror = () => {
+          terminal.write('\r\n\x1b[31mConnection error\x1b[0m\r\n');
+        };
+
+        ws.onclose = () => {
+          terminal.write('\r\n\x1b[33mDisconnected. Reconnecting...\x1b[0m\r\n');
+          if (onDataDisposableRef.current) {
+            onDataDisposableRef.current.dispose();
+            onDataDisposableRef.current = null;
+          }
+          if (!reconnectTimeoutRef.current) {
+            reconnectTimeoutRef.current = setTimeout(() => {
+              reconnectTimeoutRef.current = null;
+              connectWebSocket();
+            }, 2000);
+          }
+        };
+
+        websocketRef.current = ws;
+      } catch {
+        terminal.write('\r\n\x1b[31mFailed to connect to terminal server\x1b[0m\r\n');
+      }
     };
 
-    registerSession(sessionId, handler);
-
-    if (onDataDisposableRef.current) {
-      onDataDisposableRef.current.dispose();
-    }
-
-    const disposable = terminal.onData((data: string) => {
-      sendMessage({
-        type: 'input',
-        sessionId,
-        data,
-      });
-    });
-
-    onDataDisposableRef.current = disposable;
-    console.log('[Terminal] onData handler registered');
+    connectWebSocket();
 
     const handleResize = () => {
       if (fitAddonRef.current) {
         fitAddonRef.current.fit();
-        if (terminalInstanceRef.current && connectionState === 'connected') {
+        if (websocketRef.current?.readyState === WebSocket.OPEN) {
           const dims = { cols: terminal.cols, rows: terminal.rows };
-          console.log('[Terminal] Sending resize:', dims);
-          sendMessage({
-            type: 'resize',
-            sessionId,
-            cols: dims.cols,
-            rows: dims.rows,
-          });
+          websocketRef.current.send(
+            JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows })
+          );
         }
       }
     };
@@ -142,13 +155,15 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
     window.addEventListener('resize', handleResize);
 
     return () => {
-      console.log('[Terminal] Cleaning up');
       window.removeEventListener('resize', handleResize);
       if (onDataDisposableRef.current) {
         onDataDisposableRef.current.dispose();
       }
-      if (sessionIdRef.current) {
-        unregisterSession(sessionIdRef.current);
+      if (websocketRef.current) {
+        websocketRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
       terminal.dispose();
     };
@@ -159,7 +174,6 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
     if (!terminal) return;
 
     if (isActive) {
-      console.log('[Terminal] Window became active, focusing...');
       setTimeout(() => {
         terminal.focus();
       }, 200);
@@ -172,25 +186,10 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
     }
   }, [isActive, windowData.size]);
 
-  useEffect(() => {
-    const terminal = terminalInstanceRef.current;
-    const sessionId = sessionIdRef.current;
-    if (!terminal || !sessionId) return;
-
-    if (connectionState === 'connected' && fitAddonRef.current) {
-      setTimeout(() => {
-        const dims = { cols: terminal.cols, rows: terminal.rows };
-        sendMessage({
-          type: 'resize',
-          sessionId,
-          cols: dims.cols,
-          rows: dims.rows,
-        });
-      }, 100);
-    }
-  }, [connectionState, sendMessage]);
-
   const handleClose = () => {
+    if (websocketRef.current) {
+      websocketRef.current.close();
+    }
     closeWindow(windowData.id);
   };
 
@@ -199,7 +198,6 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
   };
 
   const handleFocus = () => {
-    console.log('[Terminal] handleFocus called');
     focusWindow(windowData.id);
     setTimeout(() => {
       terminalInstanceRef.current?.focus();
@@ -215,26 +213,20 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
     if (fitAddonRef.current && terminalInstanceRef.current) {
       setTimeout(() => {
         fitAddonRef.current?.fit();
-        const sessionId = sessionIdRef.current;
-        if (connectionState === 'connected' && sessionId) {
+        if (websocketRef.current?.readyState === WebSocket.OPEN && terminalInstanceRef.current) {
           const dims = {
             cols: terminalInstanceRef.current.cols,
             rows: terminalInstanceRef.current.rows,
           };
-          console.log('[Terminal] Sending resize after window resize:', dims);
-          sendMessage({
-            type: 'resize',
-            sessionId,
-            cols: dims.cols,
-            rows: dims.rows,
-          });
+          websocketRef.current.send(
+            JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows })
+          );
         }
       }, 100);
     }
   };
 
   const handleTerminalClick = (e: React.MouseEvent) => {
-    console.log('[Terminal] Terminal area clicked');
     e.stopPropagation();
     if (terminalInstanceRef.current) {
       terminalInstanceRef.current.focus();
@@ -256,7 +248,7 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
       onResize={handleResize}
     >
       <div
-        className="pinstripe relative flex h-full flex-col overflow-hidden bg-[#f5f5f5]"
+        className="pinstripe flex h-full flex-col overflow-hidden bg-[#f5f5f5]"
         onClick={handleTerminalClick}
       >
         <div
@@ -264,7 +256,6 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
           className="flex-1 cursor-text overflow-hidden"
           style={{ minHeight: 0 }}
         />
-        <LoadingOverlay />
       </div>
     </Window>
   );

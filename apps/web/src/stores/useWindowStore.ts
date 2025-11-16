@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 
 import { DEFAULT_BOOKMARKS } from '@/config/defaultBookmarks';
+import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { useUI } from '@/lib/store';
 import { getHostnameFromUrl } from '@/lib/utils';
-import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 
 export type BookmarkItem =
   | { type: 'bookmark'; title: string; url: string }

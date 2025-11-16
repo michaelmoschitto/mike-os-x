@@ -1,5 +1,6 @@
 import { describe, expect, test, beforeEach, vi, afterEach } from 'vitest';
-import { useWebSocketManager } from '../useWebSocketManager';
+
+import { useWebSocketManager } from '@/stores/useWebSocketManager';
 
 class MockWebSocket {
   static CONNECTING = 0;
@@ -22,7 +23,7 @@ class MockWebSocket {
     }, 0);
   }
 
-  send(data: string) {
+  send(_data: string) {
     // Mock implementation
   }
 
@@ -78,7 +79,7 @@ describe('useWebSocketManager', () => {
   });
 
   test('registerSession adds session and sends create_session message when connected', async () => {
-    const { connect, registerSession, sendMessage } = useWebSocketManager.getState();
+    const { connect, registerSession } = useWebSocketManager.getState();
     connect();
 
     await vi.runAllTimersAsync();
@@ -304,4 +305,3 @@ describe('useWebSocketManager', () => {
     expect(state.reconnectAttempts).toBe(0);
   });
 });
-

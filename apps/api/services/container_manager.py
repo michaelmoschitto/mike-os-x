@@ -1,7 +1,7 @@
 import docker
 import os
 from docker.models.containers import Container
-from docker.errors import NotFound, APIError, DockerException
+from docker.errors import NotFound, DockerException
 
 from config.settings import settings
 
@@ -14,7 +14,7 @@ class ContainerManager:
             socket_path = docker_host.replace("unix://", "")
             if not os.path.exists(socket_path):
                 raise RuntimeError(
-                    f"❌ Docker socket not found at {socket_path}\n"
+                    f"Docker socket not found at {socket_path}\n"
                     "Docker Desktop may not be running or the socket path is incorrect.\n"
                     "Please ensure Docker Desktop is running and try again."
                 )
@@ -24,19 +24,19 @@ class ContainerManager:
             self.client.ping()
         except FileNotFoundError as e:
             raise RuntimeError(
-                f"❌ Docker socket not found: {docker_host}\n"
+                f"Docker socket not found: {docker_host}\n"
                 "Docker Desktop may not be running.\n"
                 "Please start Docker Desktop and try again."
             ) from e
         except (DockerException, ConnectionError) as e:
             raise RuntimeError(
-                "❌ Cannot connect to Docker Desktop.\n"
+                "Cannot connect to Docker Desktop.\n"
                 "Please ensure Docker Desktop is running and try again.\n"
                 f"Error: {e}"
             ) from e
         except Exception as e:
             raise RuntimeError(
-                f"❌ Unexpected error connecting to Docker: {e}\n"
+                f"Unexpected error connecting to Docker: {e}\n"
                 "Please ensure Docker Desktop is running and try again."
             ) from e
         
@@ -60,7 +60,6 @@ class ContainerManager:
             container.start()
         return container
 
-
     def restart_container(self) -> Container:
         container = self.get_container()
         if not container:
@@ -83,7 +82,7 @@ class ContainerManager:
         except NotFound:
             pass
 
-    def get_container_status(self) -> dict:
+    def get_container_status(self) -> dict[str, str | bool | None]:
         container = self.get_container()
         if not container:
             return {"status": "not_found", "running": False, "container_id": None}

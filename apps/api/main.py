@@ -48,9 +48,18 @@ async def terminal_status() -> TerminalStatusResponse:
     )
 
 
+def get_client_ip(websocket: WebSocket) -> str:
+    x_forwarded_for = websocket.headers.get("x-forwarded-for")
+    if x_forwarded_for:
+        return x_forwarded_for.split(",")[0].strip()
+    if websocket.client:
+        return websocket.client.host
+    return "unknown"
+
+
 @app.websocket("/ws/terminal")
 async def websocket_terminal(websocket: WebSocket) -> None:
-    client_ip = websocket.client.host if websocket.client else "unknown"
+    client_ip = get_client_ip(websocket)
     logger.info(f"WebSocket connection attempt from {client_ip}")
     try:
         await terminal_bridge.handle_websocket(websocket, client_ip)

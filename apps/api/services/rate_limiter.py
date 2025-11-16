@@ -9,6 +9,14 @@ logger = logging.getLogger(__name__)
 
 
 class RateLimiter:
+    """
+    Rate limiter using Redis for connection and command rate limiting.
+    
+    Note: If Redis is unavailable, the rate limiter will fail-open (allow all traffic).
+    This is intentional to prevent service disruption if Redis goes down, but means
+    rate limiting will be disabled in that scenario. Ensure Redis is properly configured
+    and monitored in production.
+    """
     def __init__(self) -> None:
         try:
             self.redis_client = redis.from_url(settings.redis_url, decode_responses=True)

@@ -287,7 +287,8 @@ div[data-bookmark-dropdown].aqua-dropdown-menu {
 /* ===== NERD FONT FOR TERMINAL ===== */
 @font-face {
   font-family: 'MesloLGS NF';
-  src: url('https://raw.githubusercontent.com/romkatv/powerlevel10k-media/master/MesloLGS%20NF%20Regular.ttf') format('truetype');
+  src: url('https://raw.githubusercontent.com/romkatv/powerlevel10k-media/master/MesloLGS%20NF%20Regular.ttf')
+    format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -295,7 +296,8 @@ div[data-bookmark-dropdown].aqua-dropdown-menu {
 
 @font-face {
   font-family: 'MesloLGS NF';
-  src: url('https://raw.githubusercontent.com/romkatv/powerlevel10k-media/master/MesloLGS%20NF%20Bold.ttf') format('truetype');
+  src: url('https://raw.githubusercontent.com/romkatv/powerlevel10k-media/master/MesloLGS%20NF%20Bold.ttf')
+    format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -303,7 +305,8 @@ div[data-bookmark-dropdown].aqua-dropdown-menu {
 
 @font-face {
   font-family: 'MesloLGS NF';
-  src: url('https://raw.githubusercontent.com/romkatv/powerlevel10k-media/master/MesloLGS%20NF%20Italic.ttf') format('truetype');
+  src: url('https://raw.githubusercontent.com/romkatv/powerlevel10k-media/master/MesloLGS%20NF%20Italic.ttf')
+    format('truetype');
   font-weight: 400;
   font-style: italic;
   font-display: swap;
@@ -311,7 +314,7 @@ div[data-bookmark-dropdown].aqua-dropdown-menu {
 
 /* ===== XTERM.JS OVERRIDES ===== */
 .xterm {
-  @apply h-full w-full relative;
+  @apply relative h-full w-full;
 }
 
 .xterm .xterm-screen {
