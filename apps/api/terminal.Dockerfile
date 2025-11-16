@@ -43,7 +43,6 @@ RUN git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /opt/oh-my-zsh &&
 
 RUN echo 'export ZSH="$HOME/.oh-my-zsh"' > /opt/zshrc-template && \
     echo 'ZSH_THEME="random"' >> /opt/zshrc-template && \
-    echo 'ZSH_THEME_RANDOM_QUIET=true' >> /opt/zshrc-template && \
     echo 'plugins=(git fzf zsh-autosuggestions zsh-syntax-highlighting)' >> /opt/zshrc-template && \
     echo 'source $ZSH/oh-my-zsh.sh' >> /opt/zshrc-template && \
     echo '[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh' >> /opt/zshrc-template
