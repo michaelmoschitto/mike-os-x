@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { BrowserWindow } from '@/components/apps/Browser';
+import { TerminalWindow } from '@/components/apps/Terminal';
 import { TextEditWindow } from '@/components/apps/TextEdit';
 import DesktopIcons from '@/components/system/DesktopIcons';
 import Dock from '@/components/system/Dock';
@@ -36,6 +37,15 @@ const Desktop = () => {
             if (window.type === 'browser') {
               return (
                 <BrowserWindow
+                  key={window.id}
+                  window={window}
+                  isActive={window.id === activeWindowId}
+                />
+              );
+            }
+            if (window.type === 'terminal') {
+              return (
+                <TerminalWindow
                   key={window.id}
                   window={window}
                   isActive={window.id === activeWindowId}

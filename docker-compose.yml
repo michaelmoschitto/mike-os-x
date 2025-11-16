@@ -6,19 +6,43 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:80"
+      - '3000:80'
     environment:
       - NODE_ENV=production
     restart: unless-stopped
 
-  # Uncomment when API backend is ready
-  # api:
-  #   build:
-  #     context: ./apps/api
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "3001:3001"
-  #   environment:
-  #     - NODE_ENV=production
-  #   restart: unless-stopped
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    ports:
+      - '8000:8000'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - TERMINAL_CONTAINER_NAME=${TERMINAL_CONTAINER_NAME:-terminal-shared}
+      - TERMINAL_VOLUME_NAME=${TERMINAL_VOLUME_NAME:-terminal-workspace}
+      - RATE_LIMIT_CONNECTIONS=${RATE_LIMIT_CONNECTIONS:-10}
+      - RATE_LIMIT_COMMANDS=${RATE_LIMIT_COMMANDS:-1000}
+      - CONTAINER_MEMORY=${CONTAINER_MEMORY:-1g}
+      - CONTAINER_CPUS=${CONTAINER_CPUS:-1.0}
+      - CONTAINER_DISK=${CONTAINER_DISK:-5g}
+    depends_on:
+      - redis
+    restart: unless-stopped
 
+  redis:
+    image: redis:8-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  terminal-workspace:

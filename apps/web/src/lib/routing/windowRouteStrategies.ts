@@ -20,12 +20,23 @@ const textEditStrategy: WindowRouteStrategy = {
   shouldSyncRoute: (window) => window.type === 'textedit' && !!window.urlPath,
 };
 
-export const windowRouteStrategies: Record<'browser' | 'textedit', WindowRouteStrategy> = {
-  browser: browserStrategy,
-  textedit: textEditStrategy,
+const terminalStrategy: WindowRouteStrategy = {
+  getRouteForWindow: () => '/',
+  shouldSyncRoute: () => false,
 };
 
-export const getRouteStrategy = (windowType: 'browser' | 'textedit'): WindowRouteStrategy => {
+export const windowRouteStrategies: Record<
+  'browser' | 'textedit' | 'terminal',
+  WindowRouteStrategy
+> = {
+  browser: browserStrategy,
+  textedit: textEditStrategy,
+  terminal: terminalStrategy,
+};
+
+export const getRouteStrategy = (
+  windowType: 'browser' | 'textedit' | 'terminal'
+): WindowRouteStrategy => {
   return windowRouteStrategies[windowType];
 };
 

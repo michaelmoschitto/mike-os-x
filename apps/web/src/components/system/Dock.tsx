@@ -14,6 +14,7 @@ import { useWindowStore } from '@/stores/useWindowStore';
 type DockIconType =
   | 'finder'
   | 'browser'
+  | 'terminal'
   | 'projects'
   | 'writing'
   | 'photos'
@@ -31,6 +32,7 @@ interface DockIcon {
 const dockIcons: DockIcon[] = [
   { id: 'finder', label: 'Finder', icon: '/icons/finder.png' },
   { id: 'browser', label: 'Internet Explorer', icon: '/icons/browser.png' },
+  { id: 'terminal', label: 'Terminal', icon: '/icons/terminal.png' },
   { id: 'projects', label: 'Projects', icon: '/icons/projects.png' },
   { id: 'writing', label: 'Writing', icon: '/icons/writing.png' },
   { id: 'photos', label: 'Photos', icon: '/icons/photos.png' },
@@ -62,7 +64,6 @@ const Dock = () => {
 
   const handleIconClick = (iconId: DockIconType) => {
     if (iconId === 'browser') {
-      // Open a new browser window
       openWindow({
         type: 'browser',
         title: 'Internet Explorer',
@@ -72,9 +73,17 @@ const Dock = () => {
         url: '',
         history: [],
         historyIndex: -1,
-        // bookmarks will be initialized with default folders (Projects, Previous Work) by the store
       });
       setActiveApp('browser');
+    } else if (iconId === 'terminal') {
+      openWindow({
+        type: 'terminal',
+        title: 'Terminal',
+        content: '',
+        position: { x: 150, y: 100 },
+        size: { width: 800, height: 500 },
+      });
+      setActiveApp('terminal');
     }
   };
 

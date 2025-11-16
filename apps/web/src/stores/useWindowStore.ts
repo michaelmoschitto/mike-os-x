@@ -15,17 +15,18 @@ export interface HistoryEntry {
   visitTime: number;
 }
 
-const getAppName = (windowType: 'textedit' | 'browser'): string => {
-  const appNames: Record<'textedit' | 'browser', string> = {
+const getAppName = (windowType: 'textedit' | 'browser' | 'terminal'): string => {
+  const appNames: Record<'textedit' | 'browser' | 'terminal', string> = {
     browser: 'Internet Explorer',
     textedit: 'TextEdit',
+    terminal: 'Terminal',
   };
   return appNames[windowType];
 };
 
 export interface Window {
   id: string;
-  type: 'textedit' | 'browser';
+  type: 'textedit' | 'browser' | 'terminal';
   appName: string;
   title: string;
   content: string;
@@ -42,7 +43,9 @@ export interface Window {
   route?: string;
 }
 
-const getAppTypeForDock = (windowType: 'textedit' | 'browser'): 'browser' | 'textedit' | null => {
+const getAppTypeForDock = (
+  windowType: 'textedit' | 'browser' | 'terminal'
+): 'browser' | 'textedit' | 'terminal' | null => {
   return windowType;
 };
 

@@ -4,6 +4,7 @@ type App =
   | 'finder'
   | 'browser'
   | 'textedit'
+  | 'terminal'
   | 'projects'
   | 'writing'
   | 'photos'
