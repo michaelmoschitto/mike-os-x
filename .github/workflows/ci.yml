@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  test:
-    name: Test
+  test-frontend:
+    name: Test Frontend
     runs-on: ubuntu-latest
 
     steps:
@@ -35,3 +35,53 @@ jobs:
 
       - name: Check formatting
         run: bun --cwd apps/web run format:check
+
+  test-api:
+    name: Test API
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: latest
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+          sudo systemctl start docker
+
+      - name: Install Python dependencies
+        working-directory: apps/api
+        run: uv sync --dev
+
+      - name: Run API tests
+        working-directory: apps/api
+        env:
+          REDIS_URL: redis://localhost:6379/0
+          DOCKER_HOST: unix:///var/run/docker.sock
+        run: uv run pytest
+
+      - name: Type check
+        working-directory: apps/api
+        run: uv run mypy .
