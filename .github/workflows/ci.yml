@@ -20,7 +20,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
 
       - name: Start Docker services
         run: |
@@ -38,17 +40,17 @@ jobs:
       - name: Install Python dependencies
         run: |
           cd apps/api
-          ~/.cargo/bin/uv sync
+          uv sync
 
       - name: Run unit tests
         run: |
           cd apps/api
-          ~/.cargo/bin/uv run pytest tests/test_api.py tests/test_terminal_multiplexing.py -v
+          uv run pytest tests/test_api.py tests/test_terminal_multiplexing.py -v
 
       - name: Run integration tests
         run: |
           cd apps/api
-          ~/.cargo/bin/uv run pytest tests/test_integration.py tests/test_security.py -v
+          uv run pytest tests/test_integration.py tests/test_security.py -v
 
       - name: Stop Docker services
         if: always()
