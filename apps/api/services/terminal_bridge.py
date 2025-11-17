@@ -3,19 +3,20 @@ import json
 import logging
 import time
 import uuid
+
 from fastapi import WebSocket, WebSocketDisconnect
 
 from services.container_manager import ContainerManager
 from services.message_protocol import (
     ClientMessage,
+    CloseSessionMessage,
     CreateSessionMessage,
+    ErrorMessage,
     InputMessage,
     ResizeMessage,
-    CloseSessionMessage,
     ServerMessage,
-    SessionCreatedMessage,
     SessionClosedMessage,
-    ErrorMessage,
+    SessionCreatedMessage,
 )
 from services.pty_session_manager import PTYSessionManager
 from services.rate_limiter import RateLimiter
@@ -153,8 +154,8 @@ class TerminalBridge:
             await self._send_message(websocket, error_msg)
             return
 
-        self.session_input_totals[session_id] = (
-            self.session_input_totals.get(session_id, 0) + len(encoded_data)
+        self.session_input_totals[session_id] = self.session_input_totals.get(session_id, 0) + len(
+            encoded_data
         )
 
         if self.session_input_totals[session_id] > MAX_TOTAL_INPUT_PER_SESSION:
@@ -305,7 +306,9 @@ class TerminalBridge:
                     data = await websocket.receive_text()
 
                     if len(data.encode("utf-8")) > MAX_WEBSOCKET_MESSAGE_SIZE:
-                        logger.warning(f"WebSocket message too large: {len(data.encode('utf-8'))} bytes")
+                        logger.warning(
+                            f"WebSocket message too large: {len(data.encode('utf-8'))} bytes"
+                        )
                         error_msg: ErrorMessage = {
                             "type": "error",
                             "sessionId": "",
@@ -323,13 +326,17 @@ class TerminalBridge:
                         msg: ClientMessage = msg_dict  # type: ignore
 
                         if msg_type == "create_session":
-                            await self._handle_create_session(websocket, connection_id, client_ip, msg)
+                            await self._handle_create_session(
+                                websocket, connection_id, client_ip, msg
+                            )
                         elif msg_type == "input":
                             await self._handle_input(websocket, connection_id, client_ip, msg)
                         elif msg_type == "resize":
                             await self._handle_resize(websocket, connection_id, client_ip, msg)
                         elif msg_type == "close_session":
-                            await self._handle_close_session(websocket, connection_id, client_ip, msg)
+                            await self._handle_close_session(
+                                websocket, connection_id, client_ip, msg
+                            )
                         else:
                             logger.warning(f"Unknown message type: {msg_type}")
 

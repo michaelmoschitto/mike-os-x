@@ -1,6 +1,6 @@
 import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import WebSocket
@@ -49,16 +49,16 @@ def mock_rate_limiter():
 @pytest.fixture
 def mock_session_manager(mock_container):
     manager = MagicMock(spec=PTYSessionManager)
-    
+
     mock_session = MagicMock()
     mock_session.session_id = "test-session"
     mock_session.read_task = None
     mock_session.write_task = None
-    
+
     async def create_session(session_id: str):
         mock_session.session_id = session_id
         return mock_session
-    
+
     manager.create_session = AsyncMock(side_effect=create_session)
     manager.get_session = MagicMock(return_value=mock_session)
     manager.close_session = AsyncMock()
@@ -66,7 +66,7 @@ def mock_session_manager(mock_container):
     manager.write_to_session = AsyncMock()
     manager.read_from_session = AsyncMock()
     manager.sessions = {}
-    
+
     return manager
 
 
@@ -142,7 +142,7 @@ async def test_create_session_message(terminal_bridge, mock_session_manager):
 
     mock_websocket.accept.assert_called_once()
     mock_session_manager.create_session.assert_called_once_with(session_id)
-    
+
     send_calls = [call[0][0] for call in mock_websocket.send_text.call_args_list]
     assert any("session_created" in str(call) and session_id in str(call) for call in send_calls)
 
@@ -362,7 +362,7 @@ async def test_close_session_message(terminal_bridge, mock_session_manager):
             pass
 
     mock_session_manager.close_session.assert_called_once_with(session_id)
-    
+
     send_calls = [call[0][0] for call in mock_websocket.send_text.call_args_list]
     assert any("session_closed" in str(call) and session_id in str(call) for call in send_calls)
 
@@ -387,7 +387,7 @@ async def test_session_isolation(terminal_bridge, mock_session_manager):
 
     session_a = "session-a"
     session_b = "session-b"
-    
+
     messages.append(json.dumps({"type": "create_session", "sessionId": session_a}))
     messages.append(json.dumps({"type": "create_session", "sessionId": session_b}))
     messages.append(json.dumps({"type": "input", "sessionId": session_a, "data": "echo A\n"}))
@@ -453,7 +453,9 @@ async def test_rate_limit_per_connection(terminal_bridge, mock_rate_limiter):
 
 
 @pytest.mark.asyncio
-async def test_rate_limit_per_session_input(terminal_bridge, mock_rate_limiter, mock_session_manager):
+async def test_rate_limit_per_session_input(
+    terminal_bridge, mock_rate_limiter, mock_session_manager
+):
     mock_websocket = AsyncMock(spec=WebSocket)
     mock_websocket.client.host = "127.0.0.1"
     mock_websocket.headers.get.return_value = "test-agent"

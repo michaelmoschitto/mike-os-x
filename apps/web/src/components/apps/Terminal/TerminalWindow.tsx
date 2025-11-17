@@ -4,9 +4,9 @@ import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 
 import Window from '@/components/window/Window';
-import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
-import { useWebSocketManager } from '@/stores/useWebSocketManager';
 import type { InputMessage, ResizeMessage } from '@/lib/terminal/messageProtocol';
+import { useWebSocketManager } from '@/stores/useWebSocketManager';
+import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 import 'xterm/css/xterm.css';
 
 interface TerminalWindowProps {
@@ -18,7 +18,8 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
   const { closeWindow, focusWindow, updateWindowPosition, updateWindowSize, minimizeWindow } =
     useWindowStore();
 
-  const { registerSession, unregisterSession, sendMessage, connectionState } = useWebSocketManager();
+  const { registerSession, unregisterSession, sendMessage, connectionState } =
+    useWebSocketManager();
 
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminalInstanceRef = useRef<Terminal | null>(null);

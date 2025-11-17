@@ -21,7 +21,5 @@ def redis_client() -> redis.Redis:
 async def api_client() -> AsyncClient:
     from httpx import ASGITransport
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client

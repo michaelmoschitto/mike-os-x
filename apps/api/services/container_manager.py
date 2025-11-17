@@ -4,7 +4,6 @@ import os
 import docker
 from docker.errors import DockerException, NotFound
 from docker.models.containers import Container
-from docker.errors import NotFound, DockerException
 
 from config.settings import settings
 
@@ -114,7 +113,9 @@ class ContainerManager:
             user="workspace",
         )
         if exec_result.exit_code != 0:
-            raise RuntimeError(f"Failed to reset workspace: {exec_result.output.decode('utf-8', errors='replace')}")
+            raise RuntimeError(
+                f"Failed to reset workspace: {exec_result.output.decode('utf-8', errors='replace')}"
+            )
 
     def check_container_health(self) -> bool:
         container = self.get_container()
