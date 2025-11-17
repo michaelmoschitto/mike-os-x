@@ -25,7 +25,7 @@ jobs:
       - name: Start Docker services
         run: |
           cd apps/api
-          docker-compose -f ../../docker-compose.dev.yml up -d redis terminal
+          docker compose -f ../../docker-compose.dev.yml up -d redis terminal
 
       - name: Wait for services to be ready
         run: |
@@ -53,7 +53,7 @@ jobs:
       - name: Stop Docker services
         if: always()
         run: |
-          docker-compose -f docker-compose.dev.yml down -v
+          docker compose -f docker-compose.dev.yml down -v
 
   frontend-tests:
     runs-on: ubuntu-latest
