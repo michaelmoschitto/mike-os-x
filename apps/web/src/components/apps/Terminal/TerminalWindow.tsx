@@ -201,7 +201,7 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
     if (fitAddonRef.current && terminalInstanceRef.current) {
       setTimeout(() => {
         fitAddonRef.current?.fit();
-        if (connectionState === 'connected') {
+        if (connectionState === 'connected' && terminalInstanceRef.current) {
           const dims = {
             cols: terminalInstanceRef.current.cols,
             rows: terminalInstanceRef.current.rows,
