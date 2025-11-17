@@ -126,20 +126,16 @@ class ContainerManager:
             return False
 
         try:
+            container.reload()
             exec_result = container.exec_run(
                 cmd="echo 'healthcheck'",
-                timeout=5,
+                timeout=2,
             )
             return exec_result.exit_code == 0
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Health check failed: {e}")
             return False
 
     def ensure_container_healthy(self) -> Container:
         container = self.ensure_container_running()
-
-        if not self.check_container_health():
-            logger.warning("Container health check failed, restarting container")
-            container.restart()
-            container = self.ensure_container_running()
-
         return container

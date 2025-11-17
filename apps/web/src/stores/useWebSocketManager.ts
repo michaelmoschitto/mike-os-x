@@ -66,19 +66,27 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
         const handler = sessions.get(outputMsg.sessionId);
         if (handler) {
           handler.onOutput(outputMsg.data);
+        } else {
+          console.warn(`[WebSocketManager] No handler for output session: ${outputMsg.sessionId}`);
         }
       } else if (message.type === 'error') {
         const errorMsg = message as ErrorMessage;
         const handler = sessions.get(errorMsg.sessionId);
         if (handler) {
           handler.onError(errorMsg.error);
+        } else {
+          console.error(`[WebSocketManager] No handler for error session: ${errorMsg.sessionId}`, errorMsg.error);
         }
       } else if (message.type === 'session_created') {
+        console.log(`[WebSocketManager] Session created: ${message.sessionId}`);
         const handler = sessions.get(message.sessionId);
         if (handler) {
           handler.onSessionCreated();
+        } else {
+          console.warn(`[WebSocketManager] No handler for session_created: ${message.sessionId}`);
         }
       } else if (message.type === 'session_closed') {
+        console.log(`[WebSocketManager] Session closed: ${message.sessionId}`);
         const handler = sessions.get(message.sessionId);
         if (handler) {
           handler.onSessionClosed();
@@ -103,8 +111,10 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
       set({ reconnectTimeoutId: null });
     }
 
-    if (websocket) {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      console.log(`[WebSocketManager] Sending create_session for ${sessions.size} sessions`);
       for (const [sessionId] of sessions) {
+        console.log(`[WebSocketManager] Creating session: ${sessionId}`);
         const message: ClientMessage = {
           type: 'create_session',
           sessionId,
@@ -164,6 +174,11 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
       return;
     }
 
+    if (websocket?.readyState === WebSocket.CONNECTING) {
+      console.log('[WebSocketManager] WebSocket already connecting');
+      return;
+    }
+
     console.log('[WebSocketManager] Connecting...');
     set({ connectionState: 'connecting' });
 
@@ -205,19 +220,23 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
 
   const registerSession = (sessionId: string, handler: SessionHandler) => {
     const { sessions, websocket, connectionState } = get();
+    
+    console.log(`[WebSocketManager] Registering session ${sessionId}, state: ${connectionState}, sessions: ${sessions.size}`);
+    
     const newSessions = new Map(sessions);
     newSessions.set(sessionId, handler);
 
     set({ sessions: newSessions });
 
-    if (connectionState === 'connected' && websocket) {
+    if (connectionState === 'connected' && websocket?.readyState === WebSocket.OPEN) {
+      console.log(`[WebSocketManager] Sending create_session for ${sessionId}`);
       const message: ClientMessage = {
         type: 'create_session',
         sessionId,
       };
       websocket.send(JSON.stringify(message));
     } else {
-      connect();
+      console.log(`[WebSocketManager] Session ${sessionId} will be created when connection opens`);
     }
   };
 
