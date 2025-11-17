@@ -3,6 +3,7 @@ import os
 import docker
 from docker.errors import DockerException, NotFound
 from docker.models.containers import Container
+from docker.errors import NotFound, DockerException
 
 from config.settings import settings
 

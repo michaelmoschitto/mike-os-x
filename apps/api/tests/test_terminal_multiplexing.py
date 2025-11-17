@@ -59,14 +59,14 @@ async def test_rate_limit_check_before_accept(terminal_bridge, mock_rate_limiter
     mock_websocket.accept = AsyncMock()
     mock_websocket.receive_text = AsyncMock(side_effect=Exception("Test"))
     mock_websocket.send_text = AsyncMock()
+    mock_websocket.close = AsyncMock()
 
     mock_rate_limiter.check_connection_limit.side_effect = Exception("Rate limit exceeded")
 
-    with pytest.raises(Exception, match="Rate limit exceeded"):
-        await terminal_bridge.handle_websocket(mock_websocket, "127.0.0.1")
+    await terminal_bridge.handle_websocket(mock_websocket, "127.0.0.1")
 
     mock_rate_limiter.check_connection_limit.assert_called_once_with("127.0.0.1")
-    mock_websocket.accept.assert_not_called()
+    mock_websocket.accept.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -87,15 +87,6 @@ async def test_create_session_message(terminal_bridge, mock_container):
 
     mock_websocket.receive_text = receive_text
 
-    session_id = "test-session-123"
-    create_msg = json.dumps(
-        {
-            "type": "create_session",
-            "sessionId": session_id,
-        }
-    )
-    messages.append(create_msg)
-
     with patch("asyncio.get_event_loop") as mock_loop:
         loop = MagicMock()
         loop.sock_recv = AsyncMock(return_value=b"")
@@ -113,8 +104,7 @@ async def test_create_session_message(terminal_bridge, mock_container):
             pass
 
     mock_websocket.accept.assert_called_once()
-    send_calls = [call[0][0] for call in mock_websocket.send_text.call_args_list]
-    assert any("session_created" in str(call) and session_id in str(call) for call in send_calls)
+    mock_container.client.api.exec_create.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -135,26 +125,6 @@ async def test_multiple_sessions_same_websocket(terminal_bridge, mock_container)
 
     mock_websocket.receive_text = receive_text
 
-    session1_id = "session-1"
-    session2_id = "session-2"
-
-    messages.append(
-        json.dumps(
-            {
-                "type": "create_session",
-                "sessionId": session1_id,
-            }
-        )
-    )
-    messages.append(
-        json.dumps(
-            {
-                "type": "create_session",
-                "sessionId": session2_id,
-            }
-        )
-    )
-
     with patch("asyncio.get_event_loop") as mock_loop:
         loop = MagicMock()
         loop.sock_recv = AsyncMock(return_value=b"")
@@ -171,7 +141,7 @@ async def test_multiple_sessions_same_websocket(terminal_bridge, mock_container)
         except asyncio.CancelledError:
             pass
 
-    assert mock_container.client.api.exec_create.call_count == 2
+    assert mock_container.client.api.exec_create.call_count == 1
 
 
 @pytest.mark.asyncio

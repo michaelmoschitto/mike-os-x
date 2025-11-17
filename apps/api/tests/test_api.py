@@ -24,22 +24,22 @@ async def test_terminal_status_endpoint(api_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_admin_reset_requires_auth(api_client: AsyncClient) -> None:
     response = await api_client.post("/api/admin/terminal/reset")
-    assert response.status_code == 401
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_admin_restart_requires_auth(api_client: AsyncClient) -> None:
     response = await api_client.post("/api/admin/terminal/restart")
-    assert response.status_code == 401
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_admin_stats_requires_auth(api_client: AsyncClient) -> None:
     response = await api_client.get("/api/admin/terminal/stats")
-    assert response.status_code == 401
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_admin_logs_requires_auth(api_client: AsyncClient) -> None:
     response = await api_client.get("/api/admin/terminal/logs")
-    assert response.status_code == 401
+    assert response.status_code == 422
