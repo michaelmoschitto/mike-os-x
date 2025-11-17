@@ -84,6 +84,7 @@ jobs:
         env:
           REDIS_URL: redis://localhost:6379/0
           DOCKER_HOST: unix:///var/run/docker.sock
+          PYTHONPATH: .
         run: uv run pytest
 
       - name: Type check
