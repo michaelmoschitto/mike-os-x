@@ -36,8 +36,6 @@ class TerminalBridge:
         exec_socket = None
         sock = None
         timeout_task = None
-        read_task = None
-        write_task = None
 
         try:
             await self.rate_limiter.check_connection_limit(client_ip)
@@ -72,6 +70,9 @@ class TerminalBridge:
             
             sock = exec_socket._sock
             sock.setblocking(False)
+
+            read_task = None
+            write_task = None
 
             async def read_from_container() -> None:
                 nonlocal read_task
@@ -115,54 +116,29 @@ class TerminalBridge:
                             
                             try:
                                 msg = json.loads(data)
-                                if isinstance(msg, dict):
-                                    msg_type = msg.get("type")
+                                if isinstance(msg, dict) and msg.get("type") == "resize":
+                                    cols = msg.get("cols", 80)
+                                    rows = msg.get("rows", 24)
                                     
-                                    if msg_type == "resize":
-                                        cols = msg.get("cols", 80)
-                                        rows = msg.get("rows", 24)
-                                        
-                                        if not isinstance(cols, int) or not isinstance(rows, int):
-                                            logger.warning(f"Invalid resize dimensions type: cols={type(cols)}, rows={type(rows)}")
-                                            continue
-                                        
-                                        if cols < MIN_TERMINAL_COLS or cols > MAX_TERMINAL_COLS:
-                                            logger.warning(f"Invalid cols value: {cols}")
-                                            continue
-                                        
-                                        if rows < MIN_TERMINAL_ROWS or rows > MAX_TERMINAL_ROWS:
-                                            logger.warning(f"Invalid rows value: {rows}")
-                                            continue
-                                        
-                                        logger.info(f"Resize request: {cols}x{rows}")
-                                        try:
-                                            container.client.api.exec_resize(exec_id['Id'], height=rows, width=cols)
-                                            logger.info(f"Resized PTY to {cols}x{rows}")
-                                        except Exception as e:
-                                            logger.error(f"Failed to resize PTY: {e}")
+                                    if not isinstance(cols, int) or not isinstance(rows, int):
+                                        logger.warning(f"Invalid resize dimensions type: cols={type(cols)}, rows={type(rows)}")
                                         continue
                                     
-                                    elif msg_type == "create_session":
-                                        logger.info(f"Session created: {msg.get('sessionId', 'default')}")
+                                    if cols < MIN_TERMINAL_COLS or cols > MAX_TERMINAL_COLS:
+                                        logger.warning(f"Invalid cols value: {cols}")
                                         continue
                                     
-                                    elif msg_type == "input":
-                                        input_data = msg.get("data", "")
-                                        if input_data:
-                                            data = input_data
-                                        else:
-                                            continue
-                                    
-                                    elif msg_type == "close_session":
-                                        session_id = msg.get("sessionId", connection_id)
-                                        logger.info(f"Closing session: {session_id}")
-                                        await websocket.send_text(
-                                            json.dumps({
-                                                "type": "session_closed",
-                                                "sessionId": session_id
-                                            })
-                                        )
+                                    if rows < MIN_TERMINAL_ROWS or rows > MAX_TERMINAL_ROWS:
+                                        logger.warning(f"Invalid rows value: {rows}")
                                         continue
+                                    
+                                    logger.info(f"Resize request: {cols}x{rows}")
+                                    try:
+                                        container.client.api.exec_resize(exec_id['Id'], height=rows, width=cols)
+                                        logger.info(f"Resized PTY to {cols}x{rows}")
+                                    except Exception as e:
+                                        logger.error(f"Failed to resize PTY: {e}")
+                                    continue
                             except json.JSONDecodeError:
                                 pass
                             
