@@ -37,6 +37,10 @@ const getReconnectDelay = (attempt: number): number => {
 };
 
 const getWebSocketUrl = (): string => {
+  if (typeof window === 'undefined') {
+    return 'ws://localhost:8000/ws/terminal';
+  }
+
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   let apiHost = import.meta.env.VITE_API_URL?.replace(/^https?:\/\//, '');
 

@@ -1,13 +1,13 @@
 import asyncio
-import pytest
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from fastapi import WebSocket
 
-from services.terminal_bridge import TerminalBridge
-from services.pty_session_manager import PTYSessionManager
-from services.rate_limiter import RateLimiter
 from services.container_manager import ContainerManager
+from services.rate_limiter import RateLimiter
+from services.terminal_bridge import TerminalBridge
 
 
 @pytest.fixture
@@ -16,13 +16,13 @@ def mock_container():
     container.id = "test-container-id"
     container.status = "running"
     container.client.api.exec_create.return_value = {"Id": "exec-123"}
-    
+
     mock_socket = MagicMock()
     mock_socket._sock = MagicMock()
     mock_socket._sock.setblocking = MagicMock()
     container.client.api.exec_start.return_value = mock_socket
     container.client.api.exec_resize = MagicMock()
-    
+
     return container
 
 
@@ -88,10 +88,12 @@ async def test_create_session_message(terminal_bridge, mock_container):
     mock_websocket.receive_text = receive_text
 
     session_id = "test-session-123"
-    create_msg = json.dumps({
-        "type": "create_session",
-        "sessionId": session_id,
-    })
+    create_msg = json.dumps(
+        {
+            "type": "create_session",
+            "sessionId": session_id,
+        }
+    )
     messages.append(create_msg)
 
     with patch("asyncio.get_event_loop") as mock_loop:
@@ -100,9 +102,7 @@ async def test_create_session_message(terminal_bridge, mock_container):
         loop.sock_sendall = AsyncMock()
         mock_loop.return_value = loop
 
-        task = asyncio.create_task(
-            terminal_bridge.handle_websocket(mock_websocket, "127.0.0.1")
-        )
+        task = asyncio.create_task(terminal_bridge.handle_websocket(mock_websocket, "127.0.0.1"))
 
         await asyncio.sleep(0.1)
         task.cancel()
@@ -138,14 +138,22 @@ async def test_multiple_sessions_same_websocket(terminal_bridge, mock_container)
     session1_id = "session-1"
     session2_id = "session-2"
 
-    messages.append(json.dumps({
-        "type": "create_session",
-        "sessionId": session1_id,
-    }))
-    messages.append(json.dumps({
-        "type": "create_session",
-        "sessionId": session2_id,
-    }))
+    messages.append(
+        json.dumps(
+            {
+                "type": "create_session",
+                "sessionId": session1_id,
+            }
+        )
+    )
+    messages.append(
+        json.dumps(
+            {
+                "type": "create_session",
+                "sessionId": session2_id,
+            }
+        )
+    )
 
     with patch("asyncio.get_event_loop") as mock_loop:
         loop = MagicMock()
@@ -153,9 +161,7 @@ async def test_multiple_sessions_same_websocket(terminal_bridge, mock_container)
         loop.sock_sendall = AsyncMock()
         mock_loop.return_value = loop
 
-        task = asyncio.create_task(
-            terminal_bridge.handle_websocket(mock_websocket, "127.0.0.1")
-        )
+        task = asyncio.create_task(terminal_bridge.handle_websocket(mock_websocket, "127.0.0.1"))
 
         await asyncio.sleep(0.2)
         task.cancel()
@@ -187,15 +193,23 @@ async def test_input_message_routing(terminal_bridge, mock_container):
     mock_websocket.receive_text = receive_text
 
     session_id = "test-session"
-    messages.append(json.dumps({
-        "type": "create_session",
-        "sessionId": session_id,
-    }))
-    messages.append(json.dumps({
-        "type": "input",
-        "sessionId": session_id,
-        "data": "ls\n",
-    }))
+    messages.append(
+        json.dumps(
+            {
+                "type": "create_session",
+                "sessionId": session_id,
+            }
+        )
+    )
+    messages.append(
+        json.dumps(
+            {
+                "type": "input",
+                "sessionId": session_id,
+                "data": "ls\n",
+            }
+        )
+    )
 
     with patch("asyncio.get_event_loop") as mock_loop:
         loop = MagicMock()
@@ -203,9 +217,7 @@ async def test_input_message_routing(terminal_bridge, mock_container):
         loop.sock_sendall = AsyncMock()
         mock_loop.return_value = loop
 
-        task = asyncio.create_task(
-            terminal_bridge.handle_websocket(mock_websocket, "127.0.0.1")
-        )
+        task = asyncio.create_task(terminal_bridge.handle_websocket(mock_websocket, "127.0.0.1"))
 
         await asyncio.sleep(0.2)
         task.cancel()
@@ -237,16 +249,24 @@ async def test_resize_message(terminal_bridge, mock_container):
     mock_websocket.receive_text = receive_text
 
     session_id = "test-session"
-    messages.append(json.dumps({
-        "type": "create_session",
-        "sessionId": session_id,
-    }))
-    messages.append(json.dumps({
-        "type": "resize",
-        "sessionId": session_id,
-        "cols": 120,
-        "rows": 40,
-    }))
+    messages.append(
+        json.dumps(
+            {
+                "type": "create_session",
+                "sessionId": session_id,
+            }
+        )
+    )
+    messages.append(
+        json.dumps(
+            {
+                "type": "resize",
+                "sessionId": session_id,
+                "cols": 120,
+                "rows": 40,
+            }
+        )
+    )
 
     with patch("asyncio.get_event_loop") as mock_loop:
         loop = MagicMock()
@@ -254,9 +274,7 @@ async def test_resize_message(terminal_bridge, mock_container):
         loop.sock_sendall = AsyncMock()
         mock_loop.return_value = loop
 
-        task = asyncio.create_task(
-            terminal_bridge.handle_websocket(mock_websocket, "127.0.0.1")
-        )
+        task = asyncio.create_task(terminal_bridge.handle_websocket(mock_websocket, "127.0.0.1"))
 
         await asyncio.sleep(0.2)
         task.cancel()
@@ -288,14 +306,22 @@ async def test_close_session_message(terminal_bridge, mock_container):
     mock_websocket.receive_text = receive_text
 
     session_id = "test-session"
-    messages.append(json.dumps({
-        "type": "create_session",
-        "sessionId": session_id,
-    }))
-    messages.append(json.dumps({
-        "type": "close_session",
-        "sessionId": session_id,
-    }))
+    messages.append(
+        json.dumps(
+            {
+                "type": "create_session",
+                "sessionId": session_id,
+            }
+        )
+    )
+    messages.append(
+        json.dumps(
+            {
+                "type": "close_session",
+                "sessionId": session_id,
+            }
+        )
+    )
 
     with patch("asyncio.get_event_loop") as mock_loop:
         loop = MagicMock()
@@ -303,9 +329,7 @@ async def test_close_session_message(terminal_bridge, mock_container):
         loop.sock_sendall = AsyncMock()
         mock_loop.return_value = loop
 
-        task = asyncio.create_task(
-            terminal_bridge.handle_websocket(mock_websocket, "127.0.0.1")
-        )
+        task = asyncio.create_task(terminal_bridge.handle_websocket(mock_websocket, "127.0.0.1"))
 
         await asyncio.sleep(0.2)
         task.cancel()
@@ -317,4 +341,3 @@ async def test_close_session_message(terminal_bridge, mock_container):
 
     send_calls = [call[0][0] for call in mock_websocket.send_text.call_args_list]
     assert any("session_closed" in str(call) and session_id in str(call) for call in send_calls)
-

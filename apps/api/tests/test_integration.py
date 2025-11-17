@@ -1,7 +1,5 @@
 import pytest
-from httpx import AsyncClient, WebSocketDisconnect
-
-from main import app
+from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
@@ -22,4 +20,3 @@ async def test_websocket_multiple_commands(api_client: AsyncClient) -> None:
         await ws.send_text("ls\n")
         response2 = await ws.receive_text(timeout=5.0)
         assert isinstance(response2, str)
-

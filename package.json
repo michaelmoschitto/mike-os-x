@@ -21,7 +21,9 @@
     "build": "bun --cwd apps/web build",
     "preview": "bun --cwd apps/web preview",
     "test:api": "cd apps/api && uv run pytest",
-    "format:api": "cd apps/api && uv format",
+    "format:api": "cd apps/api && uv run ruff format .",
+    "lint:api": "cd apps/api && uv run ruff check .",
+    "lint:api:fix": "cd apps/api && uv run ruff check --fix .",
     "type-check:api": "cd apps/api && uv run mypy ."
   },
   "devDependencies": {

@@ -1,10 +1,10 @@
-import pytest
 import docker
+import pytest
 import redis
 from httpx import AsyncClient
 
-from main import app
 from config.settings import settings
+from main import app
 
 
 @pytest.fixture
@@ -21,4 +21,3 @@ def redis_client() -> redis.Redis:
 async def api_client() -> AsyncClient:
     async with AsyncClient(app=app, base_url="http://test") as client:
         yield client
-

@@ -1,7 +1,5 @@
 import pytest
-import docker
 
-from config.settings import settings
 from services.container_manager import ContainerManager
 
 
@@ -48,4 +46,3 @@ def test_non_root_user(container_manager: ContainerManager) -> None:
     exec_result = container.exec_run("whoami", user="workspace")
     assert exec_result.exit_code == 0
     assert "workspace" in exec_result.output.decode("utf-8")
-

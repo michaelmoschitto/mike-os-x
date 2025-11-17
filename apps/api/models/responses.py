@@ -18,4 +18,3 @@ class AdminStatsResponse(BaseModel):
     cpu_usage: float
     disk_usage: str
     active_connections: int
-

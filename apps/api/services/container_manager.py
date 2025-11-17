@@ -1,7 +1,8 @@
-import docker
 import os
+
+import docker
+from docker.errors import DockerException, NotFound
 from docker.models.containers import Container
-from docker.errors import NotFound, DockerException
 
 from config.settings import settings
 
@@ -9,7 +10,7 @@ from config.settings import settings
 class ContainerManager:
     def __init__(self) -> None:
         docker_host = settings.docker_host
-        
+
         if docker_host.startswith("unix://"):
             socket_path = docker_host.replace("unix://", "")
             if not os.path.exists(socket_path):
@@ -18,7 +19,7 @@ class ContainerManager:
                     "Docker Desktop may not be running or the socket path is incorrect.\n"
                     "Please ensure Docker Desktop is running and try again."
                 )
-        
+
         try:
             self.client = docker.DockerClient(base_url=docker_host)
             self.client.ping()
@@ -39,7 +40,7 @@ class ContainerManager:
                 f"Unexpected error connecting to Docker: {e}\n"
                 "Please ensure Docker Desktop is running and try again."
             ) from e
-        
+
         self.container_name = settings.terminal_container_name
         self.volume_name = settings.terminal_volume_name
 
@@ -92,4 +93,3 @@ class ContainerManager:
             "running": container.status == "running",
             "container_id": container.id,
         }
-

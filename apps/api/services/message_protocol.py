@@ -50,4 +50,3 @@ class ErrorMessage(TypedDict):
 
 
 ServerMessage = OutputMessage | SessionCreatedMessage | SessionClosedMessage | ErrorMessage
-

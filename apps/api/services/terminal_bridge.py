@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import uuid
+
 from fastapi import WebSocket, WebSocketDisconnect
 
 from services.container_manager import ContainerManager
@@ -61,12 +62,12 @@ class TerminalBridge:
             logger.info(f"Created exec instance {exec_id['Id']}")
 
             exec_socket = container.client.api.exec_start(
-                exec_id['Id'],
+                exec_id["Id"],
                 socket=True,
                 tty=True,
             )
             logger.info("Exec socket started")
-            
+
             sock = exec_socket._sock
             sock.setblocking(False)
 
@@ -81,7 +82,9 @@ class TerminalBridge:
                         try:
                             data = await loop.sock_recv(sock, 4096)
                             if data:
-                                self.session_last_activity[connection_id] = asyncio.get_event_loop().time()
+                                self.session_last_activity[connection_id] = (
+                                    asyncio.get_event_loop().time()
+                                )
                                 decoded = data.decode("utf-8", errors="replace")
                                 await websocket.send_text(decoded)
                             else:
@@ -105,79 +108,90 @@ class TerminalBridge:
                     while True:
                         try:
                             data = await websocket.receive_text()
-                            
-                            if len(data.encode('utf-8')) > MAX_WEBSOCKET_MESSAGE_SIZE:
-                                logger.warning(f"WebSocket message too large: {len(data.encode('utf-8'))} bytes")
+
+                            if len(data.encode("utf-8")) > MAX_WEBSOCKET_MESSAGE_SIZE:
+                                logger.warning(
+                                    f"WebSocket message too large: {len(data.encode('utf-8'))} bytes"
+                                )
                                 await websocket.send_text(
                                     "\r\nMessage too large. Maximum size is 64KB.\r\n"
                                 )
                                 continue
-                            
+
                             try:
                                 msg = json.loads(data)
                                 if isinstance(msg, dict) and msg.get("type") == "resize":
                                     cols = msg.get("cols", 80)
                                     rows = msg.get("rows", 24)
-                                    
+
                                     if not isinstance(cols, int) or not isinstance(rows, int):
-                                        logger.warning(f"Invalid resize dimensions type: cols={type(cols)}, rows={type(rows)}")
+                                        logger.warning(
+                                            f"Invalid resize dimensions type: cols={type(cols)}, rows={type(rows)}"
+                                        )
                                         continue
-                                    
+
                                     if cols < MIN_TERMINAL_COLS or cols > MAX_TERMINAL_COLS:
                                         logger.warning(f"Invalid cols value: {cols}")
                                         continue
-                                    
+
                                     if rows < MIN_TERMINAL_ROWS or rows > MAX_TERMINAL_ROWS:
                                         logger.warning(f"Invalid rows value: {rows}")
                                         continue
-                                    
+
                                     logger.info(f"Resize request: {cols}x{rows}")
                                     try:
-                                        container.client.api.exec_resize(exec_id['Id'], height=rows, width=cols)
+                                        container.client.api.exec_resize(
+                                            exec_id["Id"], height=rows, width=cols
+                                        )
                                         logger.info(f"Resized PTY to {cols}x{rows}")
                                     except Exception as e:
                                         logger.error(f"Failed to resize PTY: {e}")
                                     continue
                             except json.JSONDecodeError:
                                 pass
-                            
+
                             if not await self.rate_limiter.check_command_limit(connection_id):
                                 await websocket.send_text(
                                     "\r\nRate limit exceeded. Please wait.\r\n"
                                 )
                                 continue
-                            
-                            encoded_data = data.encode('utf-8')
-                            
+
+                            encoded_data = data.encode("utf-8")
+
                             if len(encoded_data) > MAX_INPUT_SIZE:
                                 logger.warning(f"Input too large: {len(encoded_data)} bytes")
                                 await websocket.send_text(
                                     "\r\nInput too large. Maximum size is 64KB.\r\n"
                                 )
                                 continue
-                            
+
                             try:
-                                encoded_data.decode('utf-8')
+                                encoded_data.decode("utf-8")
                             except UnicodeDecodeError:
                                 logger.warning("Input contains invalid UTF-8 encoding")
-                                await websocket.send_text(
-                                    "\r\nInvalid character encoding.\r\n"
-                                )
+                                await websocket.send_text("\r\nInvalid character encoding.\r\n")
                                 continue
-                            
+
                             self.session_input_totals[connection_id] = (
                                 self.session_input_totals.get(connection_id, 0) + len(encoded_data)
                             )
-                            
-                            if self.session_input_totals[connection_id] > MAX_TOTAL_INPUT_PER_SESSION:
-                                logger.warning(f"Session {connection_id} exceeded total input limit")
+
+                            if (
+                                self.session_input_totals[connection_id]
+                                > MAX_TOTAL_INPUT_PER_SESSION
+                            ):
+                                logger.warning(
+                                    f"Session {connection_id} exceeded total input limit"
+                                )
                                 await websocket.send_text(
                                     "\r\nSession input limit exceeded (10MB). Please reconnect.\r\n"
                                 )
                                 break
-                            
-                            self.session_last_activity[connection_id] = asyncio.get_event_loop().time()
-                            
+
+                            self.session_last_activity[connection_id] = (
+                                asyncio.get_event_loop().time()
+                            )
+
                             total_sent = 0
                             while total_sent < len(encoded_data):
                                 try:
@@ -275,4 +289,3 @@ class TerminalBridge:
                     exec_socket.close()
                 except Exception:
                     pass
-

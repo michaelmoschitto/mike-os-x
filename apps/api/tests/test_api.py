@@ -1,8 +1,6 @@
 import pytest
 from httpx import AsyncClient
 
-from main import app
-
 
 @pytest.mark.asyncio
 async def test_health_endpoint(api_client: AsyncClient) -> None:
@@ -45,4 +43,3 @@ async def test_admin_stats_requires_auth(api_client: AsyncClient) -> None:
 async def test_admin_logs_requires_auth(api_client: AsyncClient) -> None:
     response = await api_client.get("/api/admin/terminal/logs")
     assert response.status_code == 401
-

@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -30,7 +31,7 @@ load_environment()
 def get_default_docker_host() -> str:
     if docker_host := os.getenv("DOCKER_HOST"):
         return docker_host
-    
+
     home = Path.home()
     docker_sock = home / ".docker" / "run" / "docker.sock"
     if docker_sock.exists():
@@ -56,10 +57,13 @@ class Settings(BaseSettings):
     # Security
     admin_api_key: str = Field(default="")
     cors_origins: str = Field(default="http://localhost:3000,http://localhost:5173")
-    
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        is_production = os.getenv("ENVIRONMENT", "").lower() == "production" or os.getenv("NODE_ENV", "").lower() == "production"
+        is_production = (
+            os.getenv("ENVIRONMENT", "").lower() == "production"
+            or os.getenv("NODE_ENV", "").lower() == "production"
+        )
         if is_production and not self.admin_api_key:
             raise ValueError(
                 "ADMIN_API_KEY must be set in production environment. "
@@ -88,4 +92,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

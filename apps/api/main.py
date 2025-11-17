@@ -1,21 +1,21 @@
 import logging
+
 from dotenv import load_dotenv
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
-load_dotenv(override=False)
-
-from config.settings import settings
-from middleware.cors import setup_cors
 from middleware.auth import verify_admin_key
-from services.container_manager import ContainerManager
-from services.terminal_bridge import TerminalBridge
-from services.rate_limiter import RateLimiter
+from middleware.cors import setup_cors
 from models.responses import (
+    AdminStatsResponse,
     HealthResponse,
     TerminalStatusResponse,
-    AdminStatsResponse,
 )
+from services.container_manager import ContainerManager
+from services.rate_limiter import RateLimiter
+from services.terminal_bridge import TerminalBridge
+
+load_dotenv(override=False)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
