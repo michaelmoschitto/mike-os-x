@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-
 from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -31,7 +30,7 @@ load_environment()
 def get_default_docker_host() -> str:
     if docker_host := os.getenv("DOCKER_HOST"):
         return docker_host
-
+    
     home = Path.home()
     docker_sock = home / ".docker" / "run" / "docker.sock"
     if docker_sock.exists():
@@ -67,28 +66,9 @@ class Settings(BaseSettings):
                 "Please set the ADMIN_API_KEY environment variable."
             )
 
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-        is_production = (
-            os.getenv("ENVIRONMENT", "").lower() == "production"
-            or os.getenv("NODE_ENV", "").lower() == "production"
-        )
-        if is_production and not self.admin_api_key:
-            raise ValueError(
-                "ADMIN_API_KEY must be set in production environment. "
-                "Please set the ADMIN_API_KEY environment variable."
-            )
-
     # Rate Limiting
-    dev_mode: bool = Field(default=False)
     rate_limit_connections: int = Field(default=10)
     rate_limit_commands: int = Field(default=1000)
-
-    @property
-    def effective_rate_limit_connections(self) -> int:
-        if self.dev_mode:
-            return 100
-        return self.rate_limit_connections
 
     # Container Resources
     container_memory: str = Field(default="1g")
@@ -101,3 +81,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
