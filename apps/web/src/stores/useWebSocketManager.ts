@@ -75,7 +75,10 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
         if (handler) {
           handler.onError(errorMsg.error);
         } else {
-          console.error(`[WebSocketManager] No handler for error session: ${errorMsg.sessionId}`, errorMsg.error);
+          console.error(
+            `[WebSocketManager] No handler for error session: ${errorMsg.sessionId}`,
+            errorMsg.error
+          );
         }
       } else if (message.type === 'session_created') {
         console.log(`[WebSocketManager] Session created: ${message.sessionId}`);
@@ -220,9 +223,11 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
 
   const registerSession = (sessionId: string, handler: SessionHandler) => {
     const { sessions, websocket, connectionState } = get();
-    
-    console.log(`[WebSocketManager] Registering session ${sessionId}, state: ${connectionState}, sessions: ${sessions.size}`);
-    
+
+    console.log(
+      `[WebSocketManager] Registering session ${sessionId}, state: ${connectionState}, sessions: ${sessions.size}`
+    );
+
     const newSessions = new Map(sessions);
     newSessions.set(sessionId, handler);
 

@@ -71,7 +71,9 @@ class Settings(BaseSettings):
             )
 
     # Rate Limiting (per IP address)
-    rate_limit_connections: int = Field(default=5)  # Max WebSocket connections per IP (allows reconnection attempts)
+    rate_limit_connections: int = Field(
+        default=5
+    )  # Max WebSocket connections per IP (allows reconnection attempts)
     rate_limit_commands: int = Field(default=100)  # Max commands per minute per IP
 
     # Container Resources
