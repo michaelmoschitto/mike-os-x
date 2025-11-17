@@ -6,12 +6,27 @@
     "apps/*"
   ],
   "scripts": {
-    "rip": "bun run dev",
-    "dev": "bun --cwd apps/web dev",
-    "dev:web": "bun --cwd apps/web dev",
+    "rip": "bun --cwd apps/web dev",
+    "dev": "docker compose -f docker-compose.dev.yml up",
+    "dev:build": "docker compose -f docker-compose.dev.yml up --build",
+    "down": "docker compose -f docker-compose.dev.yml down",
+    "down:clean": "docker compose -f docker-compose.dev.yml down -v",
+    "logs": "docker compose -f docker-compose.dev.yml logs -f",
+    "logs:api": "docker compose -f docker-compose.dev.yml logs -f api",
+    "logs:terminal": "docker compose -f docker-compose.dev.yml logs -f terminal",
+    "logs:redis": "docker compose -f docker-compose.dev.yml logs -f redis",
+    "build:terminal": "docker compose -f docker-compose.dev.yml build terminal",
+    "build:terminal:no-cache": "docker compose -f docker-compose.dev.yml build --no-cache terminal",
+    "build:api": "docker compose -f docker-compose.dev.yml build api",
     "build": "bun --cwd apps/web build",
-    "build:web": "bun --cwd apps/web build",
-    "preview": "bun --cwd apps/web preview"
+    "preview": "bun --cwd apps/web preview",
+    "test:api": "cd apps/api && uv run pytest",
+    "format:api": "cd apps/api && uv run ruff format .",
+    "format:web": "cd apps/web && bun run format",
+    "lint:web:fix": "cd apps/web && bun run lint:fix",
+    "lint:api": "cd apps/api && uv run ruff check .",
+    "lint:api:fix": "cd apps/api && uv run ruff check --fix .",
+    "type-check:api": "cd apps/api && uv run mypy ."
   },
   "devDependencies": {
     "typescript": "^5.6.2"

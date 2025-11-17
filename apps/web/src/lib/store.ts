@@ -4,12 +4,12 @@ type App =
   | 'finder'
   | 'browser'
   | 'textedit'
+  | 'terminal'
   | 'projects'
   | 'writing'
   | 'photos'
   | 'reading'
   | 'about'
-  | 'ai'
   | 'trash';
 
 interface UIStore {

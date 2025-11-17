@@ -1,16 +1,7 @@
 version: '3.8'
 
 services:
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - '3000:80'
-    environment:
-      - NODE_ENV=production
-    restart: unless-stopped
-
+  # Backend (FastAPI)
   api:
     build:
       context: ./apps/api
@@ -18,12 +9,13 @@ services:
     ports:
       - '8000:8000'
     volumes:
+      - ./apps/api:/app
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - DOCKER_HOST=unix:///var/run/docker.sock
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
-      - ADMIN_API_KEY=${ADMIN_API_KEY}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - REDIS_URL=redis://redis:6379/0
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-dev-admin-key-123}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
       - TERMINAL_CONTAINER_NAME=${TERMINAL_CONTAINER_NAME:-terminal-shared}
       - TERMINAL_VOLUME_NAME=${TERMINAL_VOLUME_NAME:-terminal-workspace}
       - RATE_LIMIT_CONNECTIONS=${RATE_LIMIT_CONNECTIONS:-10}
@@ -34,7 +26,7 @@ services:
     depends_on:
       - redis
       - terminal
-    restart: unless-stopped
+    command: uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
   # Terminal container
   terminal:
@@ -60,13 +52,13 @@ services:
     restart: unless-stopped
     command: tail -f /dev/null
 
+  # Redis
   redis:
     image: redis:8-alpine
     ports:
       - '6379:6379'
     volumes:
       - redis-data:/data
-    restart: unless-stopped
 
 volumes:
   redis-data:
