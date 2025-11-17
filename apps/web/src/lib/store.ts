@@ -5,6 +5,7 @@ type App =
   | 'browser'
   | 'textedit'
   | 'terminal'
+  | 'pdfviewer'
   | 'projects'
   | 'writing'
   | 'photos'
