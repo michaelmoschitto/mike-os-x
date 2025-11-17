@@ -70,12 +70,10 @@ jobs:
         with:
           version: latest
 
-      - name: Install system dependencies
+      - name: Ensure Docker is running
         run: |
-          sudo apt-get update
-          sudo apt-get remove -y containerd || true
-          sudo apt-get install -y docker.io
-          sudo systemctl start docker
+          sudo systemctl start docker || true
+          docker --version
 
       - name: Install Python dependencies
         working-directory: apps/api

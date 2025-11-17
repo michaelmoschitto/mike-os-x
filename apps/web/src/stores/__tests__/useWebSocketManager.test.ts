@@ -2,6 +2,10 @@ import { describe, expect, test, beforeEach, vi, afterEach } from 'vitest';
 
 import { useWebSocketManager } from '@/stores/useWebSocketManager';
 
+declare const global: typeof globalThis & {
+  WebSocket: typeof WebSocket;
+};
+
 class MockCloseEvent {
   type: string;
   constructor(type: string) {
