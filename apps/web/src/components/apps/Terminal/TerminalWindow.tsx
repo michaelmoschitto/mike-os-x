@@ -5,6 +5,8 @@ import { WebLinksAddon } from 'xterm-addon-web-links';
 
 import Window from '@/components/window/Window';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
+import { useWebSocketManager } from '@/stores/useWebSocketManager';
+import type { InputMessage, ResizeMessage } from '@/lib/terminal/messageProtocol';
 import 'xterm/css/xterm.css';
 
 interface TerminalWindowProps {
@@ -16,12 +18,12 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
   const { closeWindow, focusWindow, updateWindowPosition, updateWindowSize, minimizeWindow } =
     useWindowStore();
 
+  const { registerSession, unregisterSession, sendMessage, connectionState } = useWebSocketManager();
+
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminalInstanceRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const websocketRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onDataDisposableRef = useRef<{ dispose: () => void } | null>(null);
+  const sessionId = windowData.id;
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -65,109 +67,83 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
     terminalInstanceRef.current = terminal;
     fitAddonRef.current = fitAddon;
 
-    const connectWebSocket = () => {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      let apiHost = import.meta.env.VITE_API_URL?.replace(/^https?:\/\//, '');
+    const onDataDisposable = terminal.onData((data: string) => {
+      const message: InputMessage = {
+        type: 'input',
+        sessionId,
+        data,
+      };
+      sendMessage(message);
+    });
 
-      if (!apiHost) {
-        if (import.meta.env.DEV) {
-          apiHost = 'localhost:8000';
-        } else {
-          apiHost = window.location.host;
-        }
-      }
-
-      const wsUrl = `${protocol}//${apiHost}/ws/terminal`;
-
-      try {
-        const ws = new WebSocket(wsUrl);
-
-        ws.onopen = () => {
-          if (onDataDisposableRef.current) {
-            onDataDisposableRef.current.dispose();
+    registerSession(sessionId, {
+      onOutput: (data: string) => {
+        terminal.write(data);
+      },
+      onError: (error: string) => {
+        terminal.write(`\r\n\x1b[31m${error}\x1b[0m\r\n`);
+      },
+      onSessionCreated: () => {
+        setTimeout(() => {
+          if (terminalInstanceRef.current && fitAddonRef.current) {
+            fitAddonRef.current.fit();
+            const dims = {
+              cols: terminalInstanceRef.current.cols,
+              rows: terminalInstanceRef.current.rows,
+            };
+            const resizeMessage: ResizeMessage = {
+              type: 'resize',
+              sessionId,
+              cols: dims.cols,
+              rows: dims.rows,
+            };
+            sendMessage(resizeMessage);
           }
+        }, 100);
 
-          const disposable = terminal.onData((data: string) => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(data);
-            }
-          });
-
-          onDataDisposableRef.current = disposable;
-
-          setTimeout(() => {
-            const dims = { cols: terminal.cols, rows: terminal.rows };
-            ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
-          }, 100);
-
-          setTimeout(() => {
-            terminal.focus();
-          }, 150);
-
-          if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-            reconnectTimeoutRef.current = null;
-          }
-        };
-
-        ws.onmessage = (event) => {
-          terminal.write(event.data);
-        };
-
-        ws.onerror = () => {
-          terminal.write('\r\n\x1b[31mConnection error\x1b[0m\r\n');
-        };
-
-        ws.onclose = () => {
-          terminal.write('\r\n\x1b[33mDisconnected. Reconnecting...\x1b[0m\r\n');
-          if (onDataDisposableRef.current) {
-            onDataDisposableRef.current.dispose();
-            onDataDisposableRef.current = null;
-          }
-          if (!reconnectTimeoutRef.current) {
-            reconnectTimeoutRef.current = setTimeout(() => {
-              reconnectTimeoutRef.current = null;
-              connectWebSocket();
-            }, 2000);
-          }
-        };
-
-        websocketRef.current = ws;
-      } catch {
-        terminal.write('\r\n\x1b[31mFailed to connect to terminal server\x1b[0m\r\n');
-      }
-    };
-
-    connectWebSocket();
+        setTimeout(() => {
+          terminal.focus();
+        }, 150);
+      },
+      onSessionClosed: () => {
+        terminal.write('\r\n\x1b[33mSession closed\x1b[0m\r\n');
+      },
+    });
 
     const handleResize = () => {
-      if (fitAddonRef.current) {
+      if (fitAddonRef.current && terminalInstanceRef.current) {
         fitAddonRef.current.fit();
-        if (websocketRef.current?.readyState === WebSocket.OPEN) {
-          const dims = { cols: terminal.cols, rows: terminal.rows };
-          websocketRef.current.send(
-            JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows })
-          );
+        if (connectionState === 'connected') {
+          const dims = {
+            cols: terminalInstanceRef.current.cols,
+            rows: terminalInstanceRef.current.rows,
+          };
+          const resizeMessage: ResizeMessage = {
+            type: 'resize',
+            sessionId,
+            cols: dims.cols,
+            rows: dims.rows,
+          };
+          sendMessage(resizeMessage);
         }
       }
     };
 
     window.addEventListener('resize', handleResize);
 
+    if (connectionState === 'disconnected') {
+      terminal.write('\r\n\x1b[33mConnecting...\x1b[0m\r\n');
+    } else if (connectionState === 'connecting') {
+      terminal.write('\r\n\x1b[33mConnecting...\x1b[0m\r\n');
+    }
+
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (onDataDisposableRef.current) {
-        onDataDisposableRef.current.dispose();
-      }
-      if (websocketRef.current) {
-        websocketRef.current.close();
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
+      onDataDisposable.dispose();
+      unregisterSession(sessionId);
       terminal.dispose();
     };
-  }, []);
+  }, [sessionId, registerSession, unregisterSession, sendMessage, connectionState]);
 
   useEffect(() => {
     const terminal = terminalInstanceRef.current;
@@ -182,14 +158,25 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
     if (fitAddonRef.current) {
       setTimeout(() => {
         fitAddonRef.current?.fit();
+        if (connectionState === 'connected' && terminalInstanceRef.current) {
+          const dims = {
+            cols: terminalInstanceRef.current.cols,
+            rows: terminalInstanceRef.current.rows,
+          };
+          const resizeMessage: ResizeMessage = {
+            type: 'resize',
+            sessionId,
+            cols: dims.cols,
+            rows: dims.rows,
+          };
+          sendMessage(resizeMessage);
+        }
       }, 100);
     }
-  }, [isActive, windowData.size]);
+  }, [isActive, windowData.size, sessionId, sendMessage, connectionState]);
 
   const handleClose = () => {
-    if (websocketRef.current) {
-      websocketRef.current.close();
-    }
+    unregisterSession(sessionId);
     closeWindow(windowData.id);
   };
 
@@ -213,14 +200,18 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
     if (fitAddonRef.current && terminalInstanceRef.current) {
       setTimeout(() => {
         fitAddonRef.current?.fit();
-        if (websocketRef.current?.readyState === WebSocket.OPEN && terminalInstanceRef.current) {
+        if (connectionState === 'connected') {
           const dims = {
             cols: terminalInstanceRef.current.cols,
             rows: terminalInstanceRef.current.rows,
           };
-          websocketRef.current.send(
-            JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows })
-          );
+          const resizeMessage: ResizeMessage = {
+            type: 'resize',
+            sessionId,
+            cols: dims.cols,
+            rows: dims.rows,
+          };
+          sendMessage(resizeMessage);
         }
       }, 100);
     }

@@ -50,7 +50,7 @@ class PTYSessionManager:
             logger.warning(f"Session {session_id} already exists")
             return self.sessions[session_id]
 
-        container = self.container_manager.ensure_container_running()
+        container = self.container_manager.ensure_container_healthy()
         logger.info(f"Container {container.id} is running for session {session_id}")
 
         exec_id = container.client.api.exec_create(

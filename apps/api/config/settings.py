@@ -66,9 +66,9 @@ class Settings(BaseSettings):
                 "Please set the ADMIN_API_KEY environment variable."
             )
 
-    # Rate Limiting
-    rate_limit_connections: int = Field(default=10)
-    rate_limit_commands: int = Field(default=1000)
+    # Rate Limiting (per IP address)
+    rate_limit_connections: int = Field(default=3)  # Max WebSocket connections per IP
+    rate_limit_commands: int = Field(default=100)  # Max commands per minute per IP
 
     # Container Resources
     container_memory: str = Field(default="1g")

@@ -46,15 +46,15 @@ class RateLimiter:
         except redis.ConnectionError:
             logger.warning("Redis connection lost during rate limit check, allowing connection")
 
-    async def check_command_limit(self, connection_id: str) -> bool:
+    async def check_command_limit(self, ip: str) -> bool:
         if not self.redis_client:
             return True
         
         try:
-            key = f"ratelimit:commands:{connection_id}"
+            key = f"ratelimit:commands:{ip}"
             count = self.redis_client.incr(key)
             if count == 1:
-                self.redis_client.expire(key, 3600)
+                self.redis_client.expire(key, 60)
 
             return count <= settings.rate_limit_commands
         except redis.ConnectionError:

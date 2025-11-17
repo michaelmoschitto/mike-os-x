@@ -1,3 +1,4 @@
+import logging
 import os
 
 import docker
@@ -6,6 +7,8 @@ from docker.models.containers import Container
 from docker.errors import NotFound, DockerException
 
 from config.settings import settings
+
+logger = logging.getLogger(__name__)
 
 
 class ContainerManager:
@@ -94,3 +97,48 @@ class ContainerManager:
             "running": container.status == "running",
             "container_id": container.id,
         }
+
+    def reset_workspace(self) -> None:
+        container = self.get_container()
+        if not container:
+            raise RuntimeError(
+                f"Terminal container '{self.container_name}' not found. "
+                "Please ensure docker-compose services are running: bun run dev"
+            )
+
+        if container.status != "running":
+            container.start()
+
+        exec_result = container.exec_run(
+            cmd="sh -c 'rm -rf /workspace/* /workspace/.* 2>/dev/null || true'",
+            user="workspace",
+        )
+        if exec_result.exit_code != 0:
+            raise RuntimeError(f"Failed to reset workspace: {exec_result.output.decode('utf-8', errors='replace')}")
+
+    def check_container_health(self) -> bool:
+        container = self.get_container()
+        if not container:
+            return False
+
+        if container.status != "running":
+            return False
+
+        try:
+            exec_result = container.exec_run(
+                cmd="echo 'healthcheck'",
+                timeout=5,
+            )
+            return exec_result.exit_code == 0
+        except Exception:
+            return False
+
+    def ensure_container_healthy(self) -> Container:
+        container = self.ensure_container_running()
+
+        if not self.check_container_health():
+            logger.warning("Container health check failed, restarting container")
+            container.restart()
+            container = self.ensure_container_running()
+
+        return container

@@ -85,6 +85,12 @@ async def admin_restart(admin_key: str = Depends(verify_admin_key)) -> JSONRespo
     return JSONResponse(content={"message": "Terminal container restarted successfully"})
 
 
+@app.post("/api/admin/terminal/reset-workspace")
+async def admin_reset_workspace(admin_key: str = Depends(verify_admin_key)) -> JSONResponse:
+    container_manager.reset_workspace()
+    return JSONResponse(content={"message": "Workspace reset successfully"})
+
+
 @app.get("/api/admin/terminal/stats", response_model=AdminStatsResponse)
 async def admin_stats(admin_key: str = Depends(verify_admin_key)) -> AdminStatsResponse:
     container = container_manager.get_container()
