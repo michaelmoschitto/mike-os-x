@@ -15,9 +15,7 @@ export interface HistoryEntry {
   visitTime: number;
 }
 
-const getAppName = (
-  windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer'
-): string => {
+const getAppName = (windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer'): string => {
   const appNames: Record<'textedit' | 'browser' | 'terminal' | 'pdfviewer', string> = {
     browser: 'Internet Explorer',
     textedit: 'TextEdit',

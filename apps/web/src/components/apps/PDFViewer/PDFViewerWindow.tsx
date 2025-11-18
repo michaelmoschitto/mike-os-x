@@ -1,8 +1,10 @@
+import PDFViewer from '@/components/apps/PDFViewer/PDFViewer';
 import Window from '@/components/window/Window';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
 import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
+import { sanitizeUrlPath, validatePdfUrl } from '@/lib/utils';
 import type { Window as WindowType } from '@/stores/useWindowStore';
-import PDFViewer from './PDFViewer';
+
 
 interface PDFViewerWindowProps {
   window: WindowType;
@@ -18,7 +20,9 @@ const PDFViewerWindow = ({ window: windowData, isActive }: PDFViewerWindowProps)
       routeStrategy,
     });
 
-  const pdfUrl = windowData.urlPath ? `/content${windowData.urlPath}.pdf` : '';
+  const sanitizedPath = windowData.urlPath ? sanitizeUrlPath(windowData.urlPath) : '';
+  const pdfUrl = sanitizedPath ? `/content${sanitizedPath}.pdf` : '';
+  const isValidUrl = pdfUrl ? validatePdfUrl(pdfUrl) : false;
 
   return (
     <Window
@@ -35,8 +39,8 @@ const PDFViewerWindow = ({ window: windowData, isActive }: PDFViewerWindowProps)
       onResize={handleResize}
     >
       <div className="h-full w-full">
-        {pdfUrl ? (
-          <PDFViewer url={pdfUrl} title={windowData.title} />
+        {pdfUrl && isValidUrl ? (
+          <PDFViewer url={pdfUrl} />
         ) : (
           <div className="aqua-pinstripe font-ui flex h-full items-center justify-center text-[11px] text-[var(--color-text-secondary)]">
             No PDF to display

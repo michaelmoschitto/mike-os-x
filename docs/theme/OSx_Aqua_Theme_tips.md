@@ -137,10 +137,47 @@ Reusable utility classes are defined in `src/styles/index.css` under `@layer uti
 
 **Base gel button** with hover/active/disabled states. Use for all Aqua-style buttons.
 
+**Aqua Button Gloss Effect:**
+
+The authentic Aqua button has a soft, pill-shaped, glossy appearance with:
+
+1. **Vertical Multi-Stop Gradient:**
+   - **Top 30%**: Very light gray → almost white (`#f8f8f8` → `#ffffff`)
+     - Creates the reflective glass highlight
+   - **Middle 40%**: Medium, neutral gray (`#e0e0e0` → `#d0d0d0`)
+     - The main body color
+   - **Bottom 30%**: Slightly darker gray (`#d0d0d0` → `#c0c0c0`)
+     - Adds depth and the illusion of curvature
+
+2. **Visual Effects:**
+   - Glass-like highlight on the top half (bright white inset highlight)
+   - Subtle inner shadow on the bottom edge (dark inset shadow)
+   - Very rounded corners (large border radius, ~6-8px for pill shape)
+   - Faint outer drop shadow for depth (`0 2px 4px rgba(0, 0, 0, 0.2)`)
+
+**Gradient Breakdown:**
+
+```
+linear-gradient(
+  to bottom,
+  #ffffff 0%,      // Top: almost white (glass highlight)
+  #f8f8f8 10%,     // Transition
+  #e8e8e8 30%,     // Top section end
+  #e0e0e0 40%,     // Middle section start
+  #d8d8d8 60%,     // Middle section
+  #d0d0d0 70%,     // Middle section end
+  #c8c8c8 85%,     // Bottom section start
+  #c0c0c0 100%     // Bottom: darker gray (depth)
+)
+```
+
 **Features:**
 
-- Gel gradient background
-- Proper shadows (inset highlights)
+- Multi-stop gel gradient background (3-section: highlight, body, depth)
+- Glass-like top highlight (inset white)
+- Subtle bottom inner shadow (inset dark)
+- Large border radius (pill-shaped)
+- Outer drop shadow for depth
 - Hover/active state transitions
 - Disabled state styling
 

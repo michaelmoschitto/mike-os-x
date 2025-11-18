@@ -1,23 +1,33 @@
-import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+
+import PDFPageRenderer from '@/components/apps/PDFViewer/PDFPageRenderer';
+import PDFToolbar from '@/components/apps/PDFViewer/PDFToolbar';
+import { validatePdfUrl } from '@/lib/utils';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 interface PDFViewerProps {
   url: string;
-  title: string;
 }
 
-const PDFViewer = ({ url, title }: PDFViewerProps) => {
+const PDFViewer = ({ url }: PDFViewerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [scale, setScale] = useState(1.0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [renderedPages, setRenderedPages] = useState<Set<number>>(new Set());
-  const canvasRefs = useRef<Map<number, HTMLCanvasElement>>(new Map());
+  const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set());
+  const [containerWidth, setContainerWidth] = useState(800);
 
   useEffect(() => {
+    if (!validatePdfUrl(url)) {
+      setError('Invalid PDF URL');
+      setLoading(false);
+      return;
+    }
+
     const loadPDF = async () => {
       try {
         setLoading(true);
@@ -37,39 +47,25 @@ const PDFViewer = ({ url, title }: PDFViewerProps) => {
   }, [url]);
 
   useEffect(() => {
-    if (!pdfDoc || !containerRef.current) return;
+    if (!containerRef.current) return;
 
-    const renderPage = async (pageNum: number) => {
-      if (renderedPages.has(pageNum)) return;
-
-      try {
-        const page = await pdfDoc.getPage(pageNum);
-        const canvas = canvasRefs.current.get(pageNum);
-        if (!canvas) return;
-
-        const context = canvas.getContext('2d');
-        if (!context) return;
-
-        const containerWidth = containerRef.current?.clientWidth ?? 800;
-        const viewport = page.getViewport({ scale: 1.0 });
-        const defaultScale = (containerWidth - 80) / viewport.width;
-        const actualScale = scale * defaultScale;
-        const scaledViewport = page.getViewport({ scale: actualScale });
-
-        canvas.height = scaledViewport.height;
-        canvas.width = scaledViewport.width;
-
-        const renderContext = {
-          canvasContext: context,
-          viewport: scaledViewport,
-        };
-
-        await page.render(renderContext).promise;
-        setRenderedPages((prev) => new Set(prev).add(pageNum));
-      } catch (err) {
-        console.error(`Error rendering page ${pageNum}:`, err);
+    const updateContainerWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth);
       }
     };
+
+    updateContainerWidth();
+    const resizeObserver = new ResizeObserver(updateContainerWidth);
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!pdfDoc || !containerRef.current) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -77,7 +73,7 @@ const PDFViewer = ({ url, title }: PDFViewerProps) => {
           if (entry.isIntersecting) {
             const pageNum = parseInt(entry.target.getAttribute('data-page-num') ?? '0', 10);
             if (pageNum > 0) {
-              renderPage(pageNum);
+              setVisiblePages((prev) => new Set(prev).add(pageNum));
             }
           }
         });
@@ -85,18 +81,25 @@ const PDFViewer = ({ url, title }: PDFViewerProps) => {
       { rootMargin: '200px' }
     );
 
-    const canvases = Array.from(canvasRefs.current.values());
+    const canvases = containerRef.current.querySelectorAll('[data-page-num]');
     canvases.forEach((canvas) => observer.observe(canvas));
 
     return () => {
       observer.disconnect();
     };
-  }, [pdfDoc, scale, renderedPages]);
+  }, [pdfDoc]);
 
   useEffect(() => {
-    setRenderedPages(new Set());
+    setVisiblePages(new Set());
   }, [scale]);
 
+  const handleZoomIn = useCallback(() => {
+    setScale((prev) => Math.min(prev + 0.25, 3.0));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setScale((prev) => Math.max(prev - 0.25, 0.5));
+  }, []);
 
   if (loading) {
     return (
@@ -120,30 +123,19 @@ const PDFViewer = ({ url, title }: PDFViewerProps) => {
 
   return (
     <div className="flex h-full flex-col">
-      {/* PDF pages container with infinite scroll */}
-      <div ref={containerRef} className="aqua-pinstripe h-full overflow-auto">
+      <PDFToolbar scale={scale} onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />
+
+      <div ref={containerRef} className="aqua-pinstripe flex-1 overflow-auto">
         <div className="flex flex-col items-center gap-4 py-5">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-            <div key={pageNum} className="flex flex-col items-center gap-2">
-              <canvas
-                ref={(el) => {
-                  if (el) {
-                    canvasRefs.current.set(pageNum, el);
-                  } else {
-                    canvasRefs.current.delete(pageNum);
-                  }
-                }}
-                data-page-num={pageNum}
-                style={{
-                  maxWidth: '100%',
-                  height: 'auto',
-                  boxShadow: 'var(--shadow-window)',
-                }}
-              />
-              <div className="font-ui text-[10px] text-[var(--color-text-secondary)]">
-                Page {pageNum}
-              </div>
-            </div>
+            <PDFPageRenderer
+              key={pageNum}
+              pageNum={pageNum}
+              pdfDoc={pdfDoc}
+              scale={scale}
+              containerWidth={containerWidth}
+              isVisible={visiblePages.has(pageNum)}
+            />
           ))}
         </div>
       </div>
