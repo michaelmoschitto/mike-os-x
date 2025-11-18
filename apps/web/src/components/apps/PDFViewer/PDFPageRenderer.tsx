@@ -28,9 +28,6 @@ const PDFPageRenderer = ({
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const context = canvas.getContext('2d');
-        if (!context) return;
-
         const viewport = page.getViewport({ scale: 1.0 });
         const defaultScale = (containerWidth - 80) / viewport.width;
         const actualScale = scale * defaultScale;
@@ -40,7 +37,7 @@ const PDFPageRenderer = ({
         canvas.width = scaledViewport.width;
 
         const renderContext = {
-          canvasContext: context,
+          canvas: canvas,
           viewport: scaledViewport,
         };
 
