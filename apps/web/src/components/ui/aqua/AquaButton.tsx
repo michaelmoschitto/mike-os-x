@@ -12,10 +12,12 @@ export const AquaButton = ({
   active = false,
   className,
   children,
+  type = 'button',
   ...props
 }: AquaButtonProps) => {
   return (
     <button
+      type={type}
       className={cn(
         'aqua-button-base',
         size === 'sm' && 'h-[22px] px-2 text-[10px]',

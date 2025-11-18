@@ -17,10 +17,17 @@ const PDFPageRenderer = ({
   isVisible,
 }: PDFPageRendererProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const hasRenderedRef = useRef(false);
+  const lastScaleRef = useRef<number | null>(null);
+  const lastContainerWidthRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!isVisible || hasRenderedRef.current) return;
+    if (!isVisible) return;
+
+    const scaleChanged = lastScaleRef.current !== scale;
+    const widthChanged = lastContainerWidthRef.current !== containerWidth;
+    const isFirstRender = lastScaleRef.current === null;
+
+    if (!isFirstRender && !scaleChanged && !widthChanged) return;
 
     const renderPage = async () => {
       try {
@@ -36,13 +43,19 @@ const PDFPageRenderer = ({
         canvas.height = scaledViewport.height;
         canvas.width = scaledViewport.width;
 
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
         const renderContext = {
           canvas: canvas,
           viewport: scaledViewport,
         };
 
         await page.render(renderContext).promise;
-        hasRenderedRef.current = true;
+        lastScaleRef.current = scale;
+        lastContainerWidthRef.current = containerWidth;
       } catch (err) {
         console.error(`Error rendering page ${pageNum}:`, err);
       }
@@ -50,10 +63,6 @@ const PDFPageRenderer = ({
 
     renderPage();
   }, [pageNum, pdfDoc, scale, containerWidth, isVisible]);
-
-  useEffect(() => {
-    hasRenderedRef.current = false;
-  }, [scale]);
 
   return (
     <div className="flex flex-col items-center gap-2" data-page-num={pageNum}>

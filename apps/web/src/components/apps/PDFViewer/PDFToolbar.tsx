@@ -7,10 +7,25 @@ interface PDFToolbarProps {
 }
 
 const PDFToolbar = ({ scale, onZoomIn, onZoomOut }: PDFToolbarProps) => {
+  const handleZoomOut = (e: React.PointerEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onZoomOut();
+  };
+
+  const handleZoomIn = (e: React.PointerEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onZoomIn();
+  };
+
   return (
-    <div className="aqua-menubar flex h-[52px] items-center justify-end gap-2 px-3">
+    <div 
+      className="aqua-menubar flex h-[52px] items-center justify-end gap-2 px-3"
+      onPointerDown={(e) => e.stopPropagation()}
+    >
       <AquaButton
-        onClick={onZoomOut}
+        onPointerDown={handleZoomOut}
         disabled={scale <= 0.5}
         size="md"
         title="Zoom Out"
@@ -20,7 +35,7 @@ const PDFToolbar = ({ scale, onZoomIn, onZoomOut }: PDFToolbarProps) => {
         −
       </AquaButton>
       <AquaButton
-        onClick={onZoomIn}
+        onPointerDown={handleZoomIn}
         disabled={scale >= 3.0}
         size="md"
         title="Zoom In"
