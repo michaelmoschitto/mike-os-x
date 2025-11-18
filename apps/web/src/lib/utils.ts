@@ -114,3 +114,51 @@ export const findBookmarkLocation = (
 
   return null;
 };
+
+/**
+ * Sanitizes a URL path to prevent path traversal attacks.
+ * Removes path traversal sequences (..) and non-alphanumeric characters except allowed ones.
+ * Ensures the path starts with / and doesn't contain dangerous patterns.
+ */
+export const sanitizeUrlPath = (urlPath: string): string => {
+  if (!urlPath || typeof urlPath !== 'string') {
+    return '';
+  }
+
+  let sanitized = urlPath.trim();
+
+  sanitized = sanitized.replace(/\.\./g, '');
+  sanitized = sanitized.replace(/[^a-zA-Z0-9_/-]/g, '');
+
+  if (!sanitized.startsWith('/')) {
+    sanitized = `/${sanitized}`;
+  }
+
+  return sanitized;
+};
+
+/**
+ * Validates that a URL is safe for PDF loading.
+ * Only allows relative paths starting with /content/.
+ */
+export const validatePdfUrl = (url: string): boolean => {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+
+  const trimmed = url.trim();
+
+  if (!trimmed.startsWith('/content/')) {
+    return false;
+  }
+
+  if (trimmed.includes('..')) {
+    return false;
+  }
+
+  if (!trimmed.endsWith('.pdf')) {
+    return false;
+  }
+
+  return true;
+};

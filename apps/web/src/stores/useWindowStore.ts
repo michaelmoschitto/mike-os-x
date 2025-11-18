@@ -15,18 +15,19 @@ export interface HistoryEntry {
   visitTime: number;
 }
 
-const getAppName = (windowType: 'textedit' | 'browser' | 'terminal'): string => {
-  const appNames: Record<'textedit' | 'browser' | 'terminal', string> = {
+const getAppName = (windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer'): string => {
+  const appNames: Record<'textedit' | 'browser' | 'terminal' | 'pdfviewer', string> = {
     browser: 'Internet Explorer',
     textedit: 'TextEdit',
     terminal: 'Terminal',
+    pdfviewer: 'Preview',
   };
   return appNames[windowType];
 };
 
 export interface Window {
   id: string;
-  type: 'textedit' | 'browser' | 'terminal';
+  type: 'textedit' | 'browser' | 'terminal' | 'pdfviewer';
   appName: string;
   title: string;
   content: string;
@@ -44,8 +45,8 @@ export interface Window {
 }
 
 const getAppTypeForDock = (
-  windowType: 'textedit' | 'browser' | 'terminal'
-): 'browser' | 'textedit' | 'terminal' | null => {
+  windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer'
+): 'browser' | 'textedit' | 'terminal' | 'pdfviewer' | null => {
   return windowType;
 };
 
@@ -466,10 +467,15 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       return;
     }
 
-    const windowType = entry.appType === 'browser' ? 'browser' : 'textedit';
+    const windowType =
+      entry.appType === 'browser'
+        ? 'browser'
+        : entry.appType === 'pdfviewer'
+          ? 'pdfviewer'
+          : 'textedit';
 
-    const windowWidth = 600;
-    const windowHeight = 500;
+    const windowWidth = entry.appType === 'pdfviewer' ? 800 : 600;
+    const windowHeight = entry.appType === 'pdfviewer' ? 700 : 500;
     const centerX = (window.innerWidth - windowWidth) / 2;
     const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
 

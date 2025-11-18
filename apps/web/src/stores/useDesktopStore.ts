@@ -29,7 +29,7 @@ const getIconForFile = (fileExtension: string): string => {
     return '/icons/file-text.png';
   }
   if (ext === '.pdf') {
-    return '/icons/file-text.png'; // TODO: Add PDF icon
+    return '/icons/pdf.png';
   }
   if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(ext)) {
     return '/icons/photos.png';

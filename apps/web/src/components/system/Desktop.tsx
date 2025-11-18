@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { BrowserWindow } from '@/components/apps/Browser';
+import { PDFViewerWindow } from '@/components/apps/PDFViewer';
 import { TerminalWindow } from '@/components/apps/Terminal';
 import { TextEditWindow } from '@/components/apps/TextEdit';
 import DesktopIcons from '@/components/system/DesktopIcons';
@@ -46,6 +47,15 @@ const Desktop = () => {
             if (window.type === 'terminal') {
               return (
                 <TerminalWindow
+                  key={window.id}
+                  window={window}
+                  isActive={window.id === activeWindowId}
+                />
+              );
+            }
+            if (window.type === 'pdfviewer') {
+              return (
+                <PDFViewerWindow
                   key={window.id}
                   window={window}
                   isActive={window.id === activeWindowId}
