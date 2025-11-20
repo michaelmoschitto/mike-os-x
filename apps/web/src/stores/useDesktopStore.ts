@@ -54,9 +54,14 @@ const buildIconsFromContent = async (): Promise<DesktopIconData[]> => {
     const fileName = urlParts[urlParts.length - 1] || 'untitled';
     const folderPath = urlParts.slice(0, -1).join('/');
 
+    const baseLabel = entry.metadata.title || fileName;
+    const labelWithExtension = baseLabel.endsWith(entry.fileExtension)
+      ? baseLabel
+      : `${baseLabel}${entry.fileExtension}`;
+
     const icon: DesktopIconData = {
       id: `file-${entry.urlPath}`,
-      label: entry.metadata.title || fileName,
+      label: labelWithExtension,
       icon: getIconForFile(entry.fileExtension),
       type: 'file',
       gridIndex: gridIndex++,
