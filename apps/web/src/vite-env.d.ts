@@ -6,6 +6,12 @@ declare module '*.md?raw' {
   export default content;
 }
 
+// Allow importing JSON files
+declare module '*.json' {
+  const content: unknown;
+  export default content;
+}
+
 // Extend Window interface for Buffer polyfill
 declare global {
   interface Window {
