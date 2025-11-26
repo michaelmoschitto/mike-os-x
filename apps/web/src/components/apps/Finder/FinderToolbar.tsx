@@ -18,12 +18,12 @@ const FinderToolbar = ({
   onViewModeChange,
 }: FinderToolbarProps) => {
   return (
-    <div className="aqua-pinstripe flex h-[52px] items-center gap-2 px-3 border-b border-[var(--color-border-subtle)]">
+    <div className="aqua-pinstripe flex h-[52px] items-center gap-2 border-b border-[var(--color-border-subtle)] px-3">
       <div className="flex items-center gap-1">
         <button
           className={cn(
-            'aqua-button-base h-[28px] w-[28px] flex items-center justify-center',
-            !canGoBack && 'opacity-50 cursor-not-allowed'
+            'aqua-button-base flex h-[28px] w-[28px] items-center justify-center',
+            !canGoBack && 'cursor-not-allowed opacity-50'
           )}
           onClick={onBack}
           disabled={!canGoBack}
@@ -41,8 +41,8 @@ const FinderToolbar = ({
         </button>
         <button
           className={cn(
-            'aqua-button-base h-[28px] w-[28px] flex items-center justify-center',
-            !canGoForward && 'opacity-50 cursor-not-allowed'
+            'aqua-button-base flex h-[28px] w-[28px] items-center justify-center',
+            !canGoForward && 'cursor-not-allowed opacity-50'
           )}
           onClick={onForward}
           disabled={!canGoForward}
@@ -63,7 +63,7 @@ const FinderToolbar = ({
       <div className="flex items-center gap-1">
         <button
           className={cn(
-            'aqua-button-base h-[28px] w-[28px] flex items-center justify-center',
+            'aqua-button-base flex h-[28px] w-[28px] items-center justify-center',
             viewMode === 'icon' && 'bg-[var(--color-highlight)] text-white'
           )}
           onClick={() => onViewModeChange('icon')}
@@ -78,7 +78,7 @@ const FinderToolbar = ({
         </button>
         <button
           className={cn(
-            'aqua-button-base h-[28px] w-[28px] flex items-center justify-center',
+            'aqua-button-base flex h-[28px] w-[28px] items-center justify-center',
             viewMode === 'list' && 'bg-[var(--color-highlight)] text-white'
           )}
           onClick={() => onViewModeChange('list')}
@@ -93,7 +93,7 @@ const FinderToolbar = ({
         </button>
         <button
           className={cn(
-            'aqua-button-base h-[28px] w-[28px] flex items-center justify-center',
+            'aqua-button-base flex h-[28px] w-[28px] items-center justify-center',
             viewMode === 'column' && 'bg-[var(--color-highlight)] text-white'
           )}
           onClick={() => onViewModeChange('column')}
@@ -111,5 +111,3 @@ const FinderToolbar = ({
 };
 
 export default FinderToolbar;
-
-

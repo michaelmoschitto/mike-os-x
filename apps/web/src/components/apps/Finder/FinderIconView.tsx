@@ -9,7 +9,6 @@ interface FinderIconViewProps {
 }
 
 const FinderIconView = ({ items, selectedId, onSelect, onOpen }: FinderIconViewProps) => {
-
   return (
     <div className="flex-1 overflow-auto p-4">
       <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2">
@@ -30,4 +29,3 @@ const FinderIconView = ({ items, selectedId, onSelect, onOpen }: FinderIconViewP
 };
 
 export default FinderIconView;
-

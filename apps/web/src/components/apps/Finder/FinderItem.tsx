@@ -11,14 +11,7 @@ interface FinderItemProps {
   onDoubleClick: () => void;
 }
 
-const FinderItem = ({
-  name,
-  type,
-  icon,
-  isSelected,
-  onClick,
-  onDoubleClick,
-}: FinderItemProps) => {
+const FinderItem = ({ name, icon, isSelected, onClick, onDoubleClick }: FinderItemProps) => {
   const lastClickTime = useRef(0);
 
   const handleClick = (e: React.MouseEvent) => {
@@ -38,15 +31,15 @@ const FinderItem = ({
   return (
     <div
       className={cn(
-        'flex flex-col items-center gap-1 p-2 rounded cursor-pointer transition-colors',
+        'flex cursor-pointer flex-col items-center gap-1 rounded p-2 transition-colors',
         isSelected && 'bg-[var(--color-highlight)]'
       )}
       onClick={handleClick}
     >
-      <img src={icon} alt={name} className="w-12 h-12" />
+      <img src={icon} alt={name} className="h-12 w-12" />
       <span
         className={cn(
-          'text-[11px] text-center max-w-[80px] truncate',
+          'max-w-[80px] truncate text-center text-[11px]',
           isSelected ? 'text-white' : 'text-[var(--color-text-primary)]'
         )}
       >
@@ -57,4 +50,3 @@ const FinderItem = ({
 };
 
 export default FinderItem;
-

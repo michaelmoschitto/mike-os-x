@@ -68,14 +68,14 @@ export const getFolderContents = (path: string): FinderItemData[] => {
 
   for (const entry of entries) {
     const entryPathParts = entry.urlPath.split('/').filter(Boolean);
-    
+
     if (pathParts.length === 0) {
       if (entryPathParts.length === 1) {
         const fileName = entryPathParts[0];
-        const nameWithExt = entry.metadata.title 
-          ? (entry.metadata.title.endsWith(entry.fileExtension) 
-              ? entry.metadata.title 
-              : `${entry.metadata.title}${entry.fileExtension}`)
+        const nameWithExt = entry.metadata.title
+          ? entry.metadata.title.endsWith(entry.fileExtension)
+            ? entry.metadata.title
+            : `${entry.metadata.title}${entry.fileExtension}`
           : fileName;
         items.push({
           id: `file-${entry.urlPath}`,
@@ -97,18 +97,19 @@ export const getFolderContents = (path: string): FinderItemData[] => {
         }
       }
     } else {
-      const isInCurrentPath = entryPathParts.length > pathParts.length &&
+      const isInCurrentPath =
+        entryPathParts.length > pathParts.length &&
         entryPathParts.slice(0, pathParts.length).join('/') === pathParts.join('/');
-      
+
       if (isInCurrentPath) {
         const remainingParts = entryPathParts.slice(pathParts.length);
-        
+
         if (remainingParts.length === 1) {
           const fileName = remainingParts[0];
-          const nameWithExt = entry.metadata.title 
-            ? (entry.metadata.title.endsWith(entry.fileExtension) 
-                ? entry.metadata.title 
-                : `${entry.metadata.title}${entry.fileExtension}`)
+          const nameWithExt = entry.metadata.title
+            ? entry.metadata.title.endsWith(entry.fileExtension)
+              ? entry.metadata.title
+              : `${entry.metadata.title}${entry.fileExtension}`
             : fileName;
           items.push({
             id: `file-${entry.urlPath}`,
@@ -153,4 +154,3 @@ export const getFolderContents = (path: string): FinderItemData[] => {
     return a.name.localeCompare(b.name);
   });
 };
-

@@ -43,7 +43,10 @@ export const useContentIndex = create<ContentIndexStore>((set, get) => ({
 export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry>> => {
   const index = new Map<string, ContentIndexEntry>();
 
-  let contentMetadata: Record<string, { size: number; mtime: string; birthtime: string; kind: string }> = {};
+  let contentMetadata: Record<
+    string,
+    { size: number; mtime: string; birthtime: string; kind: string }
+  > = {};
   try {
     const metadataModule = await import('@/generated/contentMetadata.json');
     contentMetadata = metadataModule.default || metadataModule;
@@ -77,7 +80,8 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
         const appType = getAppForFile(fileExtension, parsed.metadata);
         const finalUrlPath = parsed.metadata.slug ? `/${parsed.metadata.slug}` : urlPath;
 
-        const fileMetadata = contentMetadata[relativePath] || contentMetadata[relativePath.replace(/^\.\//, '')];
+        const fileMetadata =
+          contentMetadata[relativePath] || contentMetadata[relativePath.replace(/^\.\//, '')];
 
         const entry: ContentIndexEntry = {
           urlPath: finalUrlPath,

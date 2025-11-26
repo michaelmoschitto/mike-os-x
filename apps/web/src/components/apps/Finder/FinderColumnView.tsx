@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
-import { cn } from '@/lib/utils';
 import type { FinderItemData } from '@/lib/finderContent';
 import { getFolderContents } from '@/lib/finderContent';
+import { cn } from '@/lib/utils';
 
 interface FinderColumnViewProps {
   currentPath: string;
@@ -36,8 +36,7 @@ const FinderColumnView = ({
   useEffect(() => {
     const pathParts = currentPath.split('/').filter(Boolean);
     const newColumns: ColumnData[] = [];
-    
-    let currentPathAcc = '';
+
     for (let i = 0; i <= pathParts.length; i++) {
       const path = i === 0 ? '/home' : `/${pathParts.slice(0, i).join('/')}`;
       newColumns.push({
@@ -46,7 +45,7 @@ const FinderColumnView = ({
         selectedId: i === pathParts.length ? selectedId : null,
       });
     }
-    
+
     setColumns(newColumns);
   }, [currentPath, selectedId]);
 
@@ -78,10 +77,13 @@ const FinderColumnView = ({
   };
 
   return (
-    <div className="flex-1 overflow-x-auto flex">
+    <div className="flex flex-1 overflow-x-auto">
       {columns.map((column, columnIndex) => (
-        <div key={column.path} className="flex-shrink-0 w-[200px] border-r border-[var(--color-border-subtle)]">
-          <div className="aqua-pinstripe h-6 border-b border-[var(--color-border-subtle)] px-2 text-[10px] font-medium text-[var(--color-text-secondary)] flex items-center">
+        <div
+          key={column.path}
+          className="w-[200px] flex-shrink-0 border-r border-[var(--color-border-subtle)]"
+        >
+          <div className="aqua-pinstripe flex h-6 items-center border-b border-[var(--color-border-subtle)] px-2 text-[10px] font-medium text-[var(--color-text-secondary)]">
             {column.path === '/home' ? 'Home' : column.path.split('/').pop() || column.path}
           </div>
           <div className="overflow-y-auto" style={{ height: 'calc(100% - 24px)' }}>
@@ -89,14 +91,14 @@ const FinderColumnView = ({
               <div
                 key={item.id}
                 className={cn(
-                  'flex h-6 items-center gap-2 px-2 cursor-pointer text-[11px] transition-colors',
+                  'flex h-6 cursor-pointer items-center gap-2 px-2 text-[11px] transition-colors',
                   column.selectedId === item.id && 'bg-[var(--color-highlight)] text-white',
                   column.selectedId !== item.id && 'hover:bg-[#f5f5f5]'
                 )}
                 onClick={() => handleItemClick(item, columnIndex)}
                 onDoubleClick={() => handleItemDoubleClick(item)}
               >
-                <img src={item.icon} alt={item.name} className="w-4 h-4 flex-shrink-0" />
+                <img src={item.icon} alt={item.name} className="h-4 w-4 flex-shrink-0" />
                 <span className="truncate">{item.name}</span>
               </div>
             ))}
@@ -108,4 +110,3 @@ const FinderColumnView = ({
 };
 
 export default FinderColumnView;
-

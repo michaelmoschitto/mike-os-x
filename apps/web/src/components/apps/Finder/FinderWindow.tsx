@@ -5,12 +5,12 @@ import FinderIconView from '@/components/apps/Finder/FinderIconView';
 import FinderListView from '@/components/apps/Finder/FinderListView';
 import FinderToolbar from '@/components/apps/Finder/FinderToolbar';
 import Window from '@/components/window/Window';
+import { useContentIndex } from '@/lib/contentIndex';
+import { loadContentFile } from '@/lib/contentLoader';
+import { getFolderContents, type FinderItemData } from '@/lib/finderContent';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
 import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
-import { getFolderContents, type FinderItemData } from '@/lib/finderContent';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
-import { useContentIndex, initializeContentIndex } from '@/lib/contentIndex';
-import { loadContentFile } from '@/lib/contentLoader';
 
 interface FinderWindowProps {
   window: WindowType;
@@ -22,7 +22,8 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loadingFile, setLoadingFile] = useState<string | null>(null);
 
-  const windowTitle = windowData.title === 'Finder' || !windowData.title ? 'Finder' : windowData.title;
+  const windowTitle =
+    windowData.title === 'Finder' || !windowData.title ? 'Finder' : windowData.title;
   const currentPath = windowData.currentPath || '/home';
   const viewMode = windowData.viewMode || 'icon';
   const navigationHistory = windowData.navigationHistory || [currentPath];
@@ -49,7 +50,7 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
   const handleNavigate = (path: string) => {
     const newHistory = navigationHistory.slice(0, navigationIndex + 1);
     newHistory.push(path);
-    
+
     updateWindow(windowData.id, {
       currentPath: path,
       navigationHistory: newHistory,
@@ -101,25 +102,26 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
 
     try {
       let content = '';
-      
+
       if (entry.appType === 'pdfviewer') {
         content = '';
-      } else if (entry.appType === 'browser' && ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(entry.fileExtension.toLowerCase())) {
+      } else if (
+        entry.appType === 'browser' &&
+        ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(
+          entry.fileExtension.toLowerCase()
+        )
+      ) {
         content = '';
       } else {
         const loaded = await loadContentFile(entry.filePath);
         content = loaded.content;
       }
 
-      openWindowFromUrl(
-        item.path,
-        content,
-        {
-          appType: entry.appType,
-          metadata: entry.metadata,
-          fileExtension: entry.fileExtension,
-        }
-      );
+      openWindowFromUrl(item.path, content, {
+        appType: entry.appType,
+        metadata: entry.metadata,
+        fileExtension: entry.fileExtension,
+      });
     } catch (error) {
       console.error('Failed to open file:', error);
     } finally {
@@ -149,7 +151,7 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
       onDragEnd={handleDragEnd}
       onResize={handleResize}
     >
-      <div className="flex flex-col h-full relative">
+      <div className="relative flex h-full flex-col">
         <FinderToolbar
           canGoBack={canGoBack}
           canGoForward={canGoForward}
@@ -184,7 +186,7 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
           />
         )}
         {loadingFile && (
-          <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-50">
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80">
             <div className="flex flex-col items-center gap-3">
               <div className="relative h-8 w-8">
                 <div
@@ -202,4 +204,3 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
 };
 
 export default FinderWindow;
-

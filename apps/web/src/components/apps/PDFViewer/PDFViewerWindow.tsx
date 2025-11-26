@@ -5,7 +5,6 @@ import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { sanitizeUrlPath, validatePdfUrl } from '@/lib/utils';
 import type { Window as WindowType } from '@/stores/useWindowStore';
 
-
 interface PDFViewerWindowProps {
   window: WindowType;
   isActive: boolean;

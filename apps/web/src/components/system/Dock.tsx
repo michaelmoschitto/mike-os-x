@@ -104,7 +104,10 @@ const Dock = () => {
   };
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-[1000] -translate-x-1/2" style={{ overflow: 'visible' }}>
+    <div
+      className="fixed bottom-4 left-1/2 z-[1000] -translate-x-1/2"
+      style={{ overflow: 'visible' }}
+    >
       <motion.div
         ref={dockRef}
         className="aqua-pinstripe-dark flex items-end gap-1 border border-white/20 bg-white/10 px-3 py-2 shadow-2xl backdrop-blur-2xl"

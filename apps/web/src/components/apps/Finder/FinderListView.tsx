@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
-import { cn } from '@/lib/utils';
 import type { FinderItemData } from '@/lib/finderContent';
+import { cn } from '@/lib/utils';
 
 interface FinderListViewProps {
   items: FinderItemData[];
