@@ -40,12 +40,17 @@ const PDFPageRenderer = ({
         const actualScale = scale * defaultScale;
         const scaledViewport = page.getViewport({ scale: actualScale });
 
-        canvas.height = scaledViewport.height;
-        canvas.width = scaledViewport.width;
+        const dpr = window.devicePixelRatio || 1;
+
+        canvas.width = scaledViewport.width * dpr;
+        canvas.height = scaledViewport.height * dpr;
+        canvas.style.width = `${scaledViewport.width}px`;
+        canvas.style.height = `${scaledViewport.height}px`;
 
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.scale(dpr, dpr);
         }
 
         const renderContext = {
