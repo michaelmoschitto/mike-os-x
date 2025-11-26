@@ -12,14 +12,13 @@ import { useUI } from '@/lib/store';
 import { useWindowStore } from '@/stores/useWindowStore';
 
 type DockIconType =
-  | 'finder'
   | 'browser'
   | 'terminal'
   | 'projects'
   | 'writing'
   | 'photos'
   | 'reading'
-  | 'about'
+  | 'finder'
   | 'trash';
 
 interface DockIcon {
@@ -29,14 +28,13 @@ interface DockIcon {
 }
 
 const dockIcons: DockIcon[] = [
-  { id: 'finder', label: 'Finder', icon: '/icons/finder.png' },
   { id: 'browser', label: 'Internet Explorer', icon: '/icons/browser.png' },
   { id: 'terminal', label: 'Terminal', icon: '/icons/ai.png' },
   { id: 'projects', label: 'Projects', icon: '/icons/projects.png' },
   { id: 'writing', label: 'Writing', icon: '/icons/writing.png' },
   { id: 'photos', label: 'Photos', icon: '/icons/photos.png' },
   { id: 'reading', label: 'Reading', icon: '/icons/reading.png' },
-  { id: 'about', label: 'About', icon: '/icons/about.png' },
+  { id: 'finder', label: 'Finder', icon: '/icons/about.png' },
   { id: 'trash', label: 'Trash', icon: '/icons/trash.png' },
 ];
 
@@ -61,7 +59,27 @@ const Dock = () => {
   };
 
   const handleIconClick = (iconId: DockIconType) => {
-    if (iconId === 'browser') {
+    if (iconId === 'finder') {
+      const windowWidth = 800;
+      const windowHeight = 600;
+      const centerX = (window.innerWidth - windowWidth) / 2;
+      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
+
+      const finderWindow = {
+        type: 'finder' as const,
+        title: 'Finder',
+        content: '',
+        position: { x: centerX, y: centerY + 22 },
+        size: { width: windowWidth, height: windowHeight },
+        currentPath: '/home',
+        viewMode: 'icon' as const,
+        navigationHistory: ['/home'],
+        navigationIndex: 0,
+        appName: 'Finder',
+      };
+
+      openWindow(finderWindow);
+    } else if (iconId === 'browser') {
       openWindow({
         type: 'browser',
         title: 'Internet Explorer',
@@ -113,7 +131,7 @@ const Dock = () => {
                 onClick={handleIconClick}
               />
               {/* Divider before Trash icon */}
-              {item.id === 'about' && <div className="mx-1 h-12 w-px self-end bg-white/20" />}
+              {item.id === 'finder' && <div className="mx-1 h-12 w-px self-end bg-white/20" />}
             </Fragment>
           ))}
         </LayoutGroup>
