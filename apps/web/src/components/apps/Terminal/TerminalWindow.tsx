@@ -14,6 +14,8 @@ interface TerminalWindowProps {
   isActive: boolean;
 }
 
+const MIN_SESSION_DURATION_FOR_CLOSE_MESSAGE_MS = 500;
+
 const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) => {
   const { closeWindow, focusWindow, updateWindowPosition, updateWindowSize, minimizeWindow } =
     useWindowStore();
@@ -114,7 +116,7 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
       },
       onSessionClosed: () => {
         const timeSinceRegistration = Date.now() - sessionRegisteredTimeRef.current;
-        if (sessionCreatedRef.current && timeSinceRegistration > 500) {
+        if (sessionCreatedRef.current && timeSinceRegistration > MIN_SESSION_DURATION_FOR_CLOSE_MESSAGE_MS) {
           terminal.write('\r\n\x1b[33mSession closed\x1b[0m\r\n');
         }
       },
