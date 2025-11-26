@@ -191,23 +191,31 @@ body {
   /* ===== BUTTONS ===== */
   .aqua-button-base {
     @apply relative flex items-center justify-center;
-    border: none;
+    /* Softer border that blends with the shadow */
+    border: 1px solid;
+    border-color: #9a9a9a #8a8a8a #7a7a7a #8a8a8a;
     border-radius: 5px;
-    /* 3D pill gradient - lighter top edge, darker bottom for depth */
+    /* 3D pill gradient - curved surface illusion */
     background-image: linear-gradient(
       to bottom,
-      #f8f8f8 0%,
-      #ececec 15%,
-      #e0e0e0 40%,
-      #d4d4d4 60%,
-      #c8c8c8 85%,
-      #bcbcbc 100%
+      #fcfcfc 0%,
+      #f4f4f4 6%,
+      #e8e8e8 20%,
+      #d8d8d8 45%,
+      #c8c8c8 70%,
+      #bcbcbc 90%,
+      #b4b4b4 100%
     );
-    /* 3D depth - inner highlight, bottom edge shadow, and lift */
+    /* Diffuse outer glow + depth shadows */
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.9),
-      inset 0 -1px 1px rgba(0, 0, 0, 0.06),
-      0 1px 1px rgba(0, 0, 0, 0.1);
+      /* Soft outer glow around entire pill */
+      0 0 1px rgba(0, 0, 0, 0.3),
+      0 1px 1px rgba(0, 0, 0, 0.15),
+      0 2px 3px rgba(0, 0, 0, 0.12),
+      /* Inner top highlight */
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      /* Inner bottom subtle shadow */
+      inset 0 -1px 0 rgba(0, 0, 0, 0.04);
     font-family: var(--font-ui);
     color: var(--color-text-primary);
     overflow: hidden;
@@ -217,71 +225,77 @@ body {
   .aqua-button-base::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 1px;
+    left: 3px;
+    right: 3px;
     height: 50%;
     background: linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.65) 0%,
-      rgba(255, 255, 255, 0.25) 60%,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(255, 255, 255, 0.6) 30%,
+      rgba(255, 255, 255, 0.2) 60%,
       rgba(255, 255, 255, 0) 100%
     );
-    border-radius: 5px 5px 50% 50%;
+    border-radius: 3px 3px 100% 100%;
     pointer-events: none;
   }
 
-  /* Bottom glow for gray buttons */
+  /* Bottom reflection for gray buttons - subtle curved highlight */
   .aqua-button-base::after {
     content: '';
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 35%;
+    bottom: 1px;
+    left: 4px;
+    right: 4px;
+    height: 30%;
     background: linear-gradient(
       to bottom,
       rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.2) 100%
+      rgba(255, 255, 255, 0.12) 50%,
+      rgba(255, 255, 255, 0.22) 100%
     );
-    border-radius: 0 0 5px 5px;
+    border-radius: 100% 100% 2px 2px;
     pointer-events: none;
   }
 
   .aqua-button-base:hover:not(:disabled):not(.aqua-button-blue) {
     background-image: linear-gradient(
       to bottom,
-      #fcfcfc 0%,
-      #f2f2f2 15%,
-      #e8e8e8 40%,
-      #dedede 60%,
-      #d2d2d2 85%,
-      #c6c6c6 100%
+      #ffffff 0%,
+      #f8f8f8 6%,
+      #efefef 20%,
+      #e0e0e0 45%,
+      #d2d2d2 70%,
+      #c6c6c6 90%,
+      #c0c0c0 100%
     );
   }
 
   .aqua-button-base:active:not(:disabled):not(.aqua-button-blue) {
     background-image: linear-gradient(
       to bottom,
-      #c8c8c8 0%,
-      #c0c0c0 15%,
-      #b8b8b8 40%,
-      #b0b0b0 60%,
-      #a8a8a8 85%,
-      #a0a0a0 100%
+      #c0c0c0 0%,
+      #b8b8b8 8%,
+      #aeaeae 25%,
+      #a4a4a4 50%,
+      #9a9a9a 75%,
+      #909090 92%,
+      #888 100%
     );
     box-shadow:
-      inset 0 1px 2px rgba(0, 0, 0, 0.15),
-      inset 0 0 1px rgba(0, 0, 0, 0.1),
-      0 0.5px 0 rgba(255, 255, 255, 0.3);
+      0 0 1px rgba(0, 0, 0, 0.25),
+      0 0.5px 1px rgba(0, 0, 0, 0.15),
+      inset 0 1px 2px rgba(0, 0, 0, 0.12),
+      inset 0 0 1px rgba(0, 0, 0, 0.08);
+    border-color: #777 #666 #555 #666;
   }
 
   .aqua-button-base:active:not(:disabled):not(.aqua-button-blue)::before {
     background: linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.35) 0%,
-      rgba(255, 255, 255, 0.1) 60%,
-      rgba(255, 255, 255, 0) 100%
+      rgba(255, 255, 255, 0.6) 0%,
+      rgba(255, 255, 255, 0.3) 30%,
+      rgba(255, 255, 255, 0) 70%
     );
   }
 
@@ -292,23 +306,27 @@ body {
 
   /* Classic Mac OS X Aqua Blue Gel Button */
   .aqua-button-base.aqua-button-blue {
-    border: none;
+    border: 1px solid;
+    border-color: #4a90c8 #3080b8 #2070a8 #3080b8;
     color: #000000;
     background-image: linear-gradient(
       to bottom,
-      #c8e4fa 0%,
-      #7ec4f6 12%,
-      #4aa3df 35%,
-      #2d8cd4 50%,
-      #4aa3df 65%,
-      #7ec4f6 88%,
-      #b0d8f5 100%
+      #d8f0ff 0%,
+      #b0e0fc 8%,
+      #78c8f8 22%,
+      #48b0ec 45%,
+      #30a0e0 60%,
+      #58b8ec 80%,
+      #88d0f8 95%,
+      #a0dcfc 100%
     );
-    /* 3D depth with inner glow and subtle outer shadow */
+    /* Diffuse outer glow + depth */
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.75),
-      inset 0 -1px 1px rgba(0, 60, 140, 0.2),
-      0 1px 1px rgba(0, 0, 0, 0.15);
+      0 0 1px rgba(0, 60, 120, 0.4),
+      0 1px 2px rgba(0, 40, 100, 0.25),
+      0 2px 4px rgba(0, 40, 100, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      inset 0 -1px 0 rgba(0, 80, 160, 0.08);
     position: relative;
     overflow: hidden;
   }
@@ -317,73 +335,78 @@ body {
   .aqua-button-base.aqua-button-blue::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 45%;
+    top: 1px;
+    left: 3px;
+    right: 3px;
+    height: 48%;
     background: linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.55) 0%,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 255, 255, 0.55) 30%,
       rgba(255, 255, 255, 0.2) 60%,
       rgba(255, 255, 255, 0) 100%
     );
-    border-radius: 5px 5px 50% 50%;
+    border-radius: 3px 3px 100% 100%;
     pointer-events: none;
   }
 
-  /* Bottom glow for blue button */
+  /* Bottom reflection for blue button */
   .aqua-button-base.aqua-button-blue::after {
     content: '';
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 30%;
+    bottom: 1px;
+    left: 4px;
+    right: 4px;
+    height: 28%;
     background: linear-gradient(
       to bottom,
       rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.25) 100%
+      rgba(255, 255, 255, 0.18) 50%,
+      rgba(255, 255, 255, 0.32) 100%
     );
-    border-radius: 0 0 5px 5px;
+    border-radius: 100% 100% 2px 2px;
     pointer-events: none;
   }
 
   .aqua-button-base.aqua-button-blue:hover:not(:disabled) {
     background-image: linear-gradient(
       to bottom,
-      #d4ecfc 0%,
-      #8ed4f8 12%,
-      #5ab3e5 35%,
-      #3db0da 50%,
-      #5ab3e5 65%,
-      #8ed4f8 88%,
-      #c0e0f7 100%
+      #e0f4ff 0%,
+      #bce8fc 8%,
+      #88d0f8 22%,
+      #58b8f0 45%,
+      #40a8e4 60%,
+      #68c0f0 80%,
+      #98d8f8 95%,
+      #b0e4fc 100%
     );
   }
 
   .aqua-button-base.aqua-button-blue:active:not(:disabled) {
     background-image: linear-gradient(
       to bottom,
-      #a8d4f0 0%,
-      #6ab4dc 12%,
-      #3a93c9 35%,
-      #1d7cba 50%,
-      #3a93c9 65%,
-      #6ab4dc 88%,
-      #98c4e8 100%
+      #98cce8 0%,
+      #78b8dc 8%,
+      #50a0d0 25%,
+      #2888c0 50%,
+      #1878b0 75%,
+      #4098c8 92%,
+      #68b4dc 100%
     );
     box-shadow:
-      inset 0 1px 2px rgba(0, 0, 0, 0.15),
-      inset 0 0 1px rgba(0, 0, 0, 0.1),
-      0 0.5px 0 rgba(255, 255, 255, 0.3);
+      0 0 1px rgba(0, 40, 100, 0.3),
+      0 0.5px 1px rgba(0, 0, 0, 0.2),
+      inset 0 1px 2px rgba(0, 40, 100, 0.2),
+      inset 0 0 1px rgba(0, 40, 100, 0.1);
+    border-color: #2070a8 #1860a0 #105090 #1860a0;
   }
 
   .aqua-button-base.aqua-button-blue:active:not(:disabled)::before {
     background: linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.35) 0%,
-      rgba(255, 255, 255, 0.1) 60%,
-      rgba(255, 255, 255, 0) 100%
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(255, 255, 255, 0.25) 30%,
+      rgba(255, 255, 255, 0) 70%
     );
   }
 
@@ -392,15 +415,17 @@ body {
   .aqua-segmented-group {
     display: inline-flex;
     border-radius: 5px;
-    /* Drop shadow for 3D lift + integrated border effect */
+    /* Diffuse outer glow + depth shadows */
     box-shadow:
-      0 1px 1px rgba(0, 0, 0, 0.2),
-      0 2px 3px rgba(0, 0, 0, 0.12),
-      0 0 0 0.5px rgba(0, 0, 0, 0.2);
+      0 0 1px rgba(0, 0, 0, 0.3),
+      0 1px 1px rgba(0, 0, 0, 0.15),
+      0 2px 3px rgba(0, 0, 0, 0.12);
     overflow: hidden;
-    /* Subtle border that doesn't look flat */
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.22));
-    padding: 0.5px;
+    /* Softer border that blends with shadow */
+    border: 1px solid;
+    border-color: #9a9a9a #8a8a8a #7a7a7a #8a8a8a;
+    background: transparent;
+    padding: 0;
   }
 
   .aqua-segmented-group > button {
@@ -408,74 +433,83 @@ body {
     margin: 0;
     position: relative;
     z-index: 1;
-    box-shadow: none;
+    /* Inner highlights only - no outer shadows */
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+    border: none;
   }
 
   .aqua-segmented-group > button.aqua-button-blue {
     z-index: 2;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      inset 0 -1px 0 rgba(0, 80, 160, 0.08);
   }
 
   .aqua-segmented-group > button:first-child {
-    border-radius: 4.5px 0 0 4.5px;
+    border-radius: 4px 0 0 4px;
   }
 
   .aqua-segmented-group > button:last-child {
-    border-radius: 0 4.5px 4.5px 0;
+    border-radius: 0 4px 4px 0;
   }
 
   .aqua-segmented-group > button:not(:first-child) {
-    border-left: 0.5px solid rgba(0, 0, 0, 0.15);
+    border-left: 1px solid rgba(0, 0, 0, 0.15);
+  }
+
+  /* Light inner divider highlight */
+  .aqua-segmented-group > button:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 2px;
+    bottom: 2px;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 0;
   }
 
   .aqua-segmented-group > button:only-child {
-    border-radius: 4.5px;
+    border-radius: 4px;
   }
 
   /* Adjust ::before shine for grouped buttons */
   .aqua-segmented-group > button::before {
-    border-radius: 0 0 50% 50%;
+    top: 1px;
+    left: 2px;
+    right: 2px;
+    border-radius: 0 0 100% 100%;
   }
 
   .aqua-segmented-group > button:first-child::before {
-    border-radius: 4.5px 0 50% 50%;
+    left: 3px;
+    border-radius: 2px 0 100% 100%;
   }
 
   .aqua-segmented-group > button:last-child::before {
-    border-radius: 0 4.5px 50% 50%;
+    right: 3px;
+    border-radius: 0 2px 100% 100%;
   }
 
   .aqua-segmented-group > button:only-child::before {
-    border-radius: 4.5px 4.5px 50% 50%;
-  }
-
-  /* Adjust ::after glow for grouped buttons */
-  .aqua-segmented-group > button::after {
-    border-radius: 0;
-  }
-
-  .aqua-segmented-group > button:first-child::after {
-    border-radius: 0 0 0 4.5px;
-  }
-
-  .aqua-segmented-group > button:last-child::after {
-    border-radius: 0 0 4.5px 0;
-  }
-
-  .aqua-segmented-group > button:only-child::after {
-    border-radius: 0 0 4.5px 4.5px;
+    left: 3px;
+    right: 3px;
+    border-radius: 2px 2px 100% 100%;
   }
 
   /* Blue button specific adjustments in group */
   .aqua-segmented-group > button:first-child.aqua-button-blue::before {
-    border-radius: 3px 0 100% 100%;
+    border-radius: 2px 0 100% 100%;
   }
 
   .aqua-segmented-group > button:last-child.aqua-button-blue::before {
-    border-radius: 0 3px 100% 100%;
+    border-radius: 0 2px 100% 100%;
   }
 
   .aqua-segmented-group > button:only-child.aqua-button-blue::before {
-    border-radius: 3px 3px 100% 100%;
+    border-radius: 2px 2px 100% 100%;
   }
 
   /* ===== DROPDOWN MENUS ===== */
