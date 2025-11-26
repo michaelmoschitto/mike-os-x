@@ -32,18 +32,24 @@ const pdfViewerStrategy: WindowRouteStrategy = {
   shouldSyncRoute: (window) => window.type === 'pdfviewer' && !!window.urlPath,
 };
 
+const finderStrategy: WindowRouteStrategy = {
+  getRouteForWindow: () => '/',
+  shouldSyncRoute: () => false,
+};
+
 export const windowRouteStrategies: Record<
-  'browser' | 'textedit' | 'terminal' | 'pdfviewer',
+  'browser' | 'textedit' | 'terminal' | 'pdfviewer' | 'finder',
   WindowRouteStrategy
 > = {
   browser: browserStrategy,
   textedit: textEditStrategy,
   terminal: terminalStrategy,
   pdfviewer: pdfViewerStrategy,
+  finder: finderStrategy,
 };
 
 export const getRouteStrategy = (
-  windowType: 'browser' | 'textedit' | 'terminal' | 'pdfviewer'
+  windowType: 'browser' | 'textedit' | 'terminal' | 'pdfviewer' | 'finder'
 ): WindowRouteStrategy => {
   return windowRouteStrategies[windowType];
 };

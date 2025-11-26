@@ -1,7 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-
 import PDFPageRenderer from '@/components/apps/PDFViewer/PDFPageRenderer';
 import PDFToolbar from '@/components/apps/PDFViewer/PDFToolbar';
 import { validatePdfUrl } from '@/lib/utils';

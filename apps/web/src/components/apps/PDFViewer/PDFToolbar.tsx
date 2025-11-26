@@ -20,7 +20,7 @@ const PDFToolbar = ({ scale, onZoomIn, onZoomOut }: PDFToolbarProps) => {
   };
 
   return (
-    <div 
+    <div
       className="aqua-menubar flex h-[52px] items-center justify-end gap-2 px-3"
       onPointerDown={(e) => e.stopPropagation()}
     >

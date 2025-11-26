@@ -7,14 +7,16 @@ import type { ContentIndexEntry } from '@/lib/contentIndex';
 import { resolveUrlToContent } from '@/lib/urlResolver';
 import { useWindowStore } from '@/stores/useWindowStore';
 
-export const Route = createFileRoute('/$path')({
+export const Route = createFileRoute('/$')({
   validateSearch: (search: Record<string, unknown>) => {
     return {
       url: (search.url as string) || undefined,
     };
   },
   loader: async ({ params }) => {
-    if (params.path === 'browser' || params.path.startsWith('browser/')) {
+    const path = params._splat || '';
+
+    if (path === 'browser' || path.startsWith('browser/')) {
       return { isBrowserRoute: true, resolved: null, error: null };
     }
 
@@ -24,7 +26,7 @@ export const Route = createFileRoute('/$path')({
     }
 
     try {
-      const resolved = await resolveUrlToContent(params.path);
+      const resolved = await resolveUrlToContent(path);
       return { isBrowserRoute: false, resolved, error: null };
     } catch (error) {
       return {

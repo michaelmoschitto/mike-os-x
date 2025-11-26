@@ -52,6 +52,26 @@ const DesktopIcon = ({
   };
 
   const handleDoubleClick = () => {
+    if (icon.type === 'folder' && icon.urlPath) {
+      const windowWidth = 800;
+      const windowHeight = 600;
+      const centerX = (window.innerWidth - windowWidth) / 2;
+      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
+
+      openWindow({
+        type: 'finder',
+        title: icon.label,
+        content: '',
+        position: { x: centerX, y: centerY + 22 },
+        size: { width: windowWidth, height: windowHeight },
+        currentPath: icon.urlPath,
+        viewMode: 'icon',
+        navigationHistory: [icon.urlPath],
+        navigationIndex: 0,
+      });
+      return;
+    }
+
     if (icon.urlPath) {
       navigate({ to: icon.urlPath });
       return;
