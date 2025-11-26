@@ -203,12 +203,11 @@ body {
       #c8c8c8 85%,
       #bcbcbc 100%
     );
-    /* Integrated shadow - no flat outline, uses gradient edge + soft shadow */
+    /* 3D depth - inner highlight, bottom edge shadow, and lift */
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.85),
-      inset 0 -0.5px 0 rgba(0, 0, 0, 0.08),
-      0 0.5px 1px rgba(0, 0, 0, 0.12),
-      0 1px 2px rgba(0, 0, 0, 0.08);
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.06),
+      0 1px 1px rgba(0, 0, 0, 0.1);
     font-family: var(--font-ui);
     color: var(--color-text-primary);
     overflow: hidden;
@@ -305,12 +304,11 @@ body {
       #7ec4f6 88%,
       #b0d8f5 100%
     );
-    /* Integrated shadow - no flat outline */
+    /* 3D depth with inner glow and subtle outer shadow */
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.7),
-      inset 0 -0.5px 0 rgba(0, 50, 120, 0.15),
-      0 0.5px 1px rgba(0, 0, 0, 0.15),
-      0 1px 2px rgba(0, 0, 0, 0.1);
+      inset 0 1px 0 rgba(255, 255, 255, 0.75),
+      inset 0 -1px 1px rgba(0, 60, 140, 0.2),
+      0 1px 1px rgba(0, 0, 0, 0.15);
     position: relative;
     overflow: hidden;
   }
@@ -394,14 +392,14 @@ body {
   .aqua-segmented-group {
     display: inline-flex;
     border-radius: 5px;
-    /* Integrated shadow - flows with the 3D pill effect */
+    /* Drop shadow for 3D lift + integrated border effect */
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.6),
-      0 0.5px 1px rgba(0, 0, 0, 0.15),
-      0 1px 2px rgba(0, 0, 0, 0.1);
+      0 1px 1px rgba(0, 0, 0, 0.2),
+      0 2px 3px rgba(0, 0, 0, 0.12),
+      0 0 0 0.5px rgba(0, 0, 0, 0.2);
     overflow: hidden;
     /* Subtle border that doesn't look flat */
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.18));
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.22));
     padding: 0.5px;
   }
 
