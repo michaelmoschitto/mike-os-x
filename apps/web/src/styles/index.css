@@ -209,10 +209,9 @@ body {
       /* Strong outer shadows for depth (like stoplights) */
       rgba(0, 0, 0, 0.4) 0 2px 4px,
       rgba(0, 0, 0, 0.3) 0 1px 2px,
-      /* Subtle gray outer glow */
-      rgba(160, 160, 160, 0.4) 0 1px 1px,
-      /* Triple inset shadows for 3D gel effect (stoplight technique) */
-      rgba(0, 0, 0, 0.25) 0 0 0 0.5px inset,
+      /* Subtle gray outer glow */ rgba(160, 160, 160, 0.4) 0 1px 1px,
+      /* Triple inset shadows for 3D gel effect (stoplight technique) */ rgba(0, 0, 0, 0.25) 0 0 0
+        0.5px inset,
       rgba(80, 80, 80, 0.5) 0 1px 2px inset,
       rgba(200, 200, 200, 0.6) 0 2px 3px 1px inset;
     font-family: var(--font-ui);
@@ -305,12 +304,7 @@ body {
     border-color: #4a90c8 #3080b8 #2070a8 #3080b8;
     color: #000000;
     /* Simpler gradient - let shadows create the gel effect */
-    background-image: linear-gradient(
-      to bottom,
-      #90d0f8 0%,
-      #58b8ec 50%,
-      #78c8f4 100%
-    );
+    background-image: linear-gradient(to bottom, #90d0f8 0%, #58b8ec 50%, #78c8f4 100%);
     /* Stoplight technique: strong shadows + triple inset for 3D gel */
     box-shadow:
       rgba(0, 0, 0, 0.5) 0 2px 4px,
@@ -361,21 +355,11 @@ body {
   }
 
   .aqua-button-base.aqua-button-blue:hover:not(:disabled) {
-    background-image: linear-gradient(
-      to bottom,
-      #a0d8fc 0%,
-      #68c0f0 50%,
-      #88d0f8 100%
-    );
+    background-image: linear-gradient(to bottom, #a0d8fc 0%, #68c0f0 50%, #88d0f8 100%);
   }
 
   .aqua-button-base.aqua-button-blue:active:not(:disabled) {
-    background-image: linear-gradient(
-      to bottom,
-      #68b0dc 0%,
-      #3898d0 50%,
-      #58a8e0 100%
-    );
+    background-image: linear-gradient(to bottom, #68b0dc 0%, #3898d0 50%, #58a8e0 100%);
     box-shadow:
       rgba(0, 0, 0, 0.4) 0 1px 2px,
       rgba(0, 0, 0, 0.3) 0 0.5px 1px,
@@ -392,7 +376,6 @@ body {
       rgba(255, 255, 255, 0.15) 100%
     );
   }
-
 
   /* Segmented controls - visually connected buttons with Aqua styling */
   .aqua-segmented-group {
