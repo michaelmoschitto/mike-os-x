@@ -230,8 +230,8 @@ body {
     height: 28%;
     background: linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.9) 0%,
-      rgba(255, 255, 255, 0.3) 100%
+      rgba(255, 255, 255, 0.7) 0%,
+      rgba(255, 255, 255, 0.2) 100%
     );
     border-radius: 4px 4px 50% 50%;
     filter: blur(0.2px);
@@ -289,8 +289,8 @@ body {
   .aqua-button-base:active:not(:disabled):not(.aqua-button-blue)::before {
     background: linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.6) 0%,
-      rgba(255, 255, 255, 0.3) 100%
+      rgba(255, 255, 255, 0.5) 0%,
+      rgba(255, 255, 255, 0.2) 100%
     );
   }
 
@@ -333,8 +333,8 @@ body {
     height: 28%;
     background: linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.9) 0%,
-      rgba(255, 255, 255, 0.3) 100%
+      rgba(255, 255, 255, 0.7) 0%,
+      rgba(255, 255, 255, 0.2) 100%
     );
     border-radius: 4px 4px 50% 50%;
     filter: blur(0.2px);
@@ -388,8 +388,8 @@ body {
   .aqua-button-base.aqua-button-blue:active:not(:disabled)::before {
     background: linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.6) 0%,
-      rgba(255, 255, 255, 0.2) 100%
+      rgba(255, 255, 255, 0.5) 0%,
+      rgba(255, 255, 255, 0.15) 100%
     );
   }
 
