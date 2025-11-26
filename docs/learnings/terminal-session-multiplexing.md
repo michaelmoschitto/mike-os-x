@@ -42,12 +42,14 @@ interface WebSocketManagerState {
 ```
 
 **Benefits:**
+
 - **Loose coupling**: Terminal components don't know about WebSocket internals
 - **Testability**: Handlers can be mocked for testing
 - **Flexibility**: Different components can implement different handler behaviors
 - **Single responsibility**: WebSocket manager routes messages, handlers process them
 
 **Key Insight:**
+
 > We use a handler interface pattern to decouple terminal components from WebSocket management. Each terminal window registers a handler with a unique session ID. When messages arrive, the WebSocket manager looks up the handler by session ID and calls the appropriate method. This allows multiple terminals to share one WebSocket connection while keeping components independent.
 
 ### 2. Map-Based Session Registry: Efficient Message Routing
@@ -84,11 +86,13 @@ const handleMessage = (event: MessageEvent) => {
 ```
 
 **Benefits:**
+
 - **Performance**: O(1) lookup time for session handlers
 - **Scalability**: Handles many sessions efficiently
 - **Type safety**: TypeScript ensures correct message types
 
 **Key Insight:**
+
 > We use a Map to store session handlers keyed by session ID. When a message arrives, we extract the sessionId from the message and look up the handler in O(1) time. This allows us to route messages to the correct terminal window efficiently, even with many concurrent sessions.
 
 ### 3. Automatic Session Recreation: Reconnection Resilience
@@ -128,11 +132,13 @@ const handleOpen = () => {
 ```
 
 **Benefits:**
+
 - **Resilience**: Sessions automatically recover after network issues
 - **User experience**: Users don't need to manually reconnect
 - **State preservation**: Session IDs persist across reconnections
 
 **Key Insight:**
+
 > We automatically recreate all registered sessions when the WebSocket reconnects. When the connection opens, we iterate through all registered session IDs and send create_session messages for each. This ensures that terminal windows continue working after network interruptions without user intervention.
 
 ### 4. Auto-Connect on Session Registration: Lazy Connection Initialization
@@ -145,9 +151,9 @@ const handleOpen = () => {
 // apps/web/src/stores/useWebSocketManager.ts
 const registerSession = (sessionId: string, handler: SessionHandler) => {
   const { sessions, websocket, connectionState } = get();
-  
+
   // ... register session ...
-  
+
   if (connectionState === 'connected' && websocket?.readyState === WebSocket.OPEN) {
     // Send create_session immediately if already connected
     websocket.send(JSON.stringify({ type: 'create_session', sessionId }));
@@ -161,12 +167,14 @@ const registerSession = (sessionId: string, handler: SessionHandler) => {
 ```
 
 **Benefits:**
+
 - **Zero-configuration**: Terminal windows just work when opened
 - **Lazy connection**: Connection only established when needed
 - **User experience**: No manual connection step required
 - **Efficiency**: Connection shared across all terminal windows
 
 **Key Insight:**
+
 > We automatically initiate the WebSocket connection when a session is registered if the connection is not already established. This means terminal windows connect automatically when opened, without requiring users to manually trigger a connection. The connection is lazy—it's only created when the first terminal window opens, and then shared across all subsequent windows.
 
 ### 5. Exponential Backoff: Reconnection Strategy
@@ -213,12 +221,14 @@ const handleClose = () => {
 ```
 
 **Benefits:**
+
 - **Server protection**: Prevents overwhelming server with rapid reconnection attempts
 - **Network efficiency**: Gives network time to recover
 - **User experience**: Automatic reconnection without user action
 - **Bounded retries**: Stops after maximum attempts to avoid infinite loops
 
 **Key Insight:**
+
 > We use exponential backoff for reconnection attempts. Each failed attempt doubles the delay (2s, 4s, 8s, 16s, capped at 16s), up to a maximum of 5 attempts. This gives the network time to recover while preventing infinite reconnection loops. After max attempts, we stop trying and require user intervention.
 
 ### 6. Connection State Management: UI Feedback
@@ -239,11 +249,13 @@ interface WebSocketManagerState {
 ```
 
 **Benefits:**
+
 - **UI feedback**: Components can show connection status
 - **Prevent duplicate connections**: State prevents multiple simultaneous connection attempts
 - **Clear state machine**: Three states cover all connection scenarios
 
 **Key Insight:**
+
 > We track connection state explicitly with three states: disconnected, connecting, and connected. This allows terminal components to show appropriate UI feedback (like "Connecting..." messages) and prevents duplicate connection attempts. The state machine ensures we only connect when disconnected and only disconnect when connected.
 
 ### 7. Message Protocol: Type-Safe Communication
@@ -288,12 +300,14 @@ export type ServerMessage =
 ```
 
 **Benefits:**
+
 - **Type safety**: TypeScript ensures correct message structure
 - **Documentation**: Types serve as API documentation
 - **Refactoring safety**: Changes to message types caught at compile time
 - **IDE support**: Autocomplete and type checking for messages
 
 **Key Insight:**
+
 > We define shared TypeScript types for all WebSocket messages. This ensures type safety across the frontend codebase—when we send or receive messages, TypeScript validates the structure. The types also serve as documentation, making it clear what messages are available and their structure.
 
 ## Architecture Decisions
@@ -303,6 +317,7 @@ export type ServerMessage =
 **Decision:** Use Map instead of plain object for session registry
 
 **Reasoning:**
+
 - Map has better performance for frequent additions/deletions
 - Map preserves insertion order (useful for debugging)
 - Map.size is more efficient than Object.keys().length
@@ -315,6 +330,7 @@ export type ServerMessage =
 **Decision:** Use handler interface instead of passing callbacks directly
 
 **Reasoning:**
+
 - Interface makes handler contract explicit
 - Easier to test (can mock interface)
 - Multiple methods (onOutput, onError, etc.) in one object
@@ -327,6 +343,7 @@ export type ServerMessage =
 **Decision:** Automatically recreate sessions on reconnect instead of requiring manual recreation
 
 **Reasoning:**
+
 - Better user experience—sessions just work after reconnection
 - Matches user expectations (terminals should persist)
 - Reduces complexity in terminal components
@@ -339,6 +356,7 @@ export type ServerMessage =
 **Decision:** Use exponential backoff instead of fixed delay for reconnection
 
 **Reasoning:**
+
 - Network issues often resolve quickly (short initial delay)
 - Persistent issues need longer delays (exponential growth)
 - Prevents overwhelming server with rapid reconnection attempts
@@ -351,6 +369,7 @@ export type ServerMessage =
 **Decision:** Use disconnected, connecting, connected instead of just connected/not connected
 
 **Reasoning:**
+
 - "Connecting" state allows UI to show "Connecting..." message
 - Prevents duplicate connection attempts (can check if already connecting)
 - Clear state machine that's easy to reason about
@@ -363,6 +382,7 @@ export type ServerMessage =
 **Decision:** Add 10-second timeout for connection attempts
 
 **Reasoning:**
+
 - Prevents indefinite "connecting" state if server is unreachable
 - Allows reconnection logic to kick in after timeout
 - Provides better user experience than hanging indefinitely
@@ -375,6 +395,7 @@ export type ServerMessage =
 **Decision:** Transition from 'connecting' to 'disconnected' on WebSocket errors
 
 **Reasoning:**
+
 - Errors during connection should trigger reconnection logic
 - Prevents stuck "connecting" state if connection fails
 - Allows exponential backoff to handle transient errors
@@ -407,6 +428,7 @@ export type ServerMessage =
 ```
 
 **Leverage Created:**
+
 - **Single WebSocket connection** for all terminals (reduces server load)
 - **Reusable pattern** for any component needing WebSocket sessions
 - **Automatic resilience** with reconnection logic
@@ -419,6 +441,7 @@ export type ServerMessage =
 **Pattern:** Show connection state in terminal output
 
 **Implementation:**
+
 ```typescript
 // apps/web/src/components/apps/Terminal/TerminalWindow.tsx
 if (connectionState === 'disconnected') {
@@ -435,6 +458,7 @@ if (connectionState === 'disconnected') {
 **Pattern:** Sessions automatically recreate after reconnection
 
 **Implementation:**
+
 ```typescript
 // apps/web/src/stores/useWebSocketManager.ts
 if (websocket && websocket.readyState === WebSocket.OPEN) {
@@ -455,6 +479,7 @@ if (websocket && websocket.readyState === WebSocket.OPEN) {
 **Pattern:** Errors are routed to the specific terminal that caused them
 
 **Implementation:**
+
 ```typescript
 // apps/web/src/stores/useWebSocketManager.ts
 else if (message.type === 'error') {
@@ -527,4 +552,3 @@ This architecture enables:
 By implementing session multiplexing with a handler interface pattern, we created a system that efficiently manages multiple terminal sessions over a single WebSocket connection. The automatic reconnection logic ensures sessions recover from network interruptions, while the type-safe message protocol prevents bugs.
 
 The architecture creates significant leverage—new components can easily add WebSocket sessions by implementing the handler interface, and the manager handles all connection complexity. The clear separation of concerns makes the system maintainable and testable.
-
