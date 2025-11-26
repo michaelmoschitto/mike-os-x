@@ -1,4 +1,4 @@
-import { useContentIndex } from '@/lib/contentIndex';
+import { useContentIndex, initializeContentIndex } from '@/lib/contentIndex';
 
 export interface FinderItemData {
   id: string;
