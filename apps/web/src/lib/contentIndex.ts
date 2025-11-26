@@ -43,18 +43,18 @@ export const useContentIndex = create<ContentIndexStore>((set, get) => ({
 export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry>> => {
   const index = new Map<string, ContentIndexEntry>();
 
-  let contentMetadata: Record<
+  type ContentMetadataRecord = Record<
     string,
     { size: number; mtime: string; birthtime: string; kind: string }
-  > = {};
+  >;
+
+  let contentMetadata: ContentMetadataRecord = {};
   try {
     const metadataModule = await import('@/generated/contentMetadata.json');
     const imported = metadataModule.default || metadataModule;
-    contentMetadata =
-      (imported as Record<
-        string,
-        { size: number; mtime: string; birthtime: string; kind: string }
-      >) || {};
+    if (imported && typeof imported === 'object') {
+      contentMetadata = imported as ContentMetadataRecord;
+    }
   } catch (error) {
     console.warn('Could not load content metadata, continuing without file stats:', error);
   }
