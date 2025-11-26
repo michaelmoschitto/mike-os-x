@@ -24,10 +24,15 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminalInstanceRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const sessionCreatedRef = useRef<boolean>(false);
+  const sessionRegisteredTimeRef = useRef<number>(0);
   const sessionId = windowData.id;
 
   useEffect(() => {
     if (!terminalRef.current) return;
+
+    sessionCreatedRef.current = false;
+    sessionRegisteredTimeRef.current = Date.now();
 
     const terminal = new Terminal({
       cursorBlink: true,
@@ -85,6 +90,7 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
         terminal.write(`\r\n\x1b[31m${error}\x1b[0m\r\n`);
       },
       onSessionCreated: () => {
+        sessionCreatedRef.current = true;
         setTimeout(() => {
           if (terminalInstanceRef.current && fitAddonRef.current) {
             fitAddonRef.current.fit();
@@ -107,7 +113,10 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
         }, 150);
       },
       onSessionClosed: () => {
-        terminal.write('\r\n\x1b[33mSession closed\x1b[0m\r\n');
+        const timeSinceRegistration = Date.now() - sessionRegisteredTimeRef.current;
+        if (sessionCreatedRef.current && timeSinceRegistration > 500) {
+          terminal.write('\r\n\x1b[33mSession closed\x1b[0m\r\n');
+        }
       },
     });
 
@@ -143,6 +152,7 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
       onDataDisposable.dispose();
       unregisterSession(sessionId);
       terminal.dispose();
+      sessionCreatedRef.current = false;
     };
   }, [sessionId, registerSession, unregisterSession, sendMessage, connectionState]);
 
