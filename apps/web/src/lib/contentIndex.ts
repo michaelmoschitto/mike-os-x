@@ -9,6 +9,10 @@ export interface ContentIndexEntry {
   fileExtension: string; // File extension (e.g., ".md")
   appType: string; // App type that should open this file
   metadata: ContentMetadata;
+  fileSize?: number; // bytes
+  dateModified?: Date; // mtime
+  dateCreated?: Date; // birthtime
+  kind?: string; // "PDF Document", "Markdown File", etc.
 }
 
 interface ContentIndexStore {
@@ -39,6 +43,14 @@ export const useContentIndex = create<ContentIndexStore>((set, get) => ({
 export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry>> => {
   const index = new Map<string, ContentIndexEntry>();
 
+  let contentMetadata: Record<string, { size: number; mtime: string; birthtime: string; kind: string }> = {};
+  try {
+    const metadataModule = await import('@/generated/contentMetadata.json');
+    contentMetadata = metadataModule.default || metadataModule;
+  } catch (error) {
+    console.warn('Could not load content metadata, continuing without file stats:', error);
+  }
+
   try {
     const contentModules = import.meta.glob(
       '../../content/**/*.{md,txt,pdf,jpg,jpeg,png,gif,webp,svg}',
@@ -65,12 +77,18 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
         const appType = getAppForFile(fileExtension, parsed.metadata);
         const finalUrlPath = parsed.metadata.slug ? `/${parsed.metadata.slug}` : urlPath;
 
+        const fileMetadata = contentMetadata[relativePath] || contentMetadata[relativePath.replace(/^\.\//, '')];
+
         const entry: ContentIndexEntry = {
           urlPath: finalUrlPath,
           filePath: globKey,
           fileExtension,
           appType,
           metadata: parsed.metadata,
+          fileSize: fileMetadata?.size,
+          dateModified: fileMetadata?.mtime ? new Date(fileMetadata.mtime) : undefined,
+          dateCreated: fileMetadata?.birthtime ? new Date(fileMetadata.birthtime) : undefined,
+          kind: fileMetadata?.kind,
         };
 
         const existing = index.get(finalUrlPath);
