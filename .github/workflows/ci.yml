@@ -72,6 +72,9 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Build content metadata
+        run: node scripts/buildContentMetadata.mjs
+
       - name: Run TypeScript checks
         run: cd apps/web && bun run tsc --noEmit
 
