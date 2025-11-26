@@ -22,6 +22,7 @@ interface WebSocketManagerState {
   sessions: Map<string, SessionHandler>;
   reconnectAttempts: number;
   reconnectTimeoutId: ReturnType<typeof setTimeout> | null;
+  connectionTimeoutId: ReturnType<typeof setTimeout> | null;
   connect: () => void;
   disconnect: () => void;
   registerSession: (sessionId: string, handler: SessionHandler) => void;
@@ -102,7 +103,12 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
 
   const handleOpen = () => {
     console.log('[WebSocketManager] WebSocket connected');
-    const { reconnectTimeoutId, sessions, websocket } = get();
+    const { reconnectTimeoutId, connectionTimeoutId, sessions, websocket } = get();
+
+    if (connectionTimeoutId) {
+      clearTimeout(connectionTimeoutId);
+      set({ connectionTimeoutId: null });
+    }
 
     set({
       connectionState: 'connected',
@@ -129,6 +135,11 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
 
   const handleError = (error: Event) => {
     console.error('[WebSocketManager] WebSocket error:', error);
+    const { connectionState } = get();
+
+    if (connectionState === 'connecting') {
+      set({ connectionState: 'disconnected' });
+    }
   };
 
   const handleClose = () => {
@@ -165,7 +176,7 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
   };
 
   const connect = () => {
-    const { websocket, connectionState } = get();
+    const { websocket, connectionState, connectionTimeoutId } = get();
 
     if (websocket?.readyState === WebSocket.OPEN) {
       console.log('[WebSocketManager] Already connected');
@@ -182,6 +193,10 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
       return;
     }
 
+    if (connectionTimeoutId) {
+      clearTimeout(connectionTimeoutId);
+    }
+
     console.log('[WebSocketManager] Connecting...');
     set({ connectionState: 'connecting' });
 
@@ -195,6 +210,21 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
       ws.onclose = handleClose;
 
       set({ websocket: ws });
+
+      const timeoutId = setTimeout(() => {
+        const currentState = get();
+        if (
+          currentState.connectionState === 'connecting' &&
+          currentState.websocket?.readyState === WebSocket.CONNECTING
+        ) {
+          console.warn('[WebSocketManager] Connection timeout, closing and retrying');
+          currentState.websocket?.close();
+          set({ connectionState: 'disconnected', connectionTimeoutId: null });
+          handleClose();
+        }
+      }, 10000);
+
+      set({ connectionTimeoutId: timeoutId });
     } catch (error) {
       console.error('[WebSocketManager] Failed to create WebSocket:', error);
       set({ connectionState: 'disconnected' });
@@ -203,10 +233,14 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
   };
 
   const disconnect = () => {
-    const { websocket, reconnectTimeoutId } = get();
+    const { websocket, reconnectTimeoutId, connectionTimeoutId } = get();
 
     if (reconnectTimeoutId) {
       clearTimeout(reconnectTimeoutId);
+    }
+
+    if (connectionTimeoutId) {
+      clearTimeout(connectionTimeoutId);
     }
 
     if (websocket) {
@@ -218,6 +252,7 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
       connectionState: 'disconnected',
       reconnectAttempts: 0,
       reconnectTimeoutId: null,
+      connectionTimeoutId: null,
     });
   };
 
@@ -242,6 +277,9 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
       websocket.send(JSON.stringify(message));
     } else {
       console.log(`[WebSocketManager] Session ${sessionId} will be created when connection opens`);
+      if (connectionState === 'disconnected' && !websocket) {
+        connect();
+      }
     }
   };
 
@@ -278,6 +316,7 @@ export const useWebSocketManager = create<WebSocketManagerState>((set, get) => {
     sessions: new Map(),
     reconnectAttempts: 0,
     reconnectTimeoutId: null,
+    connectionTimeoutId: null,
     connect,
     disconnect,
     registerSession,

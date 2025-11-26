@@ -135,7 +135,41 @@ const handleOpen = () => {
 **Key Insight:**
 > We automatically recreate all registered sessions when the WebSocket reconnects. When the connection opens, we iterate through all registered session IDs and send create_session messages for each. This ensures that terminal windows continue working after network interruptions without user intervention.
 
-### 4. Exponential Backoff: Reconnection Strategy
+### 4. Auto-Connect on Session Registration: Lazy Connection Initialization
+
+**Problem:** Terminal windows need to connect automatically when opened, but connection shouldn't be established until a session is actually needed
+
+**Solution:** Automatically trigger connection when a session is registered if not already connected
+
+```typescript
+// apps/web/src/stores/useWebSocketManager.ts
+const registerSession = (sessionId: string, handler: SessionHandler) => {
+  const { sessions, websocket, connectionState } = get();
+  
+  // ... register session ...
+  
+  if (connectionState === 'connected' && websocket?.readyState === WebSocket.OPEN) {
+    // Send create_session immediately if already connected
+    websocket.send(JSON.stringify({ type: 'create_session', sessionId }));
+  } else {
+    // Auto-connect if disconnected and no WebSocket exists
+    if (connectionState === 'disconnected' && !websocket) {
+      connect();
+    }
+  }
+};
+```
+
+**Benefits:**
+- **Zero-configuration**: Terminal windows just work when opened
+- **Lazy connection**: Connection only established when needed
+- **User experience**: No manual connection step required
+- **Efficiency**: Connection shared across all terminal windows
+
+**Key Insight:**
+> We automatically initiate the WebSocket connection when a session is registered if the connection is not already established. This means terminal windows connect automatically when opened, without requiring users to manually trigger a connection. The connection is lazy—it's only created when the first terminal window opens, and then shared across all subsequent windows.
+
+### 5. Exponential Backoff: Reconnection Strategy
 
 **Problem:** Need to reconnect after connection loss without overwhelming the server
 
@@ -187,7 +221,7 @@ const handleClose = () => {
 **Key Insight:**
 > We use exponential backoff for reconnection attempts. Each failed attempt doubles the delay (2s, 4s, 8s, 16s, capped at 16s), up to a maximum of 5 attempts. This gives the network time to recover while preventing infinite reconnection loops. After max attempts, we stop trying and require user intervention.
 
-### 5. Connection State Management: UI Feedback
+### 6. Connection State Management: UI Feedback
 
 **Problem:** UI needs to know connection state to show appropriate feedback
 
@@ -212,7 +246,7 @@ interface WebSocketManagerState {
 **Key Insight:**
 > We track connection state explicitly with three states: disconnected, connecting, and connected. This allows terminal components to show appropriate UI feedback (like "Connecting..." messages) and prevents duplicate connection attempts. The state machine ensures we only connect when disconnected and only disconnect when connected.
 
-### 6. Message Protocol: Type-Safe Communication
+### 7. Message Protocol: Type-Safe Communication
 
 **Problem:** Need type-safe message passing between frontend and backend
 
@@ -324,6 +358,30 @@ export type ServerMessage =
 
 **Trade-off:** More states to manage, but clearer behavior
 
+### Why Connection Timeout?
+
+**Decision:** Add 10-second timeout for connection attempts
+
+**Reasoning:**
+- Prevents indefinite "connecting" state if server is unreachable
+- Allows reconnection logic to kick in after timeout
+- Provides better user experience than hanging indefinitely
+- Matches common network timeout expectations
+
+**Trade-off:** Slightly more complex, but prevents stuck connection states
+
+### Why Update State on WebSocket Errors?
+
+**Decision:** Transition from 'connecting' to 'disconnected' on WebSocket errors
+
+**Reasoning:**
+- Errors during connection should trigger reconnection logic
+- Prevents stuck "connecting" state if connection fails
+- Allows exponential backoff to handle transient errors
+- Better error recovery than leaving state unchanged
+
+**Trade-off:** More state transitions, but better error handling
+
 ## Building Leverage
 
 ### Before: Single Session, Tight Coupling
@@ -420,6 +478,10 @@ Multiple terminal sessions share a single WebSocket connection. Each terminal wi
 
 Terminal components implement a handler interface with methods for onOutput, onError, onSessionCreated, and onSessionClosed. This decouples terminal components from WebSocket management, making them easier to test and maintain. The WebSocket manager routes messages to handlers without knowing terminal implementation details.
 
+### Automatic Connection Initialization
+
+The WebSocket connection is automatically established when the first terminal window opens. When a session is registered and the connection is disconnected, the manager automatically calls `connect()` to initiate the connection. This means terminal windows work immediately when opened, with no manual connection step required.
+
 ### Automatic Reconnection
 
 Sessions are automatically recreated after WebSocket reconnection. When the connection opens, the manager iterates through all registered session IDs and sends create_session messages. This ensures terminals continue working after network interruptions without user intervention.
@@ -454,10 +516,11 @@ This architecture enables:
 
 1. **Handler interface decouples components** - Makes testing and maintenance easier
 2. **Map is better than object for dynamic keys** - Better performance and semantics
-3. **Automatic reconnection improves UX** - Users don't need to manually reconnect
-4. **Exponential backoff prevents server overload** - Industry standard for good reason
-5. **Type-safe messages prevent bugs** - TypeScript catches errors at compile time
-6. **Connection state machine simplifies logic** - Three states cover all scenarios
+3. **Auto-connect on registration improves UX** - Terminal windows connect automatically when opened
+4. **Automatic reconnection improves UX** - Users don't need to manually reconnect
+5. **Exponential backoff prevents server overload** - Industry standard for good reason
+6. **Type-safe messages prevent bugs** - TypeScript catches errors at compile time
+7. **Connection state machine simplifies logic** - Three states cover all scenarios
 
 ## Conclusion
 
