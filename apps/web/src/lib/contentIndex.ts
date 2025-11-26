@@ -49,7 +49,12 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
   > = {};
   try {
     const metadataModule = await import('@/generated/contentMetadata.json');
-    contentMetadata = metadataModule.default || metadataModule;
+    const imported = metadataModule.default || metadataModule;
+    contentMetadata =
+      (imported as Record<
+        string,
+        { size: number; mtime: string; birthtime: string; kind: string }
+      >) || {};
   } catch (error) {
     console.warn('Could not load content metadata, continuing without file stats:', error);
   }
