@@ -15,7 +15,7 @@ export const Route = createFileRoute('/$')({
   },
   loader: async ({ params }) => {
     const path = params._splat || '';
-    
+
     if (path === 'browser' || path.startsWith('browser/')) {
       return { isBrowserRoute: true, resolved: null, error: null };
     }
@@ -99,4 +99,3 @@ function PathComponent() {
     </>
   );
 }
-

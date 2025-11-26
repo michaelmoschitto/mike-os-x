@@ -1,5 +1,4 @@
-import { useRef } from 'react';
-
+import { useDoubleClick } from '@/lib/hooks/useDoubleClick';
 import { cn } from '@/lib/utils';
 
 interface FinderItemProps {
@@ -12,21 +11,10 @@ interface FinderItemProps {
 }
 
 const FinderItem = ({ name, icon, isSelected, onClick, onDoubleClick }: FinderItemProps) => {
-  const lastClickTime = useRef(0);
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const now = Date.now();
-    const timeSinceLastClick = now - lastClickTime.current;
-
-    if (timeSinceLastClick < 300 && timeSinceLastClick > 0) {
-      onDoubleClick();
-    } else {
-      onClick();
-    }
-
-    lastClickTime.current = now;
-  };
+  const handleClick = useDoubleClick({
+    onClick,
+    onDoubleClick,
+  });
 
   return (
     <div

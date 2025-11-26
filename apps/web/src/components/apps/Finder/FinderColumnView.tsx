@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { FinderItemData } from '@/lib/finderContent';
 import { getFolderContents } from '@/lib/finderContent';
@@ -25,15 +25,7 @@ const FinderColumnView = ({
   onOpen,
   onNavigate,
 }: FinderColumnViewProps) => {
-  const [columns, setColumns] = useState<ColumnData[]>([
-    {
-      path: currentPath,
-      items: getFolderContents(currentPath),
-      selectedId: null,
-    },
-  ]);
-
-  useEffect(() => {
+  const initialColumns = useMemo(() => {
     const pathParts = currentPath.split('/').filter(Boolean);
     const newColumns: ColumnData[] = [];
 
@@ -46,8 +38,14 @@ const FinderColumnView = ({
       });
     }
 
-    setColumns(newColumns);
+    return newColumns;
   }, [currentPath, selectedId]);
+
+  const [columns, setColumns] = useState<ColumnData[]>(initialColumns);
+
+  useEffect(() => {
+    setColumns(initialColumns);
+  }, [initialColumns]);
 
   const handleItemClick = (item: FinderItemData, columnIndex: number) => {
     const newColumns = columns.slice(0, columnIndex + 1);

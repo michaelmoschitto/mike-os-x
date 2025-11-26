@@ -1,6 +1,5 @@
-import { useRef } from 'react';
-
 import type { FinderItemData } from '@/lib/finderContent';
+import { useDoubleClick } from '@/lib/hooks/useDoubleClick';
 import { cn } from '@/lib/utils';
 
 interface FinderListViewProps {
@@ -28,22 +27,44 @@ const formatSize = (bytes?: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+interface FinderListItemProps {
+  item: FinderItemData;
+  index: number;
+  isSelected: boolean;
+  onSelect: () => void;
+  onOpen: () => void;
+}
+
+const FinderListItem = ({ item, index, isSelected, onSelect, onOpen }: FinderListItemProps) => {
+  const handleClick = useDoubleClick({
+    onClick: onSelect,
+    onDoubleClick: onOpen,
+  });
+
+  return (
+    <div
+      className={cn(
+        'flex h-5 cursor-pointer items-center border-b border-[var(--color-border-subtle)] px-2 text-[11px] transition-colors',
+        index % 2 === 0 && 'bg-white',
+        index % 2 === 1 && 'bg-[#f5f5f5]',
+        isSelected && 'bg-[var(--color-highlight)] text-white'
+      )}
+      onClick={handleClick}
+    >
+      <div className="flex w-[200px] items-center gap-2">
+        <img src={item.icon} alt={item.name} className="h-4 w-4" />
+        <span className="truncate">{item.name}</span>
+      </div>
+      <div className="w-[120px] truncate">{formatDate(item.dateModified)}</div>
+      <div className="w-[80px] truncate">{formatSize(item.size)}</div>
+      <div className="flex-1 truncate">
+        {item.kind || (item.type === 'folder' ? 'Folder' : 'Document')}
+      </div>
+    </div>
+  );
+};
+
 const FinderListView = ({ items, selectedId, onSelect, onOpen }: FinderListViewProps) => {
-  const lastClickTime = useRef(0);
-
-  const handleClick = (item: FinderItemData) => {
-    const now = Date.now();
-    const timeSinceLastClick = now - lastClickTime.current;
-
-    if (timeSinceLastClick < 300 && timeSinceLastClick > 0) {
-      onOpen(item);
-    } else {
-      onSelect(item.id);
-    }
-
-    lastClickTime.current = now;
-  };
-
   return (
     <div className="flex-1 overflow-auto">
       <div className="min-w-full">
@@ -54,26 +75,14 @@ const FinderListView = ({ items, selectedId, onSelect, onOpen }: FinderListViewP
           <div className="flex-1">Kind</div>
         </div>
         {items.map((item, index) => (
-          <div
+          <FinderListItem
             key={item.id}
-            className={cn(
-              'flex h-5 cursor-pointer items-center border-b border-[var(--color-border-subtle)] px-2 text-[11px] transition-colors',
-              index % 2 === 0 && 'bg-white',
-              index % 2 === 1 && 'bg-[#f5f5f5]',
-              selectedId === item.id && 'bg-[var(--color-highlight)] text-white'
-            )}
-            onClick={() => handleClick(item)}
-          >
-            <div className="flex w-[200px] items-center gap-2">
-              <img src={item.icon} alt={item.name} className="h-4 w-4" />
-              <span className="truncate">{item.name}</span>
-            </div>
-            <div className="w-[120px] truncate">{formatDate(item.dateModified)}</div>
-            <div className="w-[80px] truncate">{formatSize(item.size)}</div>
-            <div className="flex-1 truncate">
-              {item.kind || (item.type === 'folder' ? 'Folder' : 'Document')}
-            </div>
-          </div>
+            item={item}
+            index={index}
+            isSelected={selectedId === item.id}
+            onSelect={() => onSelect(item.id)}
+            onOpen={() => onOpen(item)}
+          />
         ))}
       </div>
     </div>
