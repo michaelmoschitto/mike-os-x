@@ -36,6 +36,7 @@ export const getFolderContents = (path: string): FinderItemData[] => {
   const items: FinderItemData[] = [];
   const folderMap = new Map<string, FinderItemData[]>();
 
+  // TODO: remove hardcoded folders in finder
   if (path === '/home') {
     return [
       {
