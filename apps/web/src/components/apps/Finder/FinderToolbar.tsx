@@ -18,7 +18,7 @@ const FinderToolbar = ({
   onViewModeChange,
 }: FinderToolbarProps) => {
   return (
-    <div className="aqua-pinstripe flex h-[52px] items-center gap-2 border-b border-[var(--color-border-subtle)] px-3">
+    <div className="aqua-pinstripe flex h-[52px] items-center gap-3 border-b border-[var(--color-border-subtle)] px-3">
       <div className="flex items-center gap-1">
         <button
           className={cn(
@@ -60,49 +60,49 @@ const FinderToolbar = ({
         </button>
       </div>
       <div className="aqua-toolbar-divider" />
-      <div className="flex items-center gap-1">
+      <div className="aqua-segmented-group">
         <button
           className={cn(
-            'aqua-button-base flex h-[28px] w-[28px] items-center justify-center',
-            viewMode === 'icon' && 'bg-[var(--color-highlight)] text-white'
+            'aqua-button-base flex h-[28px] min-w-[32px] px-2 items-center justify-center',
+            viewMode === 'icon' && 'aqua-button-blue'
           )}
           onClick={() => onViewModeChange('icon')}
           title="Icon View"
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <rect x="1" y="1" width="4" height="4" stroke="currentColor" strokeWidth="1" />
-            <rect x="7" y="1" width="4" height="4" stroke="currentColor" strokeWidth="1" />
-            <rect x="1" y="7" width="4" height="4" stroke="currentColor" strokeWidth="1" />
-            <rect x="7" y="7" width="4" height="4" stroke="currentColor" strokeWidth="1" />
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="opacity-60">
+            <rect x="1" y="1" width="4.5" height="4.5" stroke="currentColor" strokeWidth="0.6" />
+            <rect x="8.5" y="1" width="4.5" height="4.5" stroke="currentColor" strokeWidth="0.6" />
+            <rect x="1" y="8.5" width="4.5" height="4.5" stroke="currentColor" strokeWidth="0.6" />
+            <rect x="8.5" y="8.5" width="4.5" height="4.5" stroke="currentColor" strokeWidth="0.6" />
           </svg>
         </button>
         <button
           className={cn(
-            'aqua-button-base flex h-[28px] w-[28px] items-center justify-center',
-            viewMode === 'list' && 'bg-[var(--color-highlight)] text-white'
+            'aqua-button-base flex h-[28px] min-w-[32px] px-2 items-center justify-center',
+            viewMode === 'list' && 'aqua-button-blue'
           )}
           onClick={() => onViewModeChange('list')}
           title="List View"
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <rect x="1" y="1" width="12" height="2" stroke="currentColor" strokeWidth="1" />
-            <rect x="1" y="5" width="12" height="2" stroke="currentColor" strokeWidth="1" />
-            <rect x="1" y="9" width="12" height="2" stroke="currentColor" strokeWidth="1" />
-            <rect x="1" y="13" width="12" height="2" stroke="currentColor" strokeWidth="1" />
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="opacity-60">
+            <line x1="1" y1="2.5" x2="13" y2="2.5" stroke="currentColor" strokeWidth="0.6" />
+            <line x1="1" y1="5.5" x2="13" y2="5.5" stroke="currentColor" strokeWidth="0.6" />
+            <line x1="1" y1="8.5" x2="13" y2="8.5" stroke="currentColor" strokeWidth="0.6" />
+            <line x1="1" y1="11.5" x2="13" y2="11.5" stroke="currentColor" strokeWidth="0.6" />
           </svg>
         </button>
         <button
           className={cn(
-            'aqua-button-base flex h-[28px] w-[28px] items-center justify-center',
-            viewMode === 'column' && 'bg-[var(--color-highlight)] text-white'
+            'aqua-button-base flex h-[28px] min-w-[32px] px-2 items-center justify-center',
+            viewMode === 'column' && 'aqua-button-blue'
           )}
           onClick={() => onViewModeChange('column')}
           title="Column View"
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <rect x="1" y="1" width="3" height="12" stroke="currentColor" strokeWidth="1" />
-            <rect x="6" y="1" width="3" height="12" stroke="currentColor" strokeWidth="1" />
-            <rect x="11" y="1" width="3" height="12" stroke="currentColor" strokeWidth="1" />
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="opacity-60">
+            <rect x="1" y="1" width="3" height="12" stroke="currentColor" strokeWidth="0.6" />
+            <rect x="5.5" y="1" width="3" height="12" stroke="currentColor" strokeWidth="0.6" />
+            <rect x="10" y="1" width="3" height="12" stroke="currentColor" strokeWidth="0.6" />
           </svg>
         </button>
       </div>
