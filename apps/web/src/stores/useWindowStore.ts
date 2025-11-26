@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { DEFAULT_BOOKMARKS } from '@/config/defaultBookmarks';
 import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { useUI } from '@/lib/store';
-import { getHostnameFromUrl } from '@/lib/utils';
+import { getHostnameFromUrl, sanitizeUrlPath } from '@/lib/utils';
 
 export type BookmarkItem =
   | { type: 'bookmark'; title: string; url: string }
@@ -15,19 +15,22 @@ export interface HistoryEntry {
   visitTime: number;
 }
 
-const getAppName = (windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer'): string => {
-  const appNames: Record<'textedit' | 'browser' | 'terminal' | 'pdfviewer', string> = {
+const getAppName = (
+  windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder'
+): string => {
+  const appNames: Record<'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder', string> = {
     browser: 'Internet Explorer',
     textedit: 'TextEdit',
     terminal: 'Terminal',
     pdfviewer: 'Preview',
+    finder: 'Finder',
   };
   return appNames[windowType];
 };
 
 export interface Window {
   id: string;
-  type: 'textedit' | 'browser' | 'terminal' | 'pdfviewer';
+  type: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder';
   appName: string;
   title: string;
   content: string;
@@ -42,11 +45,16 @@ export interface Window {
   bookmarks?: BookmarkItem[];
   urlPath?: string;
   route?: string;
+  currentPath?: string;
+  viewMode?: 'icon' | 'list' | 'column';
+  navigationHistory?: string[];
+  navigationIndex?: number;
 }
 
 const getAppTypeForDock = (
-  windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer'
+  windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder'
 ): 'browser' | 'textedit' | 'terminal' | 'pdfviewer' | null => {
+  if (windowType === 'finder') return null;
   return windowType;
 };
 
@@ -65,6 +73,7 @@ interface WindowStore {
   updateWindowPosition: (id: string, position: { x: number; y: number }) => void;
   updateWindowSize: (id: string, size: { width: number; height: number }) => void;
   updateWindowContent: (id: string, content: string) => void;
+  updateWindow: (id: string, updates: Partial<Window>) => void;
   minimizeWindow: (id: string) => void;
   navigateToUrl: (id: string, url: string, title?: string, fromRoute?: boolean) => void;
   navigateBack: (id: string) => void;
@@ -173,8 +182,12 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       return nextActiveWindow.route;
     }
 
-    if (state.routeStack.length > 0) {
-      return state.routeStack[state.routeStack.length - 1];
+    const filteredRouteStack = windowToClose?.route
+      ? state.routeStack.filter((r) => r !== windowToClose.route)
+      : state.routeStack;
+
+    if (filteredRouteStack.length > 0) {
+      return filteredRouteStack[filteredRouteStack.length - 1];
     }
 
     return '/';
@@ -216,6 +229,12 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
   updateWindowContent: (id, content) => {
     set((state) => ({
       windows: state.windows.map((w) => (w.id === id ? { ...w, content } : w)),
+    }));
+  },
+
+  updateWindow: (id, updates) => {
+    set((state) => ({
+      windows: state.windows.map((w) => (w.id === id ? { ...w, ...updates } : w)),
     }));
   },
 
@@ -481,6 +500,18 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
 
     const title = entry.metadata.title || urlPath.split('/').pop() || 'Untitled';
 
+    let browserUrl = urlPath;
+    if (windowType === 'browser') {
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+      const isImage = imageExtensions.some((ext) =>
+        entry.fileExtension.toLowerCase().endsWith(ext)
+      );
+      if (isImage) {
+        const sanitizedPath = sanitizeUrlPath(urlPath);
+        browserUrl = `/content${sanitizedPath}${entry.fileExtension}`;
+      }
+    }
+
     const newWindow: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> = {
       type: windowType,
       title,
@@ -489,8 +520,8 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       size: { width: windowWidth, height: windowHeight },
       urlPath,
       ...(windowType === 'browser' && {
-        url: urlPath,
-        history: [urlPath],
+        url: browserUrl,
+        history: [browserUrl],
         historyIndex: 0,
       }),
     };
