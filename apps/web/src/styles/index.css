@@ -443,7 +443,7 @@ body {
 
   /* ===== DROPDOWN MENUS ===== */
   .aqua-dropdown-menu {
-    background-image: linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%) !important;
+    @apply aqua-pinstripe;
     border: 1px solid #999 !important;
     border-radius: 4px !important;
     box-shadow:
@@ -458,10 +458,25 @@ body {
     color: var(--color-text-primary);
   }
 
-  .aqua-dropdown-item:hover,
-  .aqua-dropdown-item:focus {
+  .aqua-dropdown-item:hover:not(:disabled),
+  .aqua-dropdown-item:focus:not(:disabled),
+  .aqua-dropdown-item[data-highlighted]:not(:disabled) {
     background: var(--color-highlight) !important;
     color: var(--color-selection-text) !important;
+  }
+
+  .aqua-dropdown-item:disabled,
+  .aqua-dropdown-item[data-disabled] {
+    @apply opacity-50 cursor-not-allowed;
+    color: var(--color-text-secondary) !important;
+  }
+
+  .aqua-dropdown-item:disabled:hover,
+  .aqua-dropdown-item:disabled:focus,
+  .aqua-dropdown-item[data-disabled]:hover,
+  .aqua-dropdown-item[data-disabled][data-highlighted] {
+    background: transparent !important;
+    color: var(--color-text-secondary) !important;
   }
 
   /* ===== TOOLBAR PATTERNS ===== */
