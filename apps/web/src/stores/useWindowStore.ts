@@ -15,6 +15,12 @@ export interface HistoryEntry {
   visitTime: number;
 }
 
+export interface TerminalTab {
+  id: string;
+  title: string;
+  sessionId: string;
+}
+
 const getAppName = (
   windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder'
 ): string => {
@@ -49,6 +55,8 @@ export interface Window {
   viewMode?: 'icon' | 'list' | 'column';
   navigationHistory?: string[];
   navigationIndex?: number;
+  tabs?: TerminalTab[];
+  activeTabId?: string;
 }
 
 const getAppTypeForDock = (
@@ -89,6 +97,11 @@ interface WindowStore {
   ) => void;
   getActiveBrowserWindow: () => Window | null;
   getOrCreateBrowserWindow: (initialUrl?: string) => Window;
+  addTabToWindow: (windowId: string) => void;
+  closeTab: (windowId: string, tabId: string) => void;
+  setActiveTab: (windowId: string, tabId: string) => void;
+  getActiveTerminalTab: (windowId: string) => TerminalTab | null;
+  reorderTabs: (windowId: string, fromIndex: number, toIndex: number) => void;
 }
 
 export const useWindowStore = create<WindowStore>((set, get) => ({
@@ -126,7 +139,28 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       isMinimized: false,
       bookmarks,
       route,
+      ...(window.type === 'terminal' && {
+        tabs:
+          window.tabs ||
+          (() => {
+            const tabId = `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            return [
+              {
+                id: tabId,
+                title: '~/.zsh',
+                sessionId: `${id}-${tabId}`,
+              },
+            ];
+          })(),
+        activeTabId:
+          window.activeTabId ||
+          (window.tabs && window.tabs.length > 0 ? window.tabs[0].id : undefined),
+      }),
     };
+
+    if (newWindow.type === 'terminal' && newWindow.tabs && newWindow.tabs.length > 0) {
+      newWindow.activeTabId = newWindow.tabs[0].id;
+    }
 
     const routeStack = route ? [...state.routeStack, route] : state.routeStack;
     const appType = getAppTypeForDock(window.type);
@@ -571,5 +605,115 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     get().openWindow(newWindow);
     const createdWindow = get().windows[get().windows.length - 1];
     return createdWindow;
+  },
+
+  addTabToWindow: (windowId) => {
+    set((state) => {
+      const window = state.windows.find((w) => w.id === windowId);
+      if (!window || window.type !== 'terminal') return state;
+
+      const tabId = `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const sessionId = `${windowId}-${tabId}`;
+      const newTab: TerminalTab = {
+        id: tabId,
+        title: '~/.zsh',
+        sessionId,
+      };
+
+      const tabs = window.tabs || [];
+      const updatedTabs = [...tabs, newTab];
+
+      return {
+        windows: state.windows.map((w) =>
+          w.id === windowId
+            ? {
+                ...w,
+                tabs: updatedTabs,
+                activeTabId: tabId,
+              }
+            : w
+        ),
+        activeWindowId: windowId,
+      };
+    });
+  },
+
+  closeTab: (windowId, tabId) => {
+    set((state) => {
+      const window = state.windows.find((w) => w.id === windowId);
+      if (!window || window.type !== 'terminal' || !window.tabs) return state;
+
+      const tabs = window.tabs.filter((t) => t.id !== tabId);
+      if (tabs.length === 0) {
+        return {
+          windows: state.windows.filter((w) => w.id !== windowId),
+          activeWindowId:
+            state.activeWindowId === windowId
+              ? state.windows.length > 1
+                ? state.windows.find((w) => w.id !== windowId)?.id || null
+                : null
+              : state.activeWindowId,
+        };
+      }
+
+      const wasActiveTab = window.activeTabId === tabId;
+      const newActiveTabId = wasActiveTab
+        ? tabs.length > 0
+          ? tabs[tabs.length - 1].id
+          : undefined
+        : window.activeTabId;
+
+      return {
+        windows: state.windows.map((w) =>
+          w.id === windowId
+            ? {
+                ...w,
+                tabs,
+                activeTabId: newActiveTabId,
+              }
+            : w
+        ),
+      };
+    });
+  },
+
+  setActiveTab: (windowId, tabId) => {
+    set((state) => ({
+      windows: state.windows.map((w) =>
+        w.id === windowId && w.type === 'terminal' ? { ...w, activeTabId: tabId } : w
+      ),
+      activeWindowId: windowId,
+    }));
+  },
+
+  getActiveTerminalTab: (windowId) => {
+    const state = get();
+    const window = state.windows.find((w) => w.id === windowId);
+    if (!window || window.type !== 'terminal' || !window.tabs || !window.activeTabId) {
+      return null;
+    }
+    return window.tabs.find((t) => t.id === window.activeTabId) || null;
+  },
+
+  reorderTabs: (windowId, fromIndex, toIndex) => {
+    set((state) => {
+      const window = state.windows.find((w) => w.id === windowId);
+      if (!window || window.type !== 'terminal' || !window.tabs) return state;
+
+      const tabs = [...window.tabs];
+      const [movedTab] = tabs.splice(fromIndex, 1);
+      tabs.splice(toIndex, 0, movedTab);
+
+      return {
+        windows: state.windows.map((w) =>
+          w.id === windowId
+            ? {
+                ...w,
+                tabs,
+              }
+            : w
+        ),
+      };
+    });
   },
 }));
