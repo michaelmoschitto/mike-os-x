@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import MenuBarMenu from '@/components/ui/aqua/MenuBarMenu';
 import { getDefaultMenuItems, getTerminalMenuItems } from '@/lib/menus/terminalMenus';
@@ -7,15 +7,8 @@ import { useWindowStore } from '@/stores/useWindowStore';
 const MenuBar = () => {
   const activeWindowId = useWindowStore((state) => state.activeWindowId);
   const windows = useWindowStore((state) => state.windows);
-  const {
-    openWindow,
-    closeWindow,
-    minimizeWindow,
-    focusWindow,
-    addTabToWindow,
-    closeTab,
-    setActiveTab,
-  } = useWindowStore();
+  const { openWindow, closeWindow, minimizeWindow, focusWindow, addTabToWindow, closeTab } =
+    useWindowStore();
 
   const activeWindow = windows.find((w) => w.id === activeWindowId);
   const appName = activeWindow?.appName || '';
@@ -33,15 +26,7 @@ const MenuBar = () => {
     });
   });
 
-  const handleNewTerminalTab = () => {
-    if (activeWindow?.type === 'terminal') {
-      addTabToWindow(activeWindow.id);
-    } else {
-      handleNewTerminalWindow();
-    }
-  };
-
-  const handleNewTerminalWindow = () => {
+  const handleNewTerminalWindow = useCallback(() => {
     const windowWidth = 649;
     const windowHeight = 436;
     const centerX = (window.innerWidth - windowWidth) / 2;
@@ -54,9 +39,17 @@ const MenuBar = () => {
       position: { x: centerX, y: centerY + 22 },
       size: { width: windowWidth, height: windowHeight },
     });
-  };
+  }, [openWindow]);
 
-  const handleNewWindow = () => {
+  const handleNewTerminalTab = useCallback(() => {
+    if (activeWindow?.type === 'terminal') {
+      addTabToWindow(activeWindow.id);
+    } else {
+      handleNewTerminalWindow();
+    }
+  }, [activeWindow, addTabToWindow, handleNewTerminalWindow]);
+
+  const handleNewWindow = useCallback(() => {
     const windowWidth = 800;
     const windowHeight = 600;
     const centerX = (window.innerWidth - windowWidth) / 2;
@@ -74,24 +67,24 @@ const MenuBar = () => {
       navigationIndex: 0,
       appName: 'Finder',
     });
-  };
+  }, [openWindow]);
 
-  const handleCloseTerminalTab = () => {
+  const handleCloseTerminalTab = useCallback(() => {
     if (activeWindow?.type === 'terminal' && activeWindow.activeTabId) {
       closeTab(activeWindow.id, activeWindow.activeTabId);
     }
-  };
+  }, [activeWindow, closeTab]);
 
-  const handleCloseWindow = () => {
+  const handleCloseWindow = useCallback(() => {
     if (activeWindowId) {
       closeWindow(activeWindowId);
     }
-  };
+  }, [activeWindowId, closeWindow]);
 
-  const handleQuitTerminal = () => {
+  const handleQuitTerminal = useCallback(() => {
     const terminalWindows = windows.filter((w) => w.type === 'terminal');
     terminalWindows.forEach((w) => closeWindow(w.id));
-  };
+  }, [windows, closeWindow]);
 
   const handleMinimizeWindow = () => {
     if (activeWindowId) {
@@ -155,7 +148,15 @@ const MenuBar = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeWindow, windows, handleNewTerminalTab, handleNewTerminalWindow, handleCloseTerminalTab, handleCloseWindow, handleQuitTerminal]);
+  }, [
+    activeWindow,
+    windows,
+    handleNewTerminalTab,
+    handleNewTerminalWindow,
+    handleCloseTerminalTab,
+    handleCloseWindow,
+    handleQuitTerminal,
+  ]);
 
   const menuConfig =
     activeWindow?.type === 'terminal'

@@ -20,7 +20,6 @@ const TerminalTabBar = ({
 }: TerminalTabBarProps) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
 
   if (tabs.length <= 1) {
     return null;
@@ -28,7 +27,6 @@ const TerminalTabBar = ({
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
-    setIsDragging(true);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/html', '');
   };
@@ -55,7 +53,6 @@ const TerminalTabBar = ({
   const handleDragEnd = () => {
     setDraggedIndex(null);
     setDragOverIndex(null);
-    setTimeout(() => setIsDragging(false), 0);
   };
 
   return (
@@ -63,7 +60,7 @@ const TerminalTabBar = ({
       {tabs.map((tab, index) => {
         const isActive = tab.id === activeTabId;
         const shortcutNumber = index + 1;
-        const isDragging = draggedIndex === index;
+        const isTabDragging = draggedIndex === index;
         const isDragOver = dragOverIndex === index;
 
         return (
@@ -76,20 +73,20 @@ const TerminalTabBar = ({
             onDrop={(e) => handleDrop(e, index)}
             onDragEnd={handleDragEnd}
             className={cn(
-              'aqua-tab group relative flex h-6 cursor-move items-center gap-1.5 rounded-t px-2 text-[11px] font-ui transition-colors',
+              'aqua-tab group font-ui relative flex h-6 cursor-move items-center gap-1.5 rounded-t px-2 text-[11px] transition-colors',
               isActive
                 ? 'bg-white text-black shadow-sm'
                 : 'bg-transparent text-black/70 hover:bg-white/50',
-              isDragging && 'opacity-50',
+              isTabDragging && 'opacity-50',
               isDragOver && 'border-l-2 border-[var(--color-highlight)]'
             )}
             onClick={() => {
-              if (!isDragging) {
+              if (draggedIndex === null) {
                 onTabClick(tab.id);
               }
             }}
           >
-            <span className="truncate max-w-[120px]">{tab.title}</span>
+            <span className="max-w-[120px] truncate">{tab.title}</span>
             <span className="text-[10px] text-black/50">⌘{shortcutNumber}</span>
             <button
               className={cn(
@@ -113,4 +110,3 @@ const TerminalTabBar = ({
 };
 
 export default TerminalTabBar;
-

@@ -54,7 +54,12 @@ export const getTerminalMenuItems = (
       { label: 'Forward', action: () => {}, disabled: true },
     ],
     window: [
-      { label: 'Minimize', action: handlers.handleMinimizeWindow, shortcut: '⌘M', disabled: !hasActiveWindow },
+      {
+        label: 'Minimize',
+        action: handlers.handleMinimizeWindow,
+        shortcut: '⌘M',
+        disabled: !hasActiveWindow,
+      },
       { label: 'Zoom', action: () => {}, disabled: !hasActiveWindow },
       { separator: true },
       { label: 'Bring All to Front', action: handlers.handleBringAllToFront },
@@ -79,7 +84,12 @@ export const getDefaultMenuItems = (
       { label: 'New Window', action: handlers.handleNewWindow, shortcut: '⌘N' },
       { label: 'Open...', action: () => {}, shortcut: '⌘O', disabled: true },
       { separator: true },
-      { label: 'Close Window', action: handlers.handleCloseWindow, shortcut: '⌘W', disabled: !hasActiveWindow },
+      {
+        label: 'Close Window',
+        action: handlers.handleCloseWindow,
+        shortcut: '⌘W',
+        disabled: !hasActiveWindow,
+      },
       { separator: true },
       { label: 'Quit', action: () => {}, shortcut: '⌘Q', disabled: true },
     ],
@@ -98,7 +108,12 @@ export const getDefaultMenuItems = (
       { label: 'Forward', action: () => {}, disabled: true },
     ],
     window: [
-      { label: 'Minimize', action: handlers.handleMinimizeWindow, shortcut: '⌘M', disabled: !hasActiveWindow },
+      {
+        label: 'Minimize',
+        action: handlers.handleMinimizeWindow,
+        shortcut: '⌘M',
+        disabled: !hasActiveWindow,
+      },
       { label: 'Zoom', action: () => {}, disabled: !hasActiveWindow },
       { separator: true },
       { label: 'Bring All to Front', action: handlers.handleBringAllToFront },
@@ -106,4 +121,3 @@ export const getDefaultMenuItems = (
     help: [{ label: 'Help Center', action: () => {}, disabled: true }],
   };
 };
-

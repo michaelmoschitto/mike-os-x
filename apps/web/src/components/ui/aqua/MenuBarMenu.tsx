@@ -94,7 +94,7 @@ const MenuBarMenu = ({ label, items, align = 'start' }: MenuBarMenuProps) => {
           className={cn(
             'cursor-default rounded px-1.5 py-0.5 text-[13px] transition-colors',
             'hover:bg-[var(--color-highlight)] hover:text-white',
-            'focus:outline-none focus:ring-0 focus-visible:outline-none',
+            'focus:ring-0 focus:outline-none focus-visible:outline-none',
             'active:outline-none',
             open && 'bg-[var(--color-highlight)] text-white'
           )}

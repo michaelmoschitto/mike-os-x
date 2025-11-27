@@ -140,16 +140,18 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       bookmarks,
       route,
       ...(window.type === 'terminal' && {
-        tabs: window.tabs || (() => {
-          const tabId = `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          return [
-            {
-              id: tabId,
-              title: '~/.zsh',
-              sessionId: `${id}-${tabId}`,
-            },
-          ];
-        })(),
+        tabs:
+          window.tabs ||
+          (() => {
+            const tabId = `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            return [
+              {
+                id: tabId,
+                title: '~/.zsh',
+                sessionId: `${id}-${tabId}`,
+              },
+            ];
+          })(),
         activeTabId:
           window.activeTabId ||
           (window.tabs && window.tabs.length > 0 ? window.tabs[0].id : undefined),
@@ -678,9 +680,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
   setActiveTab: (windowId, tabId) => {
     set((state) => ({
       windows: state.windows.map((w) =>
-        w.id === windowId && w.type === 'terminal'
-          ? { ...w, activeTabId: tabId }
-          : w
+        w.id === windowId && w.type === 'terminal' ? { ...w, activeTabId: tabId } : w
       ),
       activeWindowId: windowId,
     }));
