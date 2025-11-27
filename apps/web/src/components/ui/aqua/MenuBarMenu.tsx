@@ -1,10 +1,10 @@
-import { useState } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
 export interface MenuItem {
-  label: string;
+  label?: string;
   action?: () => void;
   shortcut?: string;
   disabled?: boolean;
@@ -45,11 +45,11 @@ const MenuBarMenu = ({ label, items, align = 'start' }: MenuBarMenuProps) => {
           <DropdownMenu.SubTrigger
             className={cn(
               'aqua-dropdown-item relative flex w-full items-center justify-between',
-              item.disabled && 'opacity-50 cursor-not-allowed'
+              item.disabled && 'cursor-not-allowed opacity-50'
             )}
             disabled={item.disabled}
           >
-            <span>{item.label}</span>
+            <span>{item.label ?? ''}</span>
             <span className="ml-4 text-[10px] opacity-60">▶</span>
           </DropdownMenu.SubTrigger>
           <DropdownMenu.Portal>
@@ -70,7 +70,7 @@ const MenuBarMenu = ({ label, items, align = 'start' }: MenuBarMenuProps) => {
         key={`item-${index}`}
         className={cn(
           'aqua-dropdown-item flex w-full items-center justify-between',
-          item.disabled && 'opacity-50 cursor-not-allowed'
+          item.disabled && 'cursor-not-allowed opacity-50'
         )}
         disabled={item.disabled}
         onSelect={(e) => {
@@ -78,9 +78,9 @@ const MenuBarMenu = ({ label, items, align = 'start' }: MenuBarMenuProps) => {
           handleItemSelect(item);
         }}
       >
-        <span>{item.label}</span>
+        <span>{item.label ?? ''}</span>
         {item.shortcut && (
-          <span className="ml-8 text-[10px] text-gray-500 font-normal">{item.shortcut}</span>
+          <span className="ml-8 text-[10px] font-normal text-gray-500">{item.shortcut}</span>
         )}
       </DropdownMenu.Item>
     );
@@ -116,4 +116,3 @@ const MenuBarMenu = ({ label, items, align = 'start' }: MenuBarMenuProps) => {
 };
 
 export default MenuBarMenu;
-

@@ -117,9 +117,7 @@ const MenuBar = () => {
     { label: 'Bring All to Front', action: handleBringAllToFront },
   ];
 
-  const helpMenuItems: MenuItem[] = [
-    { label: 'Help Center', action: () => {}, disabled: true },
-  ];
+  const helpMenuItems: MenuItem[] = [{ label: 'Help Center', action: () => {}, disabled: true }];
 
   return (
     <div className="aqua-menubar font-ui fixed top-0 right-0 left-0 z-50 flex h-[22px] items-center justify-between px-3 text-[13px] text-black/90">

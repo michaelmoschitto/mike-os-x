@@ -116,7 +116,10 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
       },
       onSessionClosed: () => {
         const timeSinceRegistration = Date.now() - sessionRegisteredTimeRef.current;
-        if (sessionCreatedRef.current && timeSinceRegistration > MIN_SESSION_DURATION_FOR_CLOSE_MESSAGE_MS) {
+        if (
+          sessionCreatedRef.current &&
+          timeSinceRegistration > MIN_SESSION_DURATION_FOR_CLOSE_MESSAGE_MS
+        ) {
           terminal.write('\r\n\x1b[33mSession closed\x1b[0m\r\n');
         }
       },
