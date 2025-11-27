@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react';
 
-import MenuBarMenu, { type MenuItem } from '@/components/ui/aqua/MenuBarMenu';
+import MenuBarMenu from '@/components/ui/aqua/MenuBarMenu';
+import { getDefaultMenuItems, getTerminalMenuItems } from '@/lib/menus/terminalMenus';
 import { useWindowStore } from '@/stores/useWindowStore';
 
 const MenuBar = () => {
   const activeWindowId = useWindowStore((state) => state.activeWindowId);
   const windows = useWindowStore((state) => state.windows);
-  const { openWindow, closeWindow, minimizeWindow, focusWindow } = useWindowStore();
+  const {
+    openWindow,
+    closeWindow,
+    minimizeWindow,
+    focusWindow,
+    addTabToWindow,
+    closeTab,
+    setActiveTab,
+  } = useWindowStore();
 
   const activeWindow = windows.find((w) => w.id === activeWindowId);
   const appName = activeWindow?.appName || '';
@@ -24,24 +33,28 @@ const MenuBar = () => {
     });
   });
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = new Date();
-      setCurrentTime(
-        now.toLocaleString('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true,
-        })
-      );
-    }, 1000);
+  const handleNewTerminalTab = () => {
+    if (activeWindow?.type === 'terminal') {
+      addTabToWindow(activeWindow.id);
+    } else {
+      handleNewTerminalWindow();
+    }
+  };
 
-    return () => clearInterval(interval);
-  }, []);
+  const handleNewTerminalWindow = () => {
+    const windowWidth = 649;
+    const windowHeight = 436;
+    const centerX = (window.innerWidth - windowWidth) / 2;
+    const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
+
+    openWindow({
+      type: 'terminal',
+      title: 'Terminal',
+      content: '',
+      position: { x: centerX, y: centerY + 22 },
+      size: { width: windowWidth, height: windowHeight },
+    });
+  };
 
   const handleNewWindow = () => {
     const windowWidth = 800;
@@ -63,10 +76,21 @@ const MenuBar = () => {
     });
   };
 
+  const handleCloseTerminalTab = () => {
+    if (activeWindow?.type === 'terminal' && activeWindow.activeTabId) {
+      closeTab(activeWindow.id, activeWindow.activeTabId);
+    }
+  };
+
   const handleCloseWindow = () => {
     if (activeWindowId) {
       closeWindow(activeWindowId);
     }
+  };
+
+  const handleQuitTerminal = () => {
+    const terminalWindows = windows.filter((w) => w.type === 'terminal');
+    terminalWindows.forEach((w) => closeWindow(w.id));
   };
 
   const handleMinimizeWindow = () => {
@@ -82,42 +106,74 @@ const MenuBar = () => {
     });
   };
 
-  const fileMenuItems: MenuItem[] = [
-    { label: 'New Window', action: handleNewWindow, shortcut: '⌘N' },
-    { label: 'Open...', action: () => {}, shortcut: '⌘O', disabled: true },
-    { separator: true },
-    { label: 'Close Window', action: handleCloseWindow, shortcut: '⌘W', disabled: !activeWindowId },
-    { separator: true },
-    { label: 'Quit', action: () => {}, shortcut: '⌘Q', disabled: true },
-  ];
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(
+        now.toLocaleString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true,
+        })
+      );
+    }, 1000);
 
-  const editMenuItems: MenuItem[] = [
-    { label: 'Undo', action: () => {}, shortcut: '⌘Z', disabled: true },
-    { label: 'Redo', action: () => {}, shortcut: '⇧⌘Z', disabled: true },
-    { separator: true },
-    { label: 'Cut', action: () => {}, shortcut: '⌘X', disabled: true },
-    { label: 'Copy', action: () => {}, shortcut: '⌘C', disabled: true },
-    { label: 'Paste', action: () => {}, shortcut: '⌘V', disabled: true },
-  ];
+    return () => clearInterval(interval);
+  }, []);
 
-  const viewMenuItems: MenuItem[] = [
-    { label: 'Show View Options', action: () => {}, disabled: true },
-  ];
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const modifier = isMac ? e.metaKey : e.ctrlKey;
 
-  const goMenuItems: MenuItem[] = [
-    { label: 'Home', action: () => {}, disabled: true },
-    { label: 'Back', action: () => {}, disabled: true },
-    { label: 'Forward', action: () => {}, disabled: true },
-  ];
+      if (!modifier) return;
 
-  const windowMenuItems: MenuItem[] = [
-    { label: 'Minimize', action: handleMinimizeWindow, shortcut: '⌘M', disabled: !activeWindowId },
-    { label: 'Zoom', action: () => {}, disabled: !activeWindowId },
-    { separator: true },
-    { label: 'Bring All to Front', action: handleBringAllToFront },
-  ];
+      if (activeWindow?.type === 'terminal') {
+        if (e.key === 't' || e.key === 'T') {
+          e.preventDefault();
+          handleNewTerminalTab();
+        } else if (e.key === 'n' || e.key === 'N') {
+          e.preventDefault();
+          handleNewTerminalWindow();
+        } else if (e.key === 'w' || e.key === 'W') {
+          e.preventDefault();
+          if ((activeWindow.tabs?.length || 0) > 1) {
+            handleCloseTerminalTab();
+          } else {
+            handleCloseWindow();
+          }
+        } else if (e.key === 'q' || e.key === 'Q') {
+          e.preventDefault();
+          handleQuitTerminal();
+        }
+      }
+    };
 
-  const helpMenuItems: MenuItem[] = [{ label: 'Help Center', action: () => {}, disabled: true }];
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeWindow, windows, handleNewTerminalTab, handleNewTerminalWindow, handleCloseTerminalTab, handleCloseWindow, handleQuitTerminal]);
+
+  const menuConfig =
+    activeWindow?.type === 'terminal'
+      ? getTerminalMenuItems(activeWindow, {
+          handleNewTab: handleNewTerminalTab,
+          handleNewWindow: handleNewTerminalWindow,
+          handleCloseTab: handleCloseTerminalTab,
+          handleCloseWindow: handleCloseWindow,
+          handleQuitTerminal: handleQuitTerminal,
+          handleMinimizeWindow: handleMinimizeWindow,
+          handleBringAllToFront: handleBringAllToFront,
+        })
+      : getDefaultMenuItems(activeWindow, {
+          handleNewWindow: handleNewWindow,
+          handleCloseWindow: handleCloseWindow,
+          handleMinimizeWindow: handleMinimizeWindow,
+          handleBringAllToFront: handleBringAllToFront,
+        });
 
   return (
     <div className="aqua-menubar font-ui fixed top-0 right-0 left-0 z-50 flex h-[22px] items-center justify-between px-3 text-[13px] text-black/90">
@@ -126,12 +182,12 @@ const MenuBar = () => {
           <img src="/icons/apple.png" alt="Apple" className="h-4 w-4" />
         </div>
         <span className="ml-1 font-semibold">{appName}</span>
-        <MenuBarMenu label="File" items={fileMenuItems} />
-        <MenuBarMenu label="Edit" items={editMenuItems} />
-        <MenuBarMenu label="View" items={viewMenuItems} />
-        <MenuBarMenu label="Go" items={goMenuItems} />
-        <MenuBarMenu label="Window" items={windowMenuItems} />
-        <MenuBarMenu label="Help" items={helpMenuItems} />
+        <MenuBarMenu label="File" items={menuConfig.file} />
+        <MenuBarMenu label="Edit" items={menuConfig.edit} />
+        <MenuBarMenu label="View" items={menuConfig.view} />
+        <MenuBarMenu label="Go" items={menuConfig.go} />
+        <MenuBarMenu label="Window" items={menuConfig.window} />
+        <MenuBarMenu label="Help" items={menuConfig.help} />
       </div>
       <div className="flex items-center text-[12px]">
         <span>{currentTime}</span>

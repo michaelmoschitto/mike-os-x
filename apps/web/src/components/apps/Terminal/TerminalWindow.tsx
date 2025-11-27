@@ -1,12 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 
 import Window from '@/components/window/Window';
+import TerminalTabBar from '@/components/apps/Terminal/TerminalTabBar';
 import type { InputMessage, ResizeMessage } from '@/lib/terminal/messageProtocol';
 import { useWebSocketManager } from '@/stores/useWebSocketManager';
-import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
+import {
+  useWindowStore,
+  type TerminalTab,
+  type Window as WindowType,
+} from '@/stores/useWindowStore';
 import 'xterm/css/xterm.css';
 
 interface TerminalWindowProps {
@@ -14,27 +19,50 @@ interface TerminalWindowProps {
   isActive: boolean;
 }
 
+interface TerminalInstance {
+  terminal: Terminal;
+  fitAddon: FitAddon;
+  container: HTMLDivElement;
+  sessionCreated: boolean;
+  sessionRegisteredTime: number;
+  onDataDisposable: { dispose: () => void };
+}
+
 const MIN_SESSION_DURATION_FOR_CLOSE_MESSAGE_MS = 500;
 
 const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) => {
-  const { closeWindow, focusWindow, updateWindowPosition, updateWindowSize, minimizeWindow } =
-    useWindowStore();
+  const {
+    closeWindow,
+    focusWindow,
+    updateWindowPosition,
+    updateWindowSize,
+    minimizeWindow,
+    closeTab,
+    setActiveTab: setActiveTabInStore,
+    reorderTabs,
+  } = useWindowStore();
 
   const { registerSession, unregisterSession, sendMessage, connectionState } =
     useWebSocketManager();
 
-  const terminalRef = useRef<HTMLDivElement>(null);
-  const terminalInstanceRef = useRef<Terminal | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
-  const sessionCreatedRef = useRef<boolean>(false);
-  const sessionRegisteredTimeRef = useRef<number>(0);
-  const sessionId = windowData.id;
+  const terminalsRef = useRef<Map<string, TerminalInstance>>(new Map());
+  const containersRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const [activeTabId, setActiveTabId] = useState<string | undefined>(windowData.activeTabId);
+
+  const tabs = windowData.tabs || [];
+  const currentActiveTabId = windowData.activeTabId || tabs[0]?.id;
 
   useEffect(() => {
-    if (!terminalRef.current) return;
+    setActiveTabId(currentActiveTabId);
+  }, [currentActiveTabId]);
 
-    sessionCreatedRef.current = false;
-    sessionRegisteredTimeRef.current = Date.now();
+  const initializeTerminal = (tab: TerminalTab, container: HTMLDivElement) => {
+    if (terminalsRef.current.has(tab.id)) {
+      return;
+    }
+
+    const sessionRegisteredTime = Date.now();
+    let sessionCreated = false;
 
     const terminal = new Terminal({
       cursorBlink: true,
@@ -68,23 +96,20 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
 
     terminal.loadAddon(fitAddon);
     terminal.loadAddon(webLinksAddon);
-    terminal.open(terminalRef.current);
+    terminal.open(container);
 
     fitAddon.fit();
-
-    terminalInstanceRef.current = terminal;
-    fitAddonRef.current = fitAddon;
 
     const onDataDisposable = terminal.onData((data: string) => {
       const message: InputMessage = {
         type: 'input',
-        sessionId,
+        sessionId: tab.sessionId,
         data,
       };
       sendMessage(message);
     });
 
-    registerSession(sessionId, {
+    registerSession(tab.sessionId, {
       onOutput: (data: string) => {
         terminal.write(data);
       },
@@ -92,17 +117,17 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
         terminal.write(`\r\n\x1b[31m${error}\x1b[0m\r\n`);
       },
       onSessionCreated: () => {
-        sessionCreatedRef.current = true;
+        sessionCreated = true;
         setTimeout(() => {
-          if (terminalInstanceRef.current && fitAddonRef.current) {
-            fitAddonRef.current.fit();
+          if (fitAddon && terminal) {
+            fitAddon.fit();
             const dims = {
-              cols: terminalInstanceRef.current.cols,
-              rows: terminalInstanceRef.current.rows,
+              cols: terminal.cols,
+              rows: terminal.rows,
             };
             const resizeMessage: ResizeMessage = {
               type: 'resize',
-              sessionId,
+              sessionId: tab.sessionId,
               cols: dims.cols,
               rows: dims.rows,
             };
@@ -111,13 +136,15 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
         }, 100);
 
         setTimeout(() => {
-          terminal.focus();
+          if (activeTabId === tab.id && isActive) {
+            terminal.focus();
+          }
         }, 150);
       },
       onSessionClosed: () => {
-        const timeSinceRegistration = Date.now() - sessionRegisteredTimeRef.current;
+        const timeSinceRegistration = Date.now() - sessionRegisteredTime;
         if (
-          sessionCreatedRef.current &&
+          sessionCreated &&
           timeSinceRegistration > MIN_SESSION_DURATION_FOR_CLOSE_MESSAGE_MS
         ) {
           terminal.write('\r\n\x1b[33mSession closed\x1b[0m\r\n');
@@ -125,74 +152,117 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
       },
     });
 
-    const handleResize = () => {
-      if (fitAddonRef.current && terminalInstanceRef.current) {
-        fitAddonRef.current.fit();
-        if (connectionState === 'connected') {
-          const dims = {
-            cols: terminalInstanceRef.current.cols,
-            rows: terminalInstanceRef.current.rows,
-          };
-          const resizeMessage: ResizeMessage = {
-            type: 'resize',
-            sessionId,
-            cols: dims.cols,
-            rows: dims.rows,
-          };
-          sendMessage(resizeMessage);
-        }
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-
     if (connectionState === 'disconnected') {
       terminal.write('\r\n\x1b[33mConnecting...\x1b[0m\r\n');
     } else if (connectionState === 'connecting') {
       terminal.write('\r\n\x1b[33mConnecting...\x1b[0m\r\n');
     }
 
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      onDataDisposable.dispose();
-      unregisterSession(sessionId);
-      terminal.dispose();
-      sessionCreatedRef.current = false;
-    };
-  }, [sessionId, registerSession, unregisterSession, sendMessage, connectionState]);
+    terminalsRef.current.set(tab.id, {
+      terminal,
+      fitAddon,
+      container,
+      sessionCreated,
+      sessionRegisteredTime,
+      onDataDisposable,
+    });
+  };
 
   useEffect(() => {
-    const terminal = terminalInstanceRef.current;
-    if (!terminal) return;
+    tabs.forEach((tab) => {
+      const container = containersRef.current.get(tab.id);
+      if (container && !terminalsRef.current.has(tab.id)) {
+        initializeTerminal(tab, container);
+      }
+    });
 
-    if (isActive) {
-      setTimeout(() => {
-        terminal.focus();
-      }, 200);
-    }
-
-    if (fitAddonRef.current) {
-      setTimeout(() => {
-        fitAddonRef.current?.fit();
-        if (connectionState === 'connected' && terminalInstanceRef.current) {
-          const dims = {
-            cols: terminalInstanceRef.current.cols,
-            rows: terminalInstanceRef.current.rows,
-          };
-          const resizeMessage: ResizeMessage = {
-            type: 'resize',
-            sessionId,
-            cols: dims.cols,
-            rows: dims.rows,
-          };
-          sendMessage(resizeMessage);
+    const tabIds = new Set(tabs.map((t) => t.id));
+    terminalsRef.current.forEach((instance, tabId) => {
+      if (!tabIds.has(tabId)) {
+        const tab = tabs.find((t) => t.id === tabId);
+        if (tab) {
+          instance.onDataDisposable.dispose();
+          unregisterSession(tab.sessionId);
+          instance.terminal.dispose();
+          terminalsRef.current.delete(tabId);
         }
-      }, 100);
+      }
+    });
+  }, [tabs, connectionState, sendMessage, registerSession, unregisterSession, activeTabId, isActive]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      terminalsRef.current.forEach((instance, tabId) => {
+        if (tabId === activeTabId && instance.fitAddon && instance.terminal) {
+          instance.fitAddon.fit();
+          if (connectionState === 'connected') {
+            const dims = {
+              cols: instance.terminal.cols,
+              rows: instance.terminal.rows,
+            };
+            const resizeMessage: ResizeMessage = {
+              type: 'resize',
+              sessionId: tabs.find((t) => t.id === tabId)?.sessionId || '',
+              cols: dims.cols,
+              rows: dims.rows,
+            };
+            sendMessage(resizeMessage);
+          }
+        }
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [activeTabId, connectionState, sendMessage, tabs]);
+
+  useEffect(() => {
+    if (activeTabId && isActive) {
+      const instance = terminalsRef.current.get(activeTabId);
+      if (instance) {
+        setTimeout(() => {
+          instance.terminal.focus();
+        }, 200);
+      }
     }
-  }, [isActive, windowData.size, sessionId, sendMessage, connectionState]);
+  }, [activeTabId, isActive]);
+
+  useEffect(() => {
+    if (activeTabId) {
+      const instance = terminalsRef.current.get(activeTabId);
+      if (instance?.fitAddon) {
+        setTimeout(() => {
+          instance.fitAddon.fit();
+          if (connectionState === 'connected' && instance.terminal) {
+            const tab = tabs.find((t) => t.id === activeTabId);
+            if (tab) {
+              const dims = {
+                cols: instance.terminal.cols,
+                rows: instance.terminal.rows,
+              };
+              const resizeMessage: ResizeMessage = {
+                type: 'resize',
+                sessionId: tab.sessionId,
+                cols: dims.cols,
+                rows: dims.rows,
+              };
+              sendMessage(resizeMessage);
+            }
+          }
+        }, 100);
+      }
+    }
+  }, [windowData.size, activeTabId, connectionState, sendMessage, tabs]);
 
   const handleClose = () => {
-    unregisterSession(sessionId);
+    tabs.forEach((tab) => {
+      unregisterSession(tab.sessionId);
+    });
+    terminalsRef.current.forEach((instance) => {
+      instance.onDataDisposable.dispose();
+      instance.terminal.dispose();
+    });
+    terminalsRef.current.clear();
     closeWindow(windowData.id);
   };
 
@@ -202,9 +272,14 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
 
   const handleFocus = () => {
     focusWindow(windowData.id);
-    setTimeout(() => {
-      terminalInstanceRef.current?.focus();
-    }, 50);
+    if (activeTabId) {
+      const instance = terminalsRef.current.get(activeTabId);
+      if (instance) {
+        setTimeout(() => {
+          instance.terminal.focus();
+        }, 50);
+      }
+    }
   };
 
   const handleDragEnd = (position: { x: number; y: number }) => {
@@ -213,30 +288,69 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
 
   const handleResize = (size: { width: number; height: number }) => {
     updateWindowSize(windowData.id, size);
-    if (fitAddonRef.current && terminalInstanceRef.current) {
-      setTimeout(() => {
-        fitAddonRef.current?.fit();
-        if (connectionState === 'connected' && terminalInstanceRef.current) {
-          const dims = {
-            cols: terminalInstanceRef.current.cols,
-            rows: terminalInstanceRef.current.rows,
-          };
-          const resizeMessage: ResizeMessage = {
-            type: 'resize',
-            sessionId,
-            cols: dims.cols,
-            rows: dims.rows,
-          };
-          sendMessage(resizeMessage);
-        }
-      }, 100);
+    if (activeTabId) {
+      const instance = terminalsRef.current.get(activeTabId);
+      if (instance?.fitAddon) {
+        setTimeout(() => {
+          instance.fitAddon.fit();
+          if (connectionState === 'connected' && instance.terminal) {
+            const tab = tabs.find((t) => t.id === activeTabId);
+            if (tab) {
+              const dims = {
+                cols: instance.terminal.cols,
+                rows: instance.terminal.rows,
+              };
+              const resizeMessage: ResizeMessage = {
+                type: 'resize',
+                sessionId: tab.sessionId,
+                cols: dims.cols,
+                rows: dims.rows,
+              };
+              sendMessage(resizeMessage);
+            }
+          }
+        }, 100);
+      }
     }
+  };
+
+  const handleTabClick = (tabId: string) => {
+    setActiveTabInStore(windowData.id, tabId);
+    setActiveTabId(tabId);
+  };
+
+  const handleTabClose = (tabId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const instance = terminalsRef.current.get(tabId);
+    const tab = tabs.find((t) => t.id === tabId);
+    if (instance && tab) {
+      instance.onDataDisposable.dispose();
+      unregisterSession(tab.sessionId);
+      instance.terminal.dispose();
+      terminalsRef.current.delete(tabId);
+    }
+    closeTab(windowData.id, tabId);
+  };
+
+  const handleTabReorder = (fromIndex: number, toIndex: number) => {
+    reorderTabs(windowData.id, fromIndex, toIndex);
   };
 
   const handleTerminalClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (terminalInstanceRef.current) {
-      terminalInstanceRef.current.focus();
+    if (activeTabId) {
+      const instance = terminalsRef.current.get(activeTabId);
+      if (instance) {
+        instance.terminal.focus();
+      }
+    }
+  };
+
+  const setContainerRef = (tabId: string) => (el: HTMLDivElement | null) => {
+    if (el) {
+      containersRef.current.set(tabId, el);
+    } else {
+      containersRef.current.delete(tabId);
     }
   };
 
@@ -258,11 +372,23 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
         className="pinstripe flex h-full flex-col overflow-hidden bg-[#f5f5f5]"
         onClick={handleTerminalClick}
       >
-        <div
-          ref={terminalRef}
-          className="flex-1 cursor-text overflow-hidden"
-          style={{ minHeight: 0 }}
+        <TerminalTabBar
+          tabs={tabs}
+          activeTabId={activeTabId}
+          onTabClick={handleTabClick}
+          onTabClose={handleTabClose}
+          onTabReorder={handleTabReorder}
         />
+        <div className="relative flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+          {tabs.map((tab) => (
+            <div
+              key={tab.id}
+              ref={setContainerRef(tab.id)}
+              className={tab.id === activeTabId ? 'absolute inset-0' : 'hidden'}
+              style={{ display: tab.id === activeTabId ? 'block' : 'none' }}
+            />
+          ))}
+        </div>
       </div>
     </Window>
   );
