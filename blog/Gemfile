@@ -1,0 +1,14 @@
+source "https://rubygems.org"
+
+gem "jekyll", "~> 4.3.3"
+gem "minima", "~> 2.5"
+gem "webrick"
+
+# Use sassc instead of sass-embedded to avoid "Broken pipe" errors in Docker
+gem "jekyll-sass-converter", "~> 2.2"
+
+group :jekyll_plugins do
+  gem "jekyll-feed", "~> 0.12"
+  gem "jekyll-sitemap"
+end
+

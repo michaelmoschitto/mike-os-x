@@ -1,0 +1,39 @@
+title: "Mike's Blog"
+author: "Michael Moschitto"
+description: "Thoughts on software engineering, AI, and building things."
+
+email: "michael@michaelmoschitto.com"
+github_username: "MichaelMoschitto"
+linkedin_username: "michaelmoschitto"
+
+baseurl: ""
+url: "https://blog.mikemoschitto.com"
+
+header_pages:
+  - resume.md
+  - reading.md
+  - archive.md
+
+theme: "minima"
+
+rss: rss
+
+kramdown:
+  syntax_highlighter_opts:
+    disable: true
+    
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+titles_from_headings:
+  strip_title: true
+  collections: true
+
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      tags: Other
+
