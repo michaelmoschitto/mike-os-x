@@ -60,6 +60,20 @@ services:
     volumes:
       - redis-data:/data
 
+  # Jekyll Blog (for local testing)
+  # Uses cached image - no pulling needed after first run
+  blog:
+    image: jekyll/jekyll:latest
+    ports:
+      - '4000:4000'
+      - '35729:35729'
+    volumes:
+      - ./blog:/srv/jekyll
+      - jekyll-bundle-cache:/usr/local/bundle
+    working_dir: /srv/jekyll
+    command: sh -c "bundle install --quiet && bundle exec jekyll serve --host 0.0.0.0 --port 4000 --baseurl '' --force_polling --livereload"
+
 volumes:
   redis-data:
   terminal-workspace:
+  jekyll-bundle-cache:

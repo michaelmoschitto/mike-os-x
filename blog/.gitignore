@@ -1,0 +1,14 @@
+_site
+.sass-cache
+.jekyll-cache
+.jekyll-metadata
+vendor
+.bundle
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
