@@ -19,26 +19,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.1'
           bundler-cache: true
-      
+
       - name: Install Jekyll
         run: |
           cd blog
           gem install bundler jekyll
           bundle install
-      
+
       - name: Build with Jekyll
         run: |
           cd blog
           bundle exec jekyll build
-      
+
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v4
         with:
           path: blog/_site
 
@@ -51,5 +54,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v3
-
+        uses: actions/deploy-pages@v4
