@@ -37,10 +37,10 @@ React • TypeScript • JavaScript • Python • HTML • CSS • Tailwind CSS
 
 Building and maintaining personal projects including a Mac OS X Aqua-themed portfolio, terminal emulation systems, and various web applications.
 
-* Developed a Mac OS X 10.1 (Aqua era) themed portfolio using React, TypeScript, and Tailwind CSS, creating an authentic desktop application experience in the browser
-* Built a terminal emulation system with Python backend API, implementing session multiplexing, container management, and secure terminal access
-* Created content management systems using Jekyll and GitHub Pages for blog and documentation
-* Implemented modern UI/UX patterns with focus on accessibility and responsive design
+- Developed a Mac OS X 10.1 (Aqua era) themed portfolio using React, TypeScript, and Tailwind CSS, creating an authentic desktop application experience in the browser
+- Built a terminal emulation system with Python backend API, implementing session multiplexing, container management, and secure terminal access
+- Created content management systems using Jekyll and GitHub Pages for blog and documentation
+- Implemented modern UI/UX patterns with focus on accessibility and responsive design
 
 ## Education
 
@@ -66,6 +66,5 @@ A secure terminal emulation system with Python backend API, supporting session m
 
 ## Additional Links
 
-* **GitHub**: [MichaelMoschitto](https://github.com/MichaelMoschitto)
-* **LinkedIn**: [michaelmoschitto](https://linkedin.com/in/michaelmoschitto)
-
+- **GitHub**: [MichaelMoschitto](https://github.com/MichaelMoschitto)
+- **LinkedIn**: [michaelmoschitto](https://linkedin.com/in/michaelmoschitto)
