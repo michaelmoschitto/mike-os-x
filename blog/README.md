@@ -61,4 +61,3 @@ Custom domain: blog.michaelmoschitto.com
 - `_posts/` - Blog post markdown files
 - `css/` - Custom stylesheets
 - `js/highlightjs/` - Syntax highlighting libraries
-
