@@ -12,6 +12,7 @@ COPY apps/web ./apps/web
 COPY scripts ./scripts
 COPY tsconfig.json ./
 
+
 # This runs: prebuild (buildContentMetadata.mjs) → tsc → vite build
 # Equivalent to local: bun --cwd apps/web build
 RUN bun run --filter=@mike-os-x/web build
