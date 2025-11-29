@@ -98,20 +98,22 @@ jobs:
           fi
           pulumi config set sshPublicKey "$SSH_KEY"
 
-      - name: Import existing key pair (if needed)
+      - name: Handle existing key pair
         working-directory: iac
         run: |
-          # Check if key pair resource exists in Pulumi state
-          if ! pulumi stack --show-urns 2>/dev/null | grep -q "terminal-host-key"; then
-            echo "Key pair not in state, attempting to import..."
-            # Import the existing key pair from AWS
-            # The import ID is just the key pair name
-            pulumi import aws:ec2/keyPair:KeyPair terminal-host-key mike-os-x-terminal-key || {
-              echo "::warning::Could not import key pair (may not exist or already imported)"
-              echo "Pulumi will attempt to create it or handle it during deployment"
-            }
-          else
+          # Check if key pair exists in Pulumi state
+          if pulumi stack export 2>/dev/null | jq -e '.deployment.resources[] | select(.type == "aws:ec2/keyPair:KeyPair" and .id == "mike-os-x-terminal-key")' > /dev/null 2>&1; then
             echo "✅ Key pair already in Pulumi state"
+          else
+            # Key pair not in state, check if it exists in AWS
+            if aws ec2 describe-key-pairs --key-names mike-os-x-terminal-key --region us-west-2 > /dev/null 2>&1; then
+              echo "⚠️  Key pair exists in AWS but not in Pulumi state"
+              echo "Deleting orphaned key pair to allow Pulumi to manage it..."
+              aws ec2 delete-key-pair --key-name mike-os-x-terminal-key --region us-west-2
+              echo "✅ Orphaned key pair deleted, Pulumi will create a new one"
+            else
+              echo "✅ Key pair doesn't exist in AWS, Pulumi will create it"
+            fi
           fi
 
       - name: Preview changes
