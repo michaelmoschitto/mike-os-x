@@ -91,11 +91,10 @@ jobs:
       - name: Select or create stack
         working-directory: iac
         run: |
-          STACK="${{ secrets.PULUMI_STACK || 'dev' }}"
-          if ! pulumi stack ls 2>/dev/null | grep -q "$STACK"; then
-            pulumi stack init "$STACK"
+          if ! pulumi stack ls 2>/dev/null | grep -q "default"; then
+            pulumi stack init default
           else
-            pulumi stack select "$STACK"
+            pulumi stack select default
           fi
 
       - name: Set SSH public key
