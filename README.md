@@ -23,24 +23,29 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full setup guide.
 
 1. **Set GitHub Secrets:**
    - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+   - `PULUMI_PASSPHRASE` (passphrase for Pulumi secrets)
    - `EC2_SSH_KEY` (your private SSH key)
-   - `EC2_SSH_PUBLIC_KEY` (your public SSH key)
+   - `EC2_SSH_PUBLIC_KEY` (your public SSH key, or provide in workflow input)
+   - `PULUMI_STACK` (optional, defaults to "default")
 
-2. **Deploy everything:**
-   - **Automatic**: Push changes to `main` (workflow runs automatically)
-   - **Manual**: Go to Actions → "Deploy Infrastructure and Terminal" → Run workflow
-   - Workflow handles everything: EC2, TLS, terminal deployment
+2. **Deploy infrastructure:**
+   - **Automatic**: Push changes to `main` that affect `iac/**` (workflow runs automatically)
+   - **Manual**: Go to Actions → "Deploy Infrastructure" → Run workflow
+   - Workflow creates EC2 instance and outputs the IP address
 
-3. **Download TLS certs:**
-   - Download client certificates from workflow artifacts
-   - Upload to Railway API service volume at `/app/certs`
+3. **Generate TLS certificates (manual):**
+   - Get EC2 IP from workflow summary
+   - Run: `./scripts/generate-docker-tls.sh <EC2_IP>`
+   - Upload server certs to EC2 and configure Docker TLS (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md))
+   - Upload client certs to Railway API service volume at `/app/certs`
 
 4. **Configure Railway:**
    - Add Web, API, and Redis services
    - Set environment variables (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md))
 
-5. **Future terminal updates:**
-   - Create a GitHub release (auto-deploys terminal container)
+5. **Deploy terminal container:**
+   - **Automatic**: Create a GitHub release (auto-deploys terminal container)
+   - **Manual**: Go to Actions → "Deploy Terminal Container" → Run workflow
 
 ## Local Development
 
