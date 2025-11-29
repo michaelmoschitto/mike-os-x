@@ -7,8 +7,7 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# Don't override startCommand - let Dockerfile CMD handle it
-# startCommand is removed so Railway uses: CMD ["nginx", "-g", "daemon off;"] from Dockerfile
+startCommand = "nginx -g 'daemon off;'"
 healthcheckPath = "/"
 healthcheckTimeout = 100
 restartPolicyType = "on_failure"
