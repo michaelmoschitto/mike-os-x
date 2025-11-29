@@ -34,9 +34,32 @@ jobs:
         working-directory: iac
         run: bun install
 
+      - name: Validate required secrets
+        run: |
+          MISSING_SECRETS=()
+          
+          if [ -z "${{ secrets.PULUMI_PASSPHRASE }}" ]; then
+            MISSING_SECRETS+=("PULUMI_PASSPHRASE")
+          fi
+          
+          if [ -z "${{ secrets.EC2_SSH_KEY }}" ]; then
+            MISSING_SECRETS+=("EC2_SSH_KEY")
+          fi
+          
+          if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
+            echo "::error::Missing required GitHub secrets: ${MISSING_SECRETS[*]}"
+            echo "Please configure these secrets in your repository settings:"
+            for secret in "${MISSING_SECRETS[@]}"; do
+              echo "  - $secret"
+            done
+            exit 1
+          fi
+          
+          echo "✅ All required secrets are configured"
+
       - name: Set Pulumi passphrase
         run: |
-          echo "PULUMI_CONFIG_PASSPHRASE=${{ secrets.PULUMI_PASSPHRASE || 'mike-os-x-dev' }}" >> $GITHUB_ENV
+          echo "PULUMI_CONFIG_PASSPHRASE=${{ secrets.PULUMI_PASSPHRASE }}" >> $GITHUB_ENV
 
       - name: Login to Pulumi
         run: pulumi login --local
@@ -45,14 +68,24 @@ jobs:
         id: get_ip
         working-directory: iac
         run: |
-          pulumi stack select ${{ secrets.PULUMI_STACK || 'default' }}
+          STACK="${{ secrets.PULUMI_STACK || 'default' }}"
+          if [ -z "$STACK" ]; then
+            echo "::error::PULUMI_STACK secret is not set. Using default stack."
+          fi
+          
+          pulumi stack select "$STACK"
           EC2_IP=$(pulumi stack output publicIp --show-secrets)
-          echo "EC2_IP=$EC2_IP" >> $GITHUB_OUTPUT
-          echo "EC2 IP: $EC2_IP"
+          
           if [ -z "$EC2_IP" ]; then
-            echo "Error: Could not get EC2 IP from Pulumi stack. Ensure infrastructure is deployed first."
+            echo "::error::Could not get EC2 IP from Pulumi stack '$STACK'."
+            echo "Please ensure:"
+            echo "  1. Infrastructure has been deployed (run 'Deploy Infrastructure' workflow first)"
+            echo "  2. PULUMI_STACK secret matches the stack name used during infrastructure deployment"
             exit 1
           fi
+          
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_OUTPUT
+          echo "EC2 IP: $EC2_IP"
 
       - name: Configure SSH
         run: |
