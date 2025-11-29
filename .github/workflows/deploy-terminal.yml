@@ -1,0 +1,113 @@
+name: Deploy Terminal Container
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/terminal.Dockerfile'
+      - 'apps/api/docker-compose.terminal.yml'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  deploy-terminal:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Pulumi
+        uses: pulumi/actions@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: iac
+        run: bun install
+
+      - name: Set Pulumi passphrase
+        run: |
+          echo "PULUMI_CONFIG_PASSPHRASE=${{ secrets.PULUMI_PASSPHRASE || 'mike-os-x-dev' }}" >> $GITHUB_ENV
+
+      - name: Login to Pulumi
+        run: pulumi login --local
+
+      - name: Get EC2 IP from Pulumi
+        id: get_ip
+        working-directory: iac
+        run: |
+          pulumi stack select ${{ secrets.PULUMI_STACK || 'default' }}
+          EC2_IP=$(pulumi stack output publicIp --show-secrets)
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_OUTPUT
+          echo "EC2 IP: $EC2_IP"
+          if [ -z "$EC2_IP" ]; then
+            echo "Error: Could not get EC2 IP from Pulumi stack. Ensure infrastructure is deployed first."
+            exit 1
+          fi
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ steps.get_ip.outputs.EC2_IP }} >> ~/.ssh/known_hosts
+
+      - name: Clone or update repository on EC2
+        run: |
+          ssh ubuntu@${{ steps.get_ip.outputs.EC2_IP }} << 'EOF'
+            set -e
+            if [ ! -d ~/mike-os-x/.git ]; then
+              git clone https://github.com/${{ github.repository }}.git ~/mike-os-x
+            fi
+          EOF
+
+      - name: Deploy terminal container
+        run: |
+          ssh ubuntu@${{ steps.get_ip.outputs.EC2_IP }} << 'EOF'
+            set -e
+            cd ~/mike-os-x
+            
+            if [ "${{ github.event_name }}" = "release" ]; then
+              git fetch --tags
+              git checkout ${{ github.event.release.tag_name }}
+            else
+              git fetch origin main
+              git checkout main
+            fi
+            
+            cd apps/api
+            docker-compose -f docker-compose.terminal.yml build terminal
+            docker-compose -f docker-compose.terminal.yml up -d terminal
+            
+            sleep 2
+            docker ps | grep terminal-shared || exit 1
+            echo "✅ Terminal container deployed successfully"
+          EOF
+
+      - name: Verify Terminal Health
+        run: |
+          ssh ubuntu@${{ steps.get_ip.outputs.EC2_IP }} << 'EOF'
+            docker exec terminal-shared echo "Terminal healthy" || exit 1
+          EOF
+
+      - name: Summary
+        run: |
+          echo "## Terminal Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**EC2 IP:** \`${{ steps.get_ip.outputs.EC2_IP }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "**Deployed from release:** \`${{ github.event.release.tag_name }}\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Deployed from branch:** \`main\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
