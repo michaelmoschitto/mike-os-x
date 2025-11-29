@@ -71,15 +71,28 @@ jobs:
       - name: Set Pulumi passphrase
         run: |
           echo "PULUMI_CONFIG_PASSPHRASE=${{ secrets.PULUMI_PASSPHRASE }}" >> $GITHUB_ENV
+          echo "AWS_REGION=us-west-2" >> $GITHUB_ENV
 
-      - name: Login to Pulumi
-        run: pulumi login --local
+      - name: Create S3 bucket for Pulumi state (if needed)
+        run: |
+          BUCKET_NAME="mike-os-x-pulumi-state"
+          if ! aws s3 ls "s3://$BUCKET_NAME" 2>&1 > /dev/null; then
+            echo "Creating S3 bucket for Pulumi state..."
+            aws s3 mb "s3://$BUCKET_NAME" --region us-west-2
+            aws s3api put-bucket-versioning --bucket "$BUCKET_NAME" --versioning-configuration Status=Enabled
+            echo "✅ S3 bucket created with versioning enabled"
+          else
+            echo "✅ S3 bucket already exists"
+          fi
+
+      - name: Login to Pulumi (S3 backend)
+        run: pulumi login s3://mike-os-x-pulumi-state
 
       - name: Select or create stack
         working-directory: iac
         run: |
-          STACK="${{ secrets.PULUMI_STACK || 'default' }}"
-          if ! pulumi stack ls | grep -q "$STACK"; then
+          STACK="${{ secrets.PULUMI_STACK || 'dev' }}"
+          if ! pulumi stack ls 2>/dev/null | grep -q "$STACK"; then
             pulumi stack init "$STACK"
           else
             pulumi stack select "$STACK"
