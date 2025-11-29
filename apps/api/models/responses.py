@@ -3,6 +3,8 @@ from pydantic import BaseModel
 
 class HealthResponse(BaseModel):
     status: str
+    terminal_available: bool = False
+    terminal_status: str | None = None
     container_status: str | None = None
 
 

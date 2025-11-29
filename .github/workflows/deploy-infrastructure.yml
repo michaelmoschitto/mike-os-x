@@ -1,0 +1,137 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'iac/**'
+  workflow_dispatch:
+    inputs:
+      ssh_public_key:
+        description: 'SSH public key for EC2 access (or use EC2_SSH_PUBLIC_KEY secret)'
+        required: false
+        type: string
+
+jobs:
+  deploy-infrastructure:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Pulumi
+        uses: pulumi/actions@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: iac
+        run: bun install
+
+      - name: Validate required secrets
+        run: |
+          MISSING_SECRETS=()
+
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+            MISSING_SECRETS+=("AWS_ACCESS_KEY_ID")
+          fi
+
+          if [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
+            MISSING_SECRETS+=("AWS_SECRET_ACCESS_KEY")
+          fi
+
+          if [ -z "${{ secrets.PULUMI_PASSPHRASE }}" ]; then
+            MISSING_SECRETS+=("PULUMI_PASSPHRASE")
+          fi
+
+          if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
+            echo "::error::Missing required GitHub secrets: ${MISSING_SECRETS[*]}"
+            echo "Please configure these secrets in your repository settings:"
+            for secret in "${MISSING_SECRETS[@]}"; do
+              echo "  - $secret"
+            done
+            exit 1
+          fi
+
+          echo "✅ All required secrets are configured"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Set Pulumi passphrase
+        run: |
+          echo "PULUMI_CONFIG_PASSPHRASE=${{ secrets.PULUMI_PASSPHRASE }}" >> $GITHUB_ENV
+
+      - name: Login to Pulumi
+        run: pulumi login --local
+
+      - name: Select or create stack
+        working-directory: iac
+        run: |
+          STACK="${{ secrets.PULUMI_STACK || 'default' }}"
+          if ! pulumi stack ls | grep -q "$STACK"; then
+            pulumi stack init "$STACK"
+          else
+            pulumi stack select "$STACK"
+          fi
+
+      - name: Set SSH public key
+        working-directory: iac
+        run: |
+          SSH_KEY="${{ github.event.inputs.ssh_public_key || secrets.EC2_SSH_PUBLIC_KEY }}"
+          if [ -z "$SSH_KEY" ]; then
+            echo "::error::SSH public key is required but not provided."
+            echo "Please either:"
+            echo "  1. Set the EC2_SSH_PUBLIC_KEY secret in repository settings, or"
+            echo "  2. Provide it as a workflow input when manually triggering the workflow"
+            exit 1
+          fi
+          pulumi config set sshPublicKey "$SSH_KEY"
+
+      - name: Preview changes
+        working-directory: iac
+        run: pulumi preview --non-interactive
+
+      - name: Deploy infrastructure
+        working-directory: iac
+        run: pulumi up --yes --non-interactive
+
+      - name: Get EC2 IP
+        id: get_ip
+        working-directory: iac
+        run: |
+          EC2_IP=$(pulumi stack output publicIp --show-secrets)
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_OUTPUT
+          echo "EC2 IP: $EC2_IP"
+
+      - name: Summary
+        run: |
+          echo "## Infrastructure Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**EC2 IP:** \`${{ steps.get_ip.outputs.EC2_IP }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. Generate TLS certificates locally:" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "   ./scripts/generate-docker-tls.sh ${{ steps.get_ip.outputs.EC2_IP }}" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "2. Upload server certificates to EC2:" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "   scp -r certs/daemon/* ubuntu@${{ steps.get_ip.outputs.EC2_IP }}:/tmp/certs/" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "3. Configure Docker TLS on EC2 (via SSH)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "4. Upload client certificates to Railway volume at \`/app/certs\`" >> $GITHUB_STEP_SUMMARY

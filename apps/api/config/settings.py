@@ -48,6 +48,8 @@ class Settings(BaseSettings):
 
     # Docker - respects DOCKER_HOST env var, falls back to auto-detection
     docker_host: str = Field(default_factory=get_default_docker_host)
+    docker_tls_verify: bool = Field(default=False)
+    docker_cert_path: str = Field(default="")
     terminal_container_name: str = Field(default="terminal-shared")
     terminal_volume_name: str = Field(default="terminal-workspace")
 

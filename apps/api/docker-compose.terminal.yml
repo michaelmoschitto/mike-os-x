@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  terminal:
+    build:
+      context: .
+      dockerfile: terminal.Dockerfile
+    container_name: terminal-shared
+    hostname: mikeos
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    network_mode: none
+    user: '1000:1000'
+    mem_limit: 1g
+    cpus: 1.0
+    tmpfs:
+      - /tmp:size=256m
+      - /var/tmp:size=256m
+    volumes:
+      - terminal-workspace:/workspace:rw
+    restart: unless-stopped
+    command: tail -f /dev/null
+
+volumes:
+  terminal-workspace:

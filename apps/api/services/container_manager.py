@@ -14,6 +14,27 @@ class ContainerManager:
     def __init__(self) -> None:
         docker_host = settings.docker_host
 
+        # Configure TLS if connecting to remote Docker daemon
+        tls_config = None
+        if settings.docker_tls_verify and settings.docker_cert_path:
+            cert_path = settings.docker_cert_path
+            ca_cert = os.path.join(cert_path, "ca.pem")
+            client_cert = os.path.join(cert_path, "cert.pem")
+            client_key = os.path.join(cert_path, "key.pem")
+
+            if all(os.path.exists(f) for f in [ca_cert, client_cert, client_key]):
+                tls_config = docker.tls.TLSConfig(
+                    client_cert=(client_cert, client_key),
+                    ca_cert=ca_cert,
+                    verify=True,
+                )
+                logger.info(f"Using TLS for Docker connection to {docker_host}")
+            else:
+                logger.warning(
+                    f"TLS enabled but certificates not found in {cert_path}. "
+                    "Falling back to non-TLS connection."
+                )
+
         if docker_host.startswith("unix://"):
             socket_path = docker_host.replace("unix://", "")
             if not os.path.exists(socket_path):
@@ -24,8 +45,9 @@ class ContainerManager:
                 )
 
         try:
-            self.client = docker.DockerClient(base_url=docker_host)
+            self.client = docker.DockerClient(base_url=docker_host, tls=tls_config)
             self.client.ping()
+            logger.info(f"Successfully connected to Docker at {docker_host}")
         except FileNotFoundError as e:
             raise RuntimeError(
                 f"Docker socket not found: {docker_host}\n"
@@ -34,20 +56,23 @@ class ContainerManager:
             ) from e
         except (DockerException, ConnectionError) as e:
             raise RuntimeError(
-                "Cannot connect to Docker Desktop.\n"
-                "Please ensure Docker Desktop is running and try again.\n"
+                f"Cannot connect to Docker daemon at {docker_host}.\n"
+                "Please ensure Docker is running and accessible.\n"
                 f"Error: {e}"
             ) from e
         except Exception as e:
             raise RuntimeError(
                 f"Unexpected error connecting to Docker: {e}\n"
-                "Please ensure Docker Desktop is running and try again."
+                "Please ensure Docker is running and try again."
             ) from e
 
         self.container_name = settings.terminal_container_name
         self.volume_name = settings.terminal_volume_name
 
     def get_container(self) -> Container | None:
+        if getattr(self, "client", None) is None:
+            return None
+
         try:
             return self.client.containers.get(self.container_name)
         except NotFound:
