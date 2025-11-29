@@ -98,6 +98,22 @@ jobs:
           fi
           pulumi config set sshPublicKey "$SSH_KEY"
 
+      - name: Import existing key pair (if needed)
+        working-directory: iac
+        run: |
+          # Check if key pair resource exists in Pulumi state
+          if ! pulumi stack --show-urns 2>/dev/null | grep -q "terminal-host-key"; then
+            echo "Key pair not in state, attempting to import..."
+            # Import the existing key pair from AWS
+            # The import ID is just the key pair name
+            pulumi import aws:ec2/keyPair:KeyPair terminal-host-key mike-os-x-terminal-key || {
+              echo "::warning::Could not import key pair (may not exist or already imported)"
+              echo "Pulumi will attempt to create it or handle it during deployment"
+            }
+          else
+            echo "✅ Key pair already in Pulumi state"
+          fi
+
       - name: Preview changes
         working-directory: iac
         run: pulumi preview --non-interactive
@@ -261,6 +277,55 @@ jobs:
             echo "✅ Docker TLS configured successfully"
           EOF
 
+      - name: Verify Docker TLS configuration
+        run: |
+          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
+          ssh -i ~/.ssh/id_rsa ubuntu@$EC2_IP << 'EOF'
+            set -e
+            echo "Verifying Docker TLS configuration..."
+            
+            # Check certificates exist
+            if [ ! -f /etc/docker/certs/ca.pem ] || \
+               [ ! -f /etc/docker/certs/server-cert.pem ] || \
+               [ ! -f /etc/docker/certs/server-key.pem ]; then
+              echo "::error::Missing TLS certificates in /etc/docker/certs/"
+              exit 1
+            fi
+            
+            # Check certificate permissions
+            if [ "$(stat -c %a /etc/docker/certs/server-key.pem)" != "600" ]; then
+              echo "::error::Server key permissions incorrect (should be 600)"
+              exit 1
+            fi
+            
+            # Check daemon.json configuration
+            if ! grep -q '"tls": true' /etc/docker/daemon.json; then
+              echo "::error::Docker daemon.json missing TLS configuration"
+              exit 1
+            fi
+            
+            # Check Docker is listening on port 2376
+            if ! sudo netstat -tlnp 2>/dev/null | grep -q ':2376' && \
+               ! sudo ss -tlnp 2>/dev/null | grep -q ':2376'; then
+              echo "::warning::Docker may not be listening on port 2376"
+              echo "Checking Docker service status..."
+              sudo systemctl status docker --no-pager || true
+            fi
+            
+            # Verify Docker is running
+            if ! docker ps > /dev/null 2>&1; then
+              echo "::error::Docker is not responding"
+              exit 1
+            fi
+            
+            echo "✅ All TLS certificates present"
+            echo "✅ Certificate permissions correct"
+            echo "✅ Docker daemon.json configured for TLS"
+            echo "✅ Docker service is running"
+            echo ""
+            echo "Docker TLS configuration verified successfully!"
+          EOF
+
       - name: Upload client certificates as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -277,15 +342,28 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**EC2 IP:** \`${{ steps.get_ip.outputs.EC2_IP }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Docker TLS automatically configured!**" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Docker TLS automatically configured and verified!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Verification" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ TLS certificates generated and installed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Docker daemon configured for TLS" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Docker service running and accessible" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "1. Upload client certificates to Railway volume at \`/app/certs\`:" >> $GITHUB_STEP_SUMMARY
-          echo "   - \`certs/client/ca.pem\`" >> $GITHUB_STEP_SUMMARY
-          echo "   - \`certs/client/cert.pem\`" >> $GITHUB_STEP_SUMMARY
-          echo "   - \`certs/client/key.pem\`" >> $GITHUB_STEP_SUMMARY
+          echo "   - Download \`docker-tls-client-certs\` artifact from this workflow run" >> $GITHUB_STEP_SUMMARY
+          echo "   - Upload \`ca.pem\`, \`cert.pem\`, and \`key.pem\` to Railway" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "2. Deploy terminal container (workflow will run automatically on push to main)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Note:** Client certificates are available in the workflow artifacts (if needed for manual upload)." >> $GITHUB_STEP_SUMMARY
+          echo "### Manual Verification" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To verify locally, SSH to EC2 and run:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "ssh -i ~/.ssh/mike-os-x-ec2 ubuntu@${{ steps.get_ip.outputs.EC2_IP }}" >> $GITHUB_STEP_SUMMARY
+          echo "docker ps" >> $GITHUB_STEP_SUMMARY
+          echo "sudo systemctl status docker" >> $GITHUB_STEP_SUMMARY
+          echo "ls -la /etc/docker/certs/" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
