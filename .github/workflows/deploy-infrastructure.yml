@@ -114,24 +114,178 @@ jobs:
           echo "EC2_IP=$EC2_IP" >> $GITHUB_OUTPUT
           echo "EC2 IP: $EC2_IP"
 
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ steps.get_ip.outputs.EC2_IP }} >> ~/.ssh/known_hosts
+
+      - name: Wait for EC2 to be ready
+        run: |
+          echo "Waiting for EC2 instance to be ready..."
+          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
+          max_attempts=30
+          attempt=0
+
+          while [ $attempt -lt $max_attempts ]; do
+            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i ~/.ssh/id_rsa ubuntu@$EC2_IP echo "Connected" 2>/dev/null; then
+              echo "✅ EC2 instance is ready"
+              exit 0
+            fi
+            attempt=$((attempt + 1))
+            echo "Attempt $attempt/$max_attempts: Waiting for SSH..."
+            sleep 10
+          done
+
+          echo "::warning::EC2 instance may not be fully ready, but continuing..."
+
+      - name: Generate TLS certificates
+        run: |
+          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
+          CERTS_DIR="$(pwd)/certs"
+          DAEMON_DIR="$CERTS_DIR/daemon"
+          CLIENT_DIR="$CERTS_DIR/client"
+
+          echo "Generating Docker TLS certificates for $EC2_IP..."
+
+          mkdir -p "$DAEMON_DIR" "$CLIENT_DIR"
+
+          # Generate CA private key
+          openssl genrsa -out "$CERTS_DIR/ca-key.pem" 4096
+
+          # Generate CA certificate
+          openssl req -new -x509 -days 365 -key "$CERTS_DIR/ca-key.pem" \
+              -sha256 -out "$CERTS_DIR/ca.pem" \
+              -subj "/C=US/ST=State/L=City/O=Organization/CN=docker-ca"
+
+          # Generate server private key
+          openssl genrsa -out "$DAEMON_DIR/server-key.pem" 4096
+
+          # Generate server certificate signing request
+          openssl req -subj "/C=US/ST=State/L=City/O=Organization/CN=$EC2_IP" \
+              -sha256 -new -key "$DAEMON_DIR/server-key.pem" \
+              -out "$DAEMON_DIR/server.csr"
+
+          # Create server certificate extensions
+          echo "subjectAltName = IP:$EC2_IP,DNS:$EC2_IP,DNS:localhost,IP:127.0.0.1,IP:::1" > "$DAEMON_DIR/server-extfile.cnf"
+          echo "extendedKeyUsage = serverAuth" >> "$DAEMON_DIR/server-extfile.cnf"
+
+          # Generate server certificate
+          openssl x509 -req -days 365 -sha256 \
+              -in "$DAEMON_DIR/server.csr" \
+              -CA "$CERTS_DIR/ca.pem" \
+              -CAkey "$CERTS_DIR/ca-key.pem" \
+              -CAcreateserial \
+              -out "$DAEMON_DIR/server-cert.pem" \
+              -extfile "$DAEMON_DIR/server-extfile.cnf"
+
+          # Generate client private key
+          openssl genrsa -out "$CLIENT_DIR/key.pem" 4096
+
+          # Generate client certificate signing request
+          openssl req -subj "/C=US/ST=State/L=City/O=Organization/CN=client" \
+              -new -key "$CLIENT_DIR/key.pem" \
+              -out "$CLIENT_DIR/client.csr"
+
+          # Create client certificate extensions
+          echo "extendedKeyUsage = clientAuth" > "$CLIENT_DIR/client-extfile.cnf"
+
+          # Generate client certificate
+          openssl x509 -req -days 365 -sha256 \
+              -in "$CLIENT_DIR/client.csr" \
+              -CA "$CERTS_DIR/ca.pem" \
+              -CAkey "$CERTS_DIR/ca-key.pem" \
+              -CAcreateserial \
+              -out "$CLIENT_DIR/cert.pem" \
+              -extfile "$CLIENT_DIR/client-extfile.cnf"
+
+          # Copy CA cert to client directory
+          cp "$CERTS_DIR/ca.pem" "$CLIENT_DIR/ca.pem"
+
+          # Set proper permissions
+          chmod 600 "$CERTS_DIR/ca-key.pem" "$DAEMON_DIR/server-key.pem" "$CLIENT_DIR/key.pem"
+          chmod 644 "$CERTS_DIR/ca.pem" "$DAEMON_DIR/server-cert.pem" "$CLIENT_DIR/cert.pem"
+
+          # Clean up temporary files
+          rm -f "$DAEMON_DIR/server.csr" "$DAEMON_DIR/server-extfile.cnf" \
+                "$CLIENT_DIR/client.csr" "$CLIENT_DIR/client-extfile.cnf" \
+                "$CERTS_DIR/ca.srl"
+
+          echo "✅ TLS certificates generated successfully"
+
+      - name: Upload server certificates to EC2
+        run: |
+          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
+          mkdir -p /tmp/certs
+          cp certs/daemon/* /tmp/certs/
+          cp certs/ca.pem /tmp/certs/
+
+          scp -i ~/.ssh/id_rsa -r /tmp/certs/* ubuntu@$EC2_IP:/tmp/certs/
+          echo "✅ Server certificates uploaded to EC2"
+
+      - name: Configure Docker TLS on EC2
+        run: |
+          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
+          ssh -i ~/.ssh/id_rsa ubuntu@$EC2_IP << 'EOF'
+            set -e
+            echo "Configuring Docker TLS..."
+            
+            # Copy certificates to Docker certs directory
+            sudo mkdir -p /etc/docker/certs
+            sudo cp /tmp/certs/* /etc/docker/certs/
+            sudo chmod 600 /etc/docker/certs/server-key.pem
+            sudo chmod 644 /etc/docker/certs/ca.pem /etc/docker/certs/server-cert.pem
+            
+            # Configure Docker daemon
+            sudo tee /etc/docker/daemon.json > /dev/null <<'DOCKER_EOF'
+            {
+              "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2376"],
+              "tls": true,
+              "tlsverify": true,
+              "tlscacert": "/etc/docker/certs/ca.pem",
+              "tlscert": "/etc/docker/certs/server-cert.pem",
+              "tlskey": "/etc/docker/certs/server-key.pem"
+            }
+            DOCKER_EOF
+            
+            # Restart Docker
+            sudo systemctl daemon-reload
+            sudo systemctl restart docker
+            
+            # Wait for Docker to be ready
+            sleep 5
+            
+            # Verify Docker is running
+            docker ps || exit 1
+            echo "✅ Docker TLS configured successfully"
+          EOF
+
+      - name: Upload client certificates as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-tls-client-certs
+          path: |
+            certs/client/ca.pem
+            certs/client/cert.pem
+            certs/client/key.pem
+          retention-days: 7
+
       - name: Summary
         run: |
           echo "## Infrastructure Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**EC2 IP:** \`${{ steps.get_ip.outputs.EC2_IP }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Docker TLS automatically configured!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. Generate TLS certificates locally:" >> $GITHUB_STEP_SUMMARY
-          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "   ./scripts/generate-docker-tls.sh ${{ steps.get_ip.outputs.EC2_IP }}" >> $GITHUB_STEP_SUMMARY
-          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "1. Upload client certificates to Railway volume at \`/app/certs\`:" >> $GITHUB_STEP_SUMMARY
+          echo "   - \`certs/client/ca.pem\`" >> $GITHUB_STEP_SUMMARY
+          echo "   - \`certs/client/cert.pem\`" >> $GITHUB_STEP_SUMMARY
+          echo "   - \`certs/client/key.pem\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "2. Upload server certificates to EC2:" >> $GITHUB_STEP_SUMMARY
-          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "   scp -r certs/daemon/* ubuntu@${{ steps.get_ip.outputs.EC2_IP }}:/tmp/certs/" >> $GITHUB_STEP_SUMMARY
-          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Deploy terminal container (workflow will run automatically on push to main)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "3. Configure Docker TLS on EC2 (via SSH)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "4. Upload client certificates to Railway volume at \`/app/certs\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Client certificates are available in the workflow artifacts (if needed for manual upload)." >> $GITHUB_STEP_SUMMARY
