@@ -3,19 +3,18 @@ FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
-# Copy package files
 COPY package.json bun.lockb* ./
 COPY apps/web/package.json ./apps/web/
 
-# Install dependencies
 RUN bun install --frozen-lockfile
 
-# Copy source code
 COPY apps/web ./apps/web
+COPY scripts ./scripts
 COPY tsconfig.json ./
 
-# Build the application
-RUN bun run build:web
+# This runs: prebuild (buildContentMetadata.mjs) → tsc → vite build
+# Equivalent to local: bun --cwd apps/web build
+RUN bun run --filter=@mike-os-x/web build
 
 # Production stage
 FROM nginx:alpine
