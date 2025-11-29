@@ -1,0 +1,7 @@
+name: mike-os-x-infra
+description: Infrastructure for mike-os-x terminal host
+runtime: nodejs
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: aws-typescript
