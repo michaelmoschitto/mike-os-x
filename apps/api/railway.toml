@@ -1,0 +1,15 @@
+# Railway Config as Code for API Service (Python FastAPI + Terminal Container)
+# This file defines the build and deployment configuration for the API service
+# Reference: https://docs.railway.com/guides/config-as-code
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "uv run uvicorn main:app --host 0.0.0.0 --port 8000"
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+

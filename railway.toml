@@ -1,0 +1,16 @@
+# Railway Config as Code for Web Service (React Frontend)
+# This file defines the build and deployment configuration for the web service
+# Reference: https://docs.railway.com/guides/config-as-code
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Don't override startCommand - let Dockerfile CMD handle it
+# startCommand is removed so Railway uses: CMD ["nginx", "-g", "daemon off;"] from Dockerfile
+healthcheckPath = "/"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
