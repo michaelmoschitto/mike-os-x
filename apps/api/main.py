@@ -31,10 +31,23 @@ rate_limiter = RateLimiter()
 
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
-    status_info = container_manager.get_container_status()
+    terminal_available = False
+    terminal_status = "unknown"
+    container_status = None
+
+    try:
+        status_info = container_manager.get_container_status()
+        terminal_status = status_info.get("status", "unknown")
+        container_status = terminal_status
+        terminal_available = status_info.get("running", False)
+    except Exception as e:
+        logger.warning(f"Terminal health check failed: {e}")
+
     return HealthResponse(
         status="healthy",
-        container_status=status_info.get("status"),
+        terminal_available=terminal_available,
+        terminal_status=terminal_status,
+        container_status=container_status,
     )
 
 
@@ -82,11 +95,15 @@ async def admin_reset(admin_key: str = Depends(verify_admin_key)) -> JSONRespons
 @app.post("/api/admin/terminal/restart")
 async def admin_restart(admin_key: str = Depends(verify_admin_key)) -> JSONResponse:
     container_manager.restart_container()
-    return JSONResponse(content={"message": "Terminal container restarted successfully"})
+    return JSONResponse(
+        content={"message": "Terminal container restarted successfully"}
+    )
 
 
 @app.post("/api/admin/terminal/reset-workspace")
-async def admin_reset_workspace(admin_key: str = Depends(verify_admin_key)) -> JSONResponse:
+async def admin_reset_workspace(
+    admin_key: str = Depends(verify_admin_key),
+) -> JSONResponse:
     container_manager.reset_workspace()
     return JSONResponse(content={"message": "Workspace reset successfully"})
 
