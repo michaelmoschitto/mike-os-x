@@ -380,12 +380,12 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
-          
+
           # Encode certificates to base64
           DOCKER_CA_CERT=$(base64 < certs/client/ca.pem | tr -d '\n')
           DOCKER_CLIENT_CERT=$(base64 < certs/client/cert.pem | tr -d '\n')
           DOCKER_CLIENT_KEY=$(base64 < certs/client/key.pem | tr -d '\n')
-          
+
           # Configure API service with all environment variables
           # Build Railway reference variable syntax by concatenating to avoid GitHub Actions parsing
           DOLLAR='$'
@@ -403,7 +403,7 @@ jobs:
             --set "REDIS_URL=$REDIS_REF" \
             --set "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" \
             --set "ADMIN_API_KEY=${{ secrets.ADMIN_API_KEY }}"
-          
+
           echo "✅ Railway API service configured"
 
       - name: Configure Railway Web Service
@@ -414,7 +414,7 @@ jobs:
           railway variables \
             --service web \
             --set "VITE_API_URL=https://api.os.mikemoschitto.com"
-          
+
           echo "✅ Railway web service configured"
 
       - name: Summary

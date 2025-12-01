@@ -21,7 +21,6 @@ const ubuntu = aws.ec2.getAmi({
   owners: ['099720109477'], // Canonical
 });
 
-// Create SSH key pair for EC2 access
 const sshKey = new aws.ec2.KeyPair('terminal-host-key', {
   keyName: 'mike-os-x-terminal-key',
   publicKey: sshPublicKey,
@@ -137,7 +136,7 @@ systemctl restart docker'"
 
 // EC2 instance for terminal host
 const instance = new aws.ec2.Instance('terminal-host', {
-  instanceType: 't3.micro', // Free tier eligible for 12 months
+  instanceType: 't3.micro',
   ami: ubuntu.then((ami) => ami.id),
   keyName: sshKey.keyName,
   vpcSecurityGroupIds: [securityGroup.id],
@@ -145,8 +144,8 @@ const instance = new aws.ec2.Instance('terminal-host', {
   userData: userData,
 
   rootBlockDevice: {
-    volumeSize: 20, // 20GB storage
-    volumeType: 'gp3', // Newer, faster, cheaper than gp2
+    volumeSize: 2,
+    volumeType: 'gp3',
     deleteOnTermination: true,
   },
 
@@ -156,7 +155,6 @@ const instance = new aws.ec2.Instance('terminal-host', {
     Purpose: 'terminal-container',
   },
 
-  // Enable detailed monitoring (optional, small extra cost)
   monitoring: false,
 });
 
