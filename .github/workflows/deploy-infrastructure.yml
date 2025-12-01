@@ -389,6 +389,9 @@ jobs:
         run: |
           EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
 
+          # Link to Railway project
+          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+
           # Encode certificates to base64
           DOCKER_CA_CERT=$(base64 < certs/client/ca.pem | tr -d '\n')
           DOCKER_CLIENT_CERT=$(base64 < certs/client/cert.pem | tr -d '\n')
@@ -401,7 +404,6 @@ jobs:
           CLOSE='}}'
           REDIS_REF="${DOLLAR}${OPEN}Redis.REDIS_URL${CLOSE}"
           railway variables \
-            --project ${{ secrets.RAILWAY_PROJECT_ID }} \
             --service api \
             --set "ENVIRONMENT=production" \
             --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
@@ -419,9 +421,11 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
+          # Link to Railway project (in case not persisted from previous step)
+          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+          
           # Configure web service with API URL
           railway variables \
-            --project ${{ secrets.RAILWAY_PROJECT_ID }} \
             --service web \
             --set "VITE_API_URL=https://api.os.mikemoschitto.com"
 
