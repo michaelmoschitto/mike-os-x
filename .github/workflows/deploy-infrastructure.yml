@@ -387,8 +387,11 @@ jobs:
           DOCKER_CLIENT_KEY=$(base64 < certs/client/key.pem | tr -d '\n')
           
           # Configure API service with all environment variables
-          # Build Railway reference variable syntax ($$ escapes $ in GitHub Actions)
-          REDIS_REF='$${{Redis.REDIS_URL}}'
+          # Build Railway reference variable syntax by concatenating to avoid GitHub Actions parsing
+          DOLLAR='$'
+          OPEN='{{'
+          CLOSE='}}'
+          REDIS_REF="${DOLLAR}${OPEN}Redis.REDIS_URL${CLOSE}"
           railway variables \
             --service api \
             --set "ENVIRONMENT=production" \
