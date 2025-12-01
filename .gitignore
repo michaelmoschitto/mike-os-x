@@ -48,3 +48,5 @@ next-env.d.ts
 
 #pyc files
 __pycache__/
+
+.github/certs

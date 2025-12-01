@@ -37,15 +37,15 @@ jobs:
       - name: Validate required secrets
         run: |
           MISSING_SECRETS=()
-          
+
           if [ -z "${{ secrets.PULUMI_PASSPHRASE }}" ]; then
             MISSING_SECRETS+=("PULUMI_PASSPHRASE")
           fi
-          
+
           if [ -z "${{ secrets.EC2_SSH_KEY }}" ]; then
             MISSING_SECRETS+=("EC2_SSH_KEY")
           fi
-          
+
           if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
             echo "::error::Missing required GitHub secrets: ${MISSING_SECRETS[*]}"
             echo "Please configure these secrets in your repository settings:"
@@ -54,28 +54,31 @@ jobs:
             done
             exit 1
           fi
-          
+
           echo "✅ All required secrets are configured"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
 
       - name: Set Pulumi passphrase
         run: |
           echo "PULUMI_CONFIG_PASSPHRASE=${{ secrets.PULUMI_PASSPHRASE }}" >> $GITHUB_ENV
+          echo "AWS_REGION=us-west-2" >> $GITHUB_ENV
 
-      - name: Login to Pulumi
-        run: pulumi login --local
+      - name: Login to Pulumi (S3 backend)
+        run: pulumi login s3://mike-os-x-pulumi-state
 
       - name: Get EC2 IP from Pulumi
         id: get_ip
         working-directory: iac
         run: |
-          STACK="${{ secrets.PULUMI_STACK || 'default' }}"
-          if [ -z "$STACK" ]; then
-            echo "::error::PULUMI_STACK secret is not set. Using default stack."
-          fi
-          
-          pulumi stack select "$STACK"
+          pulumi stack select default
           EC2_IP=$(pulumi stack output publicIp --show-secrets)
-          
+
           if [ -z "$EC2_IP" ]; then
             echo "::error::Could not get EC2 IP from Pulumi stack '$STACK'."
             echo "Please ensure:"
@@ -83,7 +86,7 @@ jobs:
             echo "  2. PULUMI_STACK secret matches the stack name used during infrastructure deployment"
             exit 1
           fi
-          
+
           echo "EC2_IP=$EC2_IP" >> $GITHUB_OUTPUT
           echo "EC2 IP: $EC2_IP"
 
@@ -143,4 +146,3 @@ jobs:
           else
             echo "**Deployed from branch:** \`main\`" >> $GITHUB_STEP_SUMMARY
           fi
-

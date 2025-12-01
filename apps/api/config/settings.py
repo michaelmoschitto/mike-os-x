@@ -1,9 +1,32 @@
+import base64
 import os
 from pathlib import Path
 
 from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def setup_docker_certs_from_env() -> str | None:
+    """Decode base64 Docker TLS certs from env vars and write to /tmp/docker-certs."""
+    ca_b64 = os.getenv("DOCKER_CA_CERT")
+    cert_b64 = os.getenv("DOCKER_CLIENT_CERT")
+    key_b64 = os.getenv("DOCKER_CLIENT_KEY")
+
+    if not all([ca_b64, cert_b64, key_b64]):
+        return None
+
+    cert_dir = Path("/tmp/docker-certs")
+    cert_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        (cert_dir / "ca.pem").write_bytes(base64.b64decode(ca_b64))
+        (cert_dir / "cert.pem").write_bytes(base64.b64decode(cert_b64))
+        (cert_dir / "key.pem").write_bytes(base64.b64decode(key_b64))
+        (cert_dir / "key.pem").chmod(0o600)
+        return str(cert_dir)
+    except Exception:
+        return None
 
 
 def get_env_file() -> Path | None:
@@ -50,6 +73,14 @@ class Settings(BaseSettings):
     docker_host: str = Field(default_factory=get_default_docker_host)
     docker_tls_verify: bool = Field(default=False)
     docker_cert_path: str = Field(default="")
+
+    def model_post_init(self, __context) -> None:
+        # If certs provided via base64 env vars, decode and use them
+        if not self.docker_cert_path or not Path(self.docker_cert_path).exists():
+            if decoded_path := setup_docker_certs_from_env():
+                object.__setattr__(self, "docker_cert_path", decoded_path)
+                object.__setattr__(self, "docker_tls_verify", True)
+
     terminal_container_name: str = Field(default="terminal-shared")
     terminal_volume_name: str = Field(default="terminal-workspace")
 
