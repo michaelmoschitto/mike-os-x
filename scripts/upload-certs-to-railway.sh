@@ -46,11 +46,27 @@ DOCKER_CLIENT_KEY=$(base64 < "$CERTS_DIR/key.pem" | tr -d '\n')
 
 echo "📤 Uploading to Railway..."
 
+
 # Set all variables at once (triggers single redeploy)
-railway variables \
-    --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
-    --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT" \
-    --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY"
+if [[ -n "$RAILWAY_PROJECT_ID" ]]; then
+    echo "Using project ID: $RAILWAY_PROJECT_ID"
+    railway variables \
+        --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
+        --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT" \
+        --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY"
+elif [[ -n "$RAILWAY_PROJECT" ]]; then
+    echo "Using project flag: $RAILWAY_PROJECT"
+    railway --project "$RAILWAY_PROJECT" variables \
+        --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
+        --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT" \
+        --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY"
+else
+    echo "Using linked project (run 'railway link' if not already linked)"
+    railway variables \
+        --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
+        --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT" \
+        --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY"
+fi
 
 echo "  ✅ DOCKER_CA_CERT set"
 echo "  ✅ DOCKER_CLIENT_CERT set"

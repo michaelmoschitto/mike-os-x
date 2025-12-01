@@ -1,7 +1,7 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as aws from '@pulumi/aws';
 
-// release bump: 3
+// release bump: 4
 
 // Configuration
 const config = new pulumi.Config();
