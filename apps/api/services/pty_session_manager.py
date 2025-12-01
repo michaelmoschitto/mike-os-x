@@ -76,7 +76,9 @@ class PTYSessionManager:
         )
         logger.info(f"Exec socket started for session {session_id}")
 
-        sock = exec_socket._sock
+        # Handle both TLS (SSLSocket) and non-TLS connections
+        # When using TLS, exec_socket is already the socket we need
+        sock = getattr(exec_socket, "_sock", exec_socket)
         sock.setblocking(False)
 
         session = PTYSession(session_id, exec_id["Id"], exec_socket, sock, container)
@@ -99,7 +101,9 @@ class PTYSessionManager:
             return
 
         try:
-            session.container.client.api.exec_resize(session.exec_id, height=rows, width=cols)
+            session.container.client.api.exec_resize(
+                session.exec_id, height=rows, width=cols
+            )
             logger.info(f"Resized PTY {session_id} to {cols}x{rows}")
         except Exception as e:
             logger.error(f"Failed to resize PTY {session_id}: {e}")
@@ -123,7 +127,9 @@ class PTYSessionManager:
                 await self.close_session(session_id)
                 return
 
-    async def read_from_session(self, session_id: str, websocket, send_message_callback) -> None:
+    async def read_from_session(
+        self, session_id: str, websocket, send_message_callback
+    ) -> None:
         session = self.sessions.get(session_id)
         if not session:
             logger.warning(f"Session {session_id} not found for read")
@@ -143,10 +149,14 @@ class PTYSessionManager:
                         }
                         await send_message_callback(message)
                     else:
-                        logger.info(f"Socket closed by container for session {session_id}")
+                        logger.info(
+                            f"Socket closed by container for session {session_id}"
+                        )
                         break
                 except OSError as e:
-                    logger.info(f"Socket error during read from session {session_id}: {e}")
+                    logger.info(
+                        f"Socket error during read from session {session_id}: {e}"
+                    )
                     break
                 except Exception as e:
                     logger.error(f"Error reading from session {session_id}: {e}")
