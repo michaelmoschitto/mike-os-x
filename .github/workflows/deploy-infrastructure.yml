@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'iac/**'
+      - 'apps/api/terminal.Dockerfile'
+      - 'apps/api/docker-compose.terminal.yml'
   workflow_dispatch:
     inputs:
       ssh_public_key:
@@ -421,6 +423,50 @@ jobs:
 
           echo "✅ Railway web service configured"
 
+      - name: Clone repository on EC2
+        run: |
+          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
+          ssh -i ~/.ssh/id_rsa ubuntu@$EC2_IP << 'EOF'
+            set -e
+            if [ ! -d ~/mike-os-x/.git ]; then
+              echo "Cloning repository..."
+              git clone https://github.com/${{ github.repository }}.git ~/mike-os-x
+            else
+              echo "Repository already exists, updating..."
+              cd ~/mike-os-x
+              git fetch origin main
+              git checkout main
+              git pull origin main
+            fi
+            echo "✅ Repository ready"
+          EOF
+
+      - name: Deploy Terminal Container
+        run: |
+          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
+          ssh -i ~/.ssh/id_rsa ubuntu@$EC2_IP << 'EOF'
+            set -e
+            cd ~/mike-os-x/apps/api
+            
+            echo "Building terminal container..."
+            docker-compose -f docker-compose.terminal.yml build terminal
+            
+            echo "Starting terminal container..."
+            docker-compose -f docker-compose.terminal.yml up -d terminal
+            
+            sleep 3
+            
+            # Verify container is running
+            if docker ps | grep -q terminal-shared; then
+              echo "✅ Terminal container deployed and running"
+              docker exec terminal-shared echo "Terminal container healthy"
+            else
+              echo "::error::Terminal container failed to start"
+              docker logs terminal-shared || true
+              exit 1
+            fi
+          EOF
+
       - name: Summary
         run: |
           EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
@@ -435,6 +481,7 @@ jobs:
           echo "✅ TLS certificates generated and installed" >> $GITHUB_STEP_SUMMARY
           echo "✅ Docker daemon configured for TLS" >> $GITHUB_STEP_SUMMARY
           echo "✅ Docker service running and accessible" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Terminal container deployed and healthy" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Railway Configuration" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -444,6 +491,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Services will auto-deploy with new configuration." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "### Ready to Use" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Deploy terminal container (workflow will run automatically on push to main)" >> $GITHUB_STEP_SUMMARY
+          echo "Infrastructure is fully deployed. Terminal should be accessible at https://os.mikemoschitto.com" >> $GITHUB_STEP_SUMMARY
