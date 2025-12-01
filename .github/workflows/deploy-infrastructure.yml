@@ -397,7 +397,7 @@ jobs:
           CLOSE='}}'
           REDIS_REF="${DOLLAR}${OPEN}Redis.REDIS_URL${CLOSE}"
           railway variables \
-            --service api \
+            --service @mike-os-x/api \
             --set "ENVIRONMENT=production" \
             --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
             --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT" \
@@ -416,7 +416,7 @@ jobs:
         run: |
           # Configure web service with API URL
           railway variables \
-            --service web \
+            --service @mike-os-x/web \
             --set "VITE_API_URL=https://api.os.mikemoschitto.com"
 
           echo "✅ Railway web service configured"
