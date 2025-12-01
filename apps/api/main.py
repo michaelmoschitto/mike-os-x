@@ -70,10 +70,32 @@ def get_client_ip(websocket: WebSocket) -> str:
     return "unknown"
 
 
+def filter_sensitive_headers(headers: dict) -> dict:
+    sensitive_headers = {"authorization", "cookie", "x-api-key", "x-auth-token"}
+    return {
+        k: v for k, v in headers.items() if k.lower() not in sensitive_headers
+    }
+
+
+@app.websocket("/ws/test")
+async def websocket_test(websocket: WebSocket) -> None:
+    """Simple WebSocket test endpoint for debugging.
+    
+    TODO: Remove this endpoint once WebSocket connectivity is confirmed working in production.
+    """
+    client_ip = get_client_ip(websocket)
+    logger.info(f"Test WebSocket connection from {client_ip}")
+    await websocket.accept()
+    await websocket.send_text("WebSocket connection successful!")
+    await websocket.close()
+
+
 @app.websocket("/ws/terminal")
 async def websocket_terminal(websocket: WebSocket) -> None:
     client_ip = get_client_ip(websocket)
     logger.info(f"WebSocket connection attempt from {client_ip}")
+    safe_headers = filter_sensitive_headers(dict(websocket.headers))
+    logger.info(f"WebSocket headers: {safe_headers}")
     try:
         await terminal_bridge.handle_websocket(websocket, client_ip)
     except WebSocketDisconnect:
