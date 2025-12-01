@@ -140,6 +140,10 @@ jobs:
             fi
           fi
 
+      - name: Refresh Pulumi state
+        working-directory: iac
+        run: pulumi refresh --yes --non-interactive
+
       - name: Preview changes
         working-directory: iac
         run: pulumi preview --non-interactive
