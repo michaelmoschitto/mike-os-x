@@ -146,7 +146,7 @@ const instance = new aws.ec2.Instance('terminal-host', {
   userData: userData,
 
   rootBlockDevice: {
-    volumeSize: 2,
+    volumeSize: 8,
     volumeType: 'gp3',
     deleteOnTermination: true,
   },
