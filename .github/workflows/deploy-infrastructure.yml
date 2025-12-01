@@ -387,6 +387,8 @@ jobs:
           DOCKER_CLIENT_KEY=$(base64 < certs/client/key.pem | tr -d '\n')
           
           # Configure API service with all environment variables
+          # Build Railway reference variable syntax ($$ escapes $ in GitHub Actions)
+          REDIS_REF='$${{Redis.REDIS_URL}}'
           railway variables \
             --service api \
             --set "ENVIRONMENT=production" \
@@ -395,7 +397,7 @@ jobs:
             --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY" \
             --set "DOCKER_HOST=tcp://$EC2_IP:2376" \
             --set "DOCKER_TLS_VERIFY=1" \
-            --set "REDIS_URL=\${{Redis.REDIS_URL}}" \
+            --set "REDIS_URL=$REDIS_REF" \
             --set "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" \
             --set "ADMIN_API_KEY=${{ secrets.ADMIN_API_KEY }}"
           
