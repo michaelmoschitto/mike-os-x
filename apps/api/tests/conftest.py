@@ -1,7 +1,13 @@
+import os
+
 import docker
 import pytest
 import redis
 from httpx import AsyncClient
+
+# Set required environment variables for tests before importing settings
+os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
+os.environ.setdefault("ADMIN_API_KEY", "test-admin-key")
 
 from config.settings import settings
 from main import app
@@ -21,5 +27,7 @@ def redis_client() -> redis.Redis:
 async def api_client() -> AsyncClient:
     from httpx import ASGITransport
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         yield client
