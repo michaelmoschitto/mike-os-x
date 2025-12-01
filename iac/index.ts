@@ -98,6 +98,14 @@ cat > /etc/docker/daemon.json <<'DOCKER_EOF'
 }
 DOCKER_EOF
 
+# Create systemd override to remove -H flag (conflicts with daemon.json hosts)
+mkdir -p /etc/systemd/system/docker.service.d
+cat > /etc/systemd/system/docker.service.d/override.conf <<'OVERRIDE_EOF'
+[Service]
+ExecStart=
+ExecStart=/usr/bin/dockerd
+OVERRIDE_EOF
+
 # Enable and start Docker service
 systemctl daemon-reload
 systemctl enable docker
@@ -122,18 +130,8 @@ cat > /etc/logrotate.d/docker-containers <<'LOGROTATE_EOF'
 }
 LOGROTATE_EOF
 
-echo "EC2 bootstrap complete. Docker is running."
-echo "Next: Generate TLS certs and run: sudo bash -c 'cat > /etc/docker/daemon.json <<EOF
-{
-  \"hosts\": [\"unix:///var/run/docker.sock\", \"tcp://0.0.0.0:2376\"],
-  \"tls\": true,
-  \"tlsverify\": true,
-  \"tlscacert\": \"/etc/docker/certs/ca.pem\",
-  \"tlscert\": \"/etc/docker/certs/server-cert.pem\",
-  \"tlskey\": \"/etc/docker/certs/server-key.pem\"
-}
-EOF
-systemctl restart docker'"
+echo "EC2 bootstrap complete. Docker is running on Unix socket and TCP (without TLS)."
+echo "Next: Upload TLS certificates to /etc/docker/certs/ and update daemon.json with TLS config."
 `;
 
 // EC2 instance for terminal host
