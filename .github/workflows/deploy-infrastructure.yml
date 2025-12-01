@@ -54,10 +54,6 @@ jobs:
             MISSING_SECRETS+=("RAILWAY_TOKEN")
           fi
 
-          if [ -z "${{ secrets.RAILWAY_PROJECT_ID }}" ]; then
-            MISSING_SECRETS+=("RAILWAY_PROJECT_ID")
-          fi
-
           if [ -z "${{ secrets.CORS_ORIGINS }}" ]; then
             MISSING_SECRETS+=("CORS_ORIGINS")
           fi
@@ -389,9 +385,6 @@ jobs:
         run: |
           EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
 
-          # Link to Railway project
-          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
-
           # Encode certificates to base64
           DOCKER_CA_CERT=$(base64 < certs/client/ca.pem | tr -d '\n')
           DOCKER_CLIENT_CERT=$(base64 < certs/client/cert.pem | tr -d '\n')
@@ -421,9 +414,6 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          # Link to Railway project (in case not persisted from previous step)
-          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
-          
           # Configure web service with API URL
           railway variables \
             --service web \
