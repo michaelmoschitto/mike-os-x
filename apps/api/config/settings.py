@@ -89,10 +89,16 @@ class Settings(BaseSettings):
 
     # Security
     admin_api_key: str = Field(default="")
-    cors_origins: str = Field(default="http://localhost:3000,http://localhost:5173")
+    cors_origins: str = Field(default="")
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
+
+        if not self.cors_origins:
+            raise ValueError(
+                "CORS_ORIGINS environment variable is required but not set.\n\n"
+            )
+
         is_production = (
             os.getenv("ENVIRONMENT", "").lower() == "production"
             or os.getenv("NODE_ENV", "").lower() == "production"
@@ -103,11 +109,8 @@ class Settings(BaseSettings):
                 "Please set the ADMIN_API_KEY environment variable."
             )
 
-    # Rate Limiting (per IP address)
-    rate_limit_connections: int = Field(
-        default=5
-    )  # Max WebSocket connections per IP (allows reconnection attempts)
-    rate_limit_commands: int = Field(default=100)  # Max commands per minute per IP
+    rate_limit_connections: int = Field(default=5)
+    rate_limit_commands: int = Field(default=100)
 
     # Container Resources
     container_memory: str = Field(default="1g")

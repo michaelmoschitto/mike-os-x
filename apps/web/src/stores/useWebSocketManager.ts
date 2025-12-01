@@ -42,16 +42,14 @@ const getWebSocketUrl = (): string => {
     return 'ws://localhost:8000/ws/terminal';
   }
 
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  let apiHost = import.meta.env.VITE_API_URL?.replace(/^https?:\/\//, '');
+  const apiUrl = import.meta.env.VITE_API_URL;
 
-  if (!apiHost) {
-    if (import.meta.env.DEV) {
-      apiHost = 'localhost:8000';
-    } else {
-      apiHost = window.location.host;
-    }
+  if (!apiUrl) {
+    throw new Error('VITE_API_URL environment variable is required but not set.');
   }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const apiHost = apiUrl.replace(/^https?:\/\//, '');
 
   return `${protocol}//${apiHost}/ws/terminal`;
 };
