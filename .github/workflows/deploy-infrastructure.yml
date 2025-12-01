@@ -50,6 +50,18 @@ jobs:
             MISSING_SECRETS+=("PULUMI_PASSPHRASE")
           fi
 
+          if [ -z "${{ secrets.RAILWAY_TOKEN }}" ]; then
+            MISSING_SECRETS+=("RAILWAY_TOKEN")
+          fi
+
+          if [ -z "${{ secrets.CORS_ORIGINS }}" ]; then
+            MISSING_SECRETS+=("CORS_ORIGINS")
+          fi
+
+          if [ -z "${{ secrets.ADMIN_API_KEY }}" ]; then
+            MISSING_SECRETS+=("ADMIN_API_KEY")
+          fi
+
           if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
             echo "::error::Missing required GitHub secrets: ${MISSING_SECRETS[*]}"
             echo "Please configure these secrets in your repository settings:"
@@ -358,6 +370,48 @@ jobs:
             certs/client/key.pem
           retention-days: 7
 
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+
+      - name: Configure Railway API Service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
+          
+          # Encode certificates to base64
+          DOCKER_CA_CERT=$(base64 < certs/client/ca.pem | tr -d '\n')
+          DOCKER_CLIENT_CERT=$(base64 < certs/client/cert.pem | tr -d '\n')
+          DOCKER_CLIENT_KEY=$(base64 < certs/client/key.pem | tr -d '\n')
+          
+          # Configure API service with all environment variables
+          railway variables \
+            --service api \
+            --set "ENVIRONMENT=production" \
+            --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
+            --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT" \
+            --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY" \
+            --set "DOCKER_HOST=tcp://$EC2_IP:2376" \
+            --set "DOCKER_TLS_VERIFY=1" \
+            --set "REDIS_URL=\${{Redis.REDIS_URL}}" \
+            --set "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" \
+            --set "ADMIN_API_KEY=${{ secrets.ADMIN_API_KEY }}"
+          
+          echo "✅ Railway API service configured"
+
+      - name: Configure Railway Web Service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          # Configure web service with API URL
+          railway variables \
+            --service web \
+            --set "VITE_API_URL=https://api.os.mikemoschitto.com"
+          
+          echo "✅ Railway web service configured"
+
       - name: Summary
         run: |
           EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
@@ -373,8 +427,14 @@ jobs:
           echo "✅ Docker daemon configured for TLS" >> $GITHUB_STEP_SUMMARY
           echo "✅ Docker service running and accessible" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Railway Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Railway automatically configured:" >> $GITHUB_STEP_SUMMARY
+          echo "  - API: Docker TLS, Redis, CORS, Auth, Production environment" >> $GITHUB_STEP_SUMMARY
+          echo "  - Web: API URL configured" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Services will auto-deploy with new configuration." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. Download \`docker-tls-client-certs\` artifact and upload to Railway" >> $GITHUB_STEP_SUMMARY
-          echo "2. Set \`DOCKER_HOST=tcp://$EC2_IP:2376\` in Railway" >> $GITHUB_STEP_SUMMARY
-          echo "3. Deploy terminal container" >> $GITHUB_STEP_SUMMARY
+          echo "Deploy terminal container (workflow will run automatically on push to main)" >> $GITHUB_STEP_SUMMARY
