@@ -1,6 +1,8 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as aws from '@pulumi/aws';
 
+// release bump: 1
+
 // Configuration
 const config = new pulumi.Config();
 const sshPublicKey = config.get('sshPublicKey') || ''; // Will be set via pulumi config
