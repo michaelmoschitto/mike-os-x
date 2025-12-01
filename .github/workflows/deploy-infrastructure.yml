@@ -54,6 +54,10 @@ jobs:
             MISSING_SECRETS+=("RAILWAY_TOKEN")
           fi
 
+          if [ -z "${{ secrets.RAILWAY_PROJECT_ID }}" ]; then
+            MISSING_SECRETS+=("RAILWAY_PROJECT_ID")
+          fi
+
           if [ -z "${{ secrets.CORS_ORIGINS }}" ]; then
             MISSING_SECRETS+=("CORS_ORIGINS")
           fi
@@ -397,6 +401,7 @@ jobs:
           CLOSE='}}'
           REDIS_REF="${DOLLAR}${OPEN}Redis.REDIS_URL${CLOSE}"
           railway variables \
+            --project ${{ secrets.RAILWAY_PROJECT_ID }} \
             --service api \
             --set "ENVIRONMENT=production" \
             --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
@@ -416,6 +421,7 @@ jobs:
         run: |
           # Configure web service with API URL
           railway variables \
+            --project ${{ secrets.RAILWAY_PROJECT_ID }} \
             --service web \
             --set "VITE_API_URL=https://api.os.mikemoschitto.com"
 
