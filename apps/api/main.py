@@ -31,24 +31,23 @@ rate_limiter = RateLimiter()
 
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
-    terminal_available = False
-    terminal_status = "unknown"
-    container_status = None
-
     try:
         status_info = container_manager.get_container_status()
         terminal_status = status_info.get("status", "unknown")
-        container_status = terminal_status
         terminal_available = status_info.get("running", False)
-    except Exception as e:
-        logger.warning(f"Terminal health check failed: {e}")
 
-    return HealthResponse(
-        status="healthy",
-        terminal_available=terminal_available,
-        terminal_status=terminal_status,
-        container_status=container_status,
-    )
+        if not terminal_available:
+            raise RuntimeError(f"Terminal container not available: {terminal_status}")
+
+        return HealthResponse(
+            status="healthy",
+            terminal_available=True,
+            terminal_status=terminal_status,
+            container_status=terminal_status,
+        )
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        raise
 
 
 @app.get("/api/terminal/status", response_model=TerminalStatusResponse)
@@ -72,15 +71,13 @@ def get_client_ip(websocket: WebSocket) -> str:
 
 def filter_sensitive_headers(headers: dict) -> dict:
     sensitive_headers = {"authorization", "cookie", "x-api-key", "x-auth-token"}
-    return {
-        k: v for k, v in headers.items() if k.lower() not in sensitive_headers
-    }
+    return {k: v for k, v in headers.items() if k.lower() not in sensitive_headers}
 
 
 @app.websocket("/ws/test")
 async def websocket_test(websocket: WebSocket) -> None:
     """Simple WebSocket test endpoint for debugging.
-    
+
     TODO: Remove this endpoint once WebSocket connectivity is confirmed working in production.
     """
     client_ip = get_client_ip(websocket)
