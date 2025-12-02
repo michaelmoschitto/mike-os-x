@@ -5,6 +5,15 @@
 [build]
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
+watchPatterns = [
+  "apps/web/**",
+  "scripts/**",
+  "Dockerfile",
+  "nginx.conf",
+  "mime.types",
+  "package.json",
+  "tsconfig.json"
+]
 
 [deploy]
 startCommand = "nginx -g 'daemon off;'"
