@@ -11,6 +11,7 @@ import { loadContentFile } from '@/lib/contentLoader';
 import { getFolderContents, type FinderItemData } from '@/lib/finderContent';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
 import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
+import { validateAndNormalizeUrl } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
 interface FinderWindowProps {
@@ -104,7 +105,12 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
     if (entry.appType === 'shortcut') {
       const targetUrl = entry.metadata.url;
       if (targetUrl) {
-        navigate({ to: '/browser', search: { url: targetUrl } });
+        const validatedUrl = validateAndNormalizeUrl(targetUrl);
+        if (validatedUrl) {
+          navigate({ to: '/browser', search: { url: validatedUrl } });
+        } else {
+          console.error('Invalid URL in shortcut file:', targetUrl);
+        }
       }
       return;
     }
