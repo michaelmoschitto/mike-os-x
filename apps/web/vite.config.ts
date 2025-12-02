@@ -1,16 +1,48 @@
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 import tailwindcss from '@tailwindcss/vite';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig as defineViteConfig } from 'vite';
+import { defineConfig as defineViteConfig, type Plugin } from 'vite';
 import { defineConfig as defineVitestConfig, mergeConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Plugin to copy static content files (PDFs, images) from content/ to public/content/
+const copyContentAssets = (): Plugin => {
+  const contentDir = path.resolve(__dirname, 'content');
+  const publicContentDir = path.resolve(__dirname, 'public/content');
+  const staticExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+
+  const copyRecursive = (src: string, dest: string) => {
+    if (!fs.existsSync(src)) return;
+
+    const entries = fs.readdirSync(src, { withFileTypes: true });
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+
+      if (entry.isDirectory()) {
+        copyRecursive(srcPath, destPath);
+      } else if (staticExtensions.some((ext) => entry.name.toLowerCase().endsWith(ext))) {
+        fs.mkdirSync(path.dirname(destPath), { recursive: true });
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
+  };
+
+  return {
+    name: 'copy-content-assets',
+    buildStart() {
+      copyRecursive(contentDir, publicContentDir);
+    },
+  };
+};
+
 const viteConfig = defineViteConfig({
-  plugins: [react(), tanstackRouter(), tailwindcss()],
+  plugins: [react(), tanstackRouter(), tailwindcss(), copyContentAssets()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

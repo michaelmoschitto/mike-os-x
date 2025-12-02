@@ -14,6 +14,16 @@ coverage/
 dist/
 build/
 
+# Generated content assets (copied from content/ to public/content/ at build time)
+apps/web/public/content/*.pdf
+apps/web/public/content/**/*.pdf
+apps/web/public/content/**/*.jpg
+apps/web/public/content/**/*.jpeg
+apps/web/public/content/**/*.png
+apps/web/public/content/**/*.gif
+apps/web/public/content/**/*.webp
+apps/web/public/content/**/*.svg
+
 # Misc
 .DS_Store
 *.pem
