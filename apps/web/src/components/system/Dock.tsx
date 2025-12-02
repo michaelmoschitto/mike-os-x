@@ -71,9 +71,9 @@ const Dock = () => {
         content: '',
         position: { x: centerX, y: centerY + 22 },
         size: { width: windowWidth, height: windowHeight },
-        currentPath: '/home',
+        currentPath: '/dock/finder',
         viewMode: 'icon' as const,
-        navigationHistory: ['/home'],
+        navigationHistory: ['/dock/finder'],
         navigationIndex: 0,
         appName: 'Finder',
       };

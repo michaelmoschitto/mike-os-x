@@ -47,9 +47,11 @@ const buildIconsFromContent = async (): Promise<DesktopIconData[]> => {
   }
 
   const entries = useContentIndex.getState().getAllEntries();
+  // Filter out /dock entries from desktop
+  const desktopEntries = entries.filter((entry) => !entry.urlPath.startsWith('/dock'));
   const folderMap = new Map<string, DesktopIconData[]>();
 
-  for (const entry of entries) {
+  for (const entry of desktopEntries) {
     const urlParts = entry.urlPath.split('/').filter(Boolean);
     const fileName = urlParts[urlParts.length - 1] || 'untitled';
     const folderPath = urlParts.slice(0, -1).join('/');

@@ -26,7 +26,7 @@ const getFileKind = (extension) => {
   return kindMap[ext] || 'Document';
 };
 
-const scanDirectory = async (dir, baseDir = dir) => {
+const scanDirectory = async (dir, baseDir = dir, folders = new Set()) => {
   const entries = await readdir(dir, { withFileTypes: true });
   const metadata = {};
 
@@ -35,13 +35,17 @@ const scanDirectory = async (dir, baseDir = dir) => {
     const relativePath = relative(baseDir, fullPath);
 
     if (entry.isDirectory()) {
-      const subMetadata = await scanDirectory(fullPath, baseDir);
-      Object.assign(metadata, subMetadata);
+      // Track this directory (excluding root content dir itself)
+      if (relativePath !== '.') {
+        folders.add(relativePath);
+      }
+      const result = await scanDirectory(fullPath, baseDir, folders);
+      Object.assign(metadata, result.metadata);
     } else if (entry.isFile()) {
       try {
         const stats = await stat(fullPath);
         const extension = entry.name.match(/\.[^.]+$/) ? entry.name.match(/\.[^.]+$/)[0] : '';
-        
+
         metadata[relativePath] = {
           size: stats.size,
           mtime: stats.mtime.toISOString(),
@@ -54,23 +58,30 @@ const scanDirectory = async (dir, baseDir = dir) => {
     }
   }
 
-  return metadata;
+  return { metadata, folders };
 };
 
 const buildMetadata = async () => {
   try {
     console.log('Building content metadata...');
-    const metadata = await scanDirectory(CONTENT_DIR);
-    
-    const output = JSON.stringify(metadata, null, 2);
+    const folders = new Set();
+    const { metadata } = await scanDirectory(CONTENT_DIR, CONTENT_DIR, folders);
+
+    const output = {
+      files: metadata,
+      folders: Array.from(folders).sort(),
+    };
+
+    const outputJson = JSON.stringify(output, null, 2);
     await import('fs/promises').then(({ writeFile, mkdir }) => {
       const outputDir = dirname(OUTPUT_FILE);
       return mkdir(outputDir, { recursive: true }).then(() => {
-        return writeFile(OUTPUT_FILE, output, 'utf-8');
+        return writeFile(OUTPUT_FILE, outputJson, 'utf-8');
       });
     });
-    
+
     console.log(`✓ Generated metadata for ${Object.keys(metadata).length} files`);
+    console.log(`✓ Tracked ${folders.size} folders`);
     console.log(`  Output: ${OUTPUT_FILE}`);
   } catch (error) {
     console.error('Failed to build content metadata:', error);
@@ -79,5 +90,3 @@ const buildMetadata = async () => {
 };
 
 buildMetadata();
-
-

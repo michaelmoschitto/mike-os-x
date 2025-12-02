@@ -17,8 +17,10 @@ export interface ContentIndexEntry {
 
 interface ContentIndexStore {
   entries: Map<string, ContentIndexEntry>;
+  folders: string[];
   isIndexed: boolean;
   setEntries: (entries: Map<string, ContentIndexEntry>) => void;
+  setFolders: (folders: string[]) => void;
   setIsIndexed: (isIndexed: boolean) => void;
   getEntry: (urlPath: string) => ContentIndexEntry | undefined;
   getAllEntries: () => ContentIndexEntry[];
@@ -26,8 +28,10 @@ interface ContentIndexStore {
 
 export const useContentIndex = create<ContentIndexStore>((set, get) => ({
   entries: new Map(),
+  folders: [],
   isIndexed: false,
   setEntries: (entries) => set({ entries }),
+  setFolders: (folders) => set({ folders }),
   setIsIndexed: (isIndexed) => set({ isIndexed }),
   getEntry: (urlPath) => {
     const normalizedPath = urlPath.startsWith('/') ? urlPath : `/${urlPath}`;
@@ -49,11 +53,19 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
   >;
 
   let contentMetadata: ContentMetadataRecord = {};
+  let contentFolders: string[] = [];
   try {
     const metadataModule = await import('@/generated/contentMetadata.json');
     const imported = metadataModule.default || metadataModule;
     if (imported && typeof imported === 'object') {
-      contentMetadata = imported as ContentMetadataRecord;
+      // Handle both old format (just files) and new format (files + folders)
+      if ('files' in imported && 'folders' in imported) {
+        contentMetadata = imported.files as ContentMetadataRecord;
+        contentFolders = imported.folders as string[];
+      } else {
+        // Old format - just files
+        contentMetadata = imported as ContentMetadataRecord;
+      }
     }
   } catch (error) {
     console.warn('Could not load content metadata, continuing without file stats:', error);
@@ -170,5 +182,17 @@ const generateUrlPath = (relativePath: string): string => {
 export const initializeContentIndex = async (): Promise<void> => {
   const index = await buildContentIndex();
   useContentIndex.getState().setEntries(index);
+
+  // Load folders from metadata
+  try {
+    const metadataModule = await import('@/generated/contentMetadata.json');
+    const imported = metadataModule.default || metadataModule;
+    if (imported && typeof imported === 'object' && 'folders' in imported) {
+      useContentIndex.getState().setFolders(imported.folders as string[]);
+    }
+  } catch (error) {
+    console.warn('Could not load folder metadata:', error);
+  }
+
   useContentIndex.getState().setIsIndexed(true);
 };
