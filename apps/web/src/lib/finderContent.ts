@@ -15,6 +15,9 @@ export interface FinderItemData {
 
 const getIconForFile = (fileExtension: string): string => {
   const ext = fileExtension.toLowerCase();
+  if (ext === '.webloc') {
+    return '/icons/Internet-shortcut-icon.png';
+  }
   if (ext === '.md' || ext === '.txt') {
     return '/icons/file-text.png';
   }
@@ -67,7 +70,57 @@ export const getFolderContents = (path: string): FinderItemData[] => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const pathParts = normalizedPath.split('/').filter(Boolean);
 
-  for (const entry of entries) {
+  // Handle /dock/* paths - map to content/dock/* folders
+  if (pathParts.length >= 2 && pathParts[0] === 'dock') {
+    const dockFolderName = pathParts[1];
+    const dockPath = `/dock/${dockFolderName}`;
+    const filteredEntries = entries.filter((entry) => {
+      const entryPathParts = entry.urlPath.split('/').filter(Boolean);
+      // Entry should start with /dock/{folderName}/ and have exactly one more part
+      return (
+        entryPathParts.length === 3 &&
+        entryPathParts[0] === 'dock' &&
+        entryPathParts[1] === dockFolderName
+      );
+    });
+
+    for (const entry of filteredEntries) {
+      const entryPathParts = entry.urlPath.split('/').filter(Boolean);
+      const fileName = entryPathParts[entryPathParts.length - 1] || entry.urlPath;
+      const nameWithExt = entry.metadata.title
+        ? entry.metadata.title.endsWith(entry.fileExtension)
+          ? entry.metadata.title
+          : `${entry.metadata.title}${entry.fileExtension}`
+        : fileName;
+
+      items.push({
+        id: `file-${entry.urlPath}`,
+        name: nameWithExt,
+        type: 'file',
+        icon: getIconForFile(entry.fileExtension),
+        path: entry.urlPath,
+        size: entry.fileSize,
+        dateModified: entry.dateModified,
+        dateCreated: entry.dateCreated,
+        fileExtension: entry.fileExtension.replace('.', ''),
+        kind: entry.kind,
+      });
+    }
+
+    return items.sort((a, b) => {
+      if (a.type !== b.type) {
+        return a.type === 'folder' ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  // Filter out /dock paths from desktop view
+  const visibleEntries = path === '/home' || pathParts.length === 0
+    ? entries.filter((entry) => !entry.urlPath.startsWith('/dock'))
+    : entries;
+
+  for (const entry of visibleEntries) {
     const entryPathParts = entry.urlPath.split('/').filter(Boolean);
 
     if (pathParts.length === 0) {

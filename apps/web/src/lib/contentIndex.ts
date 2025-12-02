@@ -61,7 +61,7 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
 
   try {
     const contentModules = import.meta.glob(
-      '../../content/**/*.{md,txt,pdf,jpg,jpeg,png,gif,webp,svg}',
+      '../../content/**/*.{md,txt,pdf,jpg,jpeg,png,gif,webp,svg,webloc}',
       {
         eager: false,
         query: '?raw',
@@ -80,6 +80,7 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
         const isBinary = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(
           fileExtension.toLowerCase()
         );
+        const isWebloc = fileExtension.toLowerCase() === '.webloc';
 
         let parsed: { content: string; metadata: ContentMetadata };
 
@@ -89,6 +90,26 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
             content: '',
             metadata: {},
           };
+        } else if (isWebloc) {
+          // Parse .webloc JSON files to extract URL
+          const rawContent = (await importFn()) as string | { default: string };
+          const contentString =
+            typeof rawContent === 'string' ? rawContent : rawContent.default || '';
+          try {
+            const weblocData = JSON.parse(contentString);
+            parsed = {
+              content: '',
+              metadata: {
+                url: weblocData.url || '',
+              },
+            };
+          } catch (e) {
+            console.warn(`Failed to parse .webloc file ${filePath}:`, e);
+            parsed = {
+              content: '',
+              metadata: {},
+            };
+          }
         } else {
           const rawContent = (await importFn()) as string | { default: string };
           parsed = parseContent(

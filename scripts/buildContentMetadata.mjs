@@ -21,6 +21,7 @@ const getFileKind = (extension) => {
     '.gif': 'Image',
     '.webp': 'Image',
     '.svg': 'Image',
+    '.webloc': 'Internet Shortcut',
   };
   return kindMap[ext] || 'Document';
 };

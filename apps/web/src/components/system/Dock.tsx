@@ -100,6 +100,60 @@ const Dock = () => {
         size: { width: 649, height: 436 },
       });
       setActiveApp('terminal');
+    } else if (iconId === 'reading') {
+      const windowWidth = 800;
+      const windowHeight = 600;
+      const centerX = (window.innerWidth - windowWidth) / 2;
+      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
+
+      openWindow({
+        type: 'finder' as const,
+        title: 'Reading',
+        content: '',
+        position: { x: centerX, y: centerY + 22 },
+        size: { width: windowWidth, height: windowHeight },
+        currentPath: '/dock/reading',
+        viewMode: 'icon' as const,
+        navigationHistory: ['/dock/reading'],
+        navigationIndex: 0,
+        appName: 'Finder',
+      });
+    } else if (iconId === 'projects') {
+      const windowWidth = 800;
+      const windowHeight = 600;
+      const centerX = (window.innerWidth - windowWidth) / 2;
+      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
+
+      openWindow({
+        type: 'finder' as const,
+        title: 'Projects',
+        content: '',
+        position: { x: centerX, y: centerY + 22 },
+        size: { width: windowWidth, height: windowHeight },
+        currentPath: '/dock/projects',
+        viewMode: 'icon' as const,
+        navigationHistory: ['/dock/projects'],
+        navigationIndex: 0,
+        appName: 'Finder',
+      });
+    } else if (iconId === 'writing') {
+      const windowWidth = 800;
+      const windowHeight = 600;
+      const centerX = (window.innerWidth - windowWidth) / 2;
+      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
+
+      openWindow({
+        type: 'finder' as const,
+        title: 'Writing',
+        content: '',
+        position: { x: centerX, y: centerY + 22 },
+        size: { width: windowWidth, height: windowHeight },
+        currentPath: '/dock/writing',
+        viewMode: 'icon' as const,
+        navigationHistory: ['/dock/writing'],
+        navigationIndex: 0,
+        appName: 'Finder',
+      });
     }
   };
 
