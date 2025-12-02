@@ -1,4 +1,3 @@
-import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
 
 import FinderColumnView from '@/components/apps/Finder/FinderColumnView';
@@ -20,8 +19,8 @@ interface FinderWindowProps {
 }
 
 const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
-  const navigate = useNavigate();
-  const { updateWindow, openWindowFromUrl } = useWindowStore();
+  const { updateWindow, openWindowFromUrl, navigateToUrl, getOrCreateBrowserWindow } =
+    useWindowStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loadingFile, setLoadingFile] = useState<string | null>(null);
 
@@ -107,7 +106,8 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
       if (targetUrl) {
         const validatedUrl = validateAndNormalizeUrl(targetUrl);
         if (validatedUrl) {
-          navigate({ to: '/browser', search: { url: validatedUrl } });
+          const browserWindow = getOrCreateBrowserWindow(validatedUrl);
+          navigateToUrl(browserWindow.id, validatedUrl);
         } else {
           console.error('Invalid URL in shortcut file:', targetUrl);
         }

@@ -46,7 +46,9 @@ const DISTANCE = 140;
 const openFinderWindow = (
   title: string,
   path: string,
-  openWindow: (window: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'>) => void
+  openWindow: (
+    window: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { appName?: string }
+  ) => void
 ) => {
   const { width, height } = WINDOW_DIMENSIONS.finder;
   const position = getCenteredWindowPosition(width, height);
