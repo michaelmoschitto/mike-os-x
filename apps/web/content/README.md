@@ -1,24 +1,19 @@
-# Hey, my name is Mike!
+# howdy, i'm mike. welcome to my portfolio.
 
-Welcome to my portfolio.
+## what is this?
 
-## About Me
+this is my portfolio site / current passion project. i had long been wanting to build some sort of portfolio site, and always thought it would be fun to build a desktop like site, so here we are.
 
-I'm a **dev** based in Incline Village, NV passionate about AI/ML, databases, user interfaces, and scalability. This portfolio is inspired by the iconic _Mac OS X Aqua_ design from 2000, the year I was born.
+## wait a sec
 
-## What I Do
+yes, you're absolutely right! a few other people have beat me to create sites like this - i'm sure you will recognize this if you are a posthog, cursor, or levelsio fan.
 
-- idk I just liked to code.
+i hoped mine would be different, uniquely me, and most importantly fun to build. so i built it.
 
-## Tech used to make this site:
+## why?
 
-- **Languages:** JavaScript, TypeScript, HTML, CSS
-- **Frameworks:** React, Vite
-- **Styling:** Tailwind CSS, Framer Motion
-- **Tools:** Git, Docker, Cursor
+i originally wanted somehwere i could write / share some of the fun projects i've worked on. what we have so far is this. its definitely a work in progress but i've had a blast building it and learned a ton along the way.
 
----
-
-### Explore this OS
+hope you enjoy, any comments questions, or feature requests drop me an email to me@mikemoschitto.com
 
 Built with ❤️ in 2025, inspired by 2000.
