@@ -77,10 +77,24 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
       const urlPath = generateUrlPath(relativePath);
 
       try {
-        const rawContent = (await importFn()) as string | { default: string };
-        const parsed = parseContent(
-          typeof rawContent === 'string' ? rawContent : rawContent.default || ''
+        const isBinary = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(
+          fileExtension.toLowerCase()
         );
+
+        let parsed: { content: string; metadata: ContentMetadata };
+
+        if (isBinary) {
+          // Don't try to load binary files as strings
+          parsed = {
+            content: '',
+            metadata: {},
+          };
+        } else {
+          const rawContent = (await importFn()) as string | { default: string };
+          parsed = parseContent(
+            typeof rawContent === 'string' ? rawContent : rawContent.default || ''
+          );
+        }
 
         const appType = getAppForFile(fileExtension, parsed.metadata);
         const finalUrlPath = parsed.metadata.slug ? `/${parsed.metadata.slug}` : urlPath;

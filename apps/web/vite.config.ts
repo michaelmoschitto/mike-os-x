@@ -37,6 +37,17 @@ const copyContentAssets = (): Plugin => {
     name: 'copy-content-assets',
     buildStart() {
       copyRecursive(contentDir, publicContentDir);
+
+      // Copy PDF Worker
+      const pdfWorkerSrc = path.resolve(__dirname, '../../node_modules/pdfjs-dist/build/pdf.worker.min.mjs');
+      const pdfWorkerDest = path.resolve(__dirname, 'public/pdf.worker.min.mjs');
+      if (fs.existsSync(pdfWorkerSrc)) {
+        fs.mkdirSync(path.dirname(pdfWorkerDest), { recursive: true });
+        fs.copyFileSync(pdfWorkerSrc, pdfWorkerDest);
+        console.log('Copied PDF worker to public/');
+      } else {
+        console.warn('PDF worker not found at:', pdfWorkerSrc);
+      }
     },
   };
 };
