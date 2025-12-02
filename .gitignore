@@ -14,6 +14,8 @@ coverage/
 dist/
 build/
 
+apps/web/public/pdf.worker.min.mjs
+
 # Misc
 .DS_Store
 *.pem
