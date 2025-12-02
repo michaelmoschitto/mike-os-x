@@ -18,8 +18,6 @@ ENV VITE_API_URL=$VITE_API_URL
 
 RUN bun run --filter=@mike-os-x/web build
 
-RUN cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs apps/web/dist/pdf.worker.min.mjs
-
 # Production stage
 FROM nginx:alpine
 

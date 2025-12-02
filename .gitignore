@@ -14,9 +14,6 @@ coverage/
 dist/
 build/
 
-# PDF.js worker (copied from node_modules for local dev, Docker copies separately)
-apps/web/public/pdf.worker.min.mjs
-
 # Misc
 .DS_Store
 *.pem
