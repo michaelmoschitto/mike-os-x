@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { parseContent } from '@/lib/contentLoader';
 import { getAppForFile, type ContentMetadata } from '@/lib/fileToApp';
+import { normalizeUrlPath } from '@/lib/utils';
 
 export interface ContentIndexEntry {
   urlPath: string; // Clean URL path without extension (e.g., "/ProjectWriteups/mezo")
@@ -17,8 +18,10 @@ export interface ContentIndexEntry {
 
 interface ContentIndexStore {
   entries: Map<string, ContentIndexEntry>;
+  folders: string[];
   isIndexed: boolean;
   setEntries: (entries: Map<string, ContentIndexEntry>) => void;
+  setFolders: (folders: string[]) => void;
   setIsIndexed: (isIndexed: boolean) => void;
   getEntry: (urlPath: string) => ContentIndexEntry | undefined;
   getAllEntries: () => ContentIndexEntry[];
@@ -26,11 +29,13 @@ interface ContentIndexStore {
 
 export const useContentIndex = create<ContentIndexStore>((set, get) => ({
   entries: new Map(),
+  folders: [],
   isIndexed: false,
   setEntries: (entries) => set({ entries }),
+  setFolders: (folders) => set({ folders }),
   setIsIndexed: (isIndexed) => set({ isIndexed }),
   getEntry: (urlPath) => {
-    const normalizedPath = urlPath.startsWith('/') ? urlPath : `/${urlPath}`;
+    const normalizedPath = normalizeUrlPath(urlPath);
     return get().entries.get(normalizedPath);
   },
   getAllEntries: () => Array.from(get().entries.values()),
@@ -40,28 +45,48 @@ export const useContentIndex = create<ContentIndexStore>((set, get) => ({
  * Recursively scans the content directory and builds the index
  * In dev, this runs at runtime. In production, this could be pre-built.
  */
-export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry>> => {
-  const index = new Map<string, ContentIndexEntry>();
+type ContentMetadataRecord = Record<
+  string,
+  { size: number; mtime: string; birthtime: string; kind: string }
+>;
 
-  type ContentMetadataRecord = Record<
-    string,
-    { size: number; mtime: string; birthtime: string; kind: string }
-  >;
-
+/**
+ * Loads content metadata from the generated JSON file.
+ * Handles both old format (just files) and new format (files + folders).
+ */
+const loadContentMetadata = async (): Promise<{
+  files: ContentMetadataRecord;
+  folders: string[];
+}> => {
   let contentMetadata: ContentMetadataRecord = {};
+  let contentFolders: string[] = [];
+
   try {
     const metadataModule = await import('@/generated/contentMetadata.json');
     const imported = metadataModule.default || metadataModule;
     if (imported && typeof imported === 'object') {
-      contentMetadata = imported as ContentMetadataRecord;
+      if ('files' in imported && 'folders' in imported) {
+        contentMetadata = imported.files as ContentMetadataRecord;
+        contentFolders = imported.folders as string[];
+      } else {
+        contentMetadata = imported as ContentMetadataRecord;
+      }
     }
   } catch (error) {
     console.warn('Could not load content metadata, continuing without file stats:', error);
   }
 
+  return { files: contentMetadata, folders: contentFolders };
+};
+
+export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry>> => {
+  const index = new Map<string, ContentIndexEntry>();
+
+  const { files: contentMetadata } = await loadContentMetadata();
+
   try {
     const contentModules = import.meta.glob(
-      '../../content/**/*.{md,txt,pdf,jpg,jpeg,png,gif,webp,svg}',
+      '../../content/**/*.{md,txt,pdf,jpg,jpeg,png,gif,webp,svg,webloc}',
       {
         eager: false,
         query: '?raw',
@@ -80,6 +105,7 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
         const isBinary = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(
           fileExtension.toLowerCase()
         );
+        const isWebloc = fileExtension.toLowerCase() === '.webloc';
 
         let parsed: { content: string; metadata: ContentMetadata };
 
@@ -89,6 +115,26 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
             content: '',
             metadata: {},
           };
+        } else if (isWebloc) {
+          // Parse .webloc JSON files to extract URL
+          const rawContent = (await importFn()) as string | { default: string };
+          const contentString =
+            typeof rawContent === 'string' ? rawContent : rawContent.default || '';
+          try {
+            const weblocData = JSON.parse(contentString);
+            parsed = {
+              content: '',
+              metadata: {
+                url: weblocData.url || '',
+              },
+            };
+          } catch (e) {
+            console.warn(`Failed to parse .webloc file ${filePath}:`, e);
+            parsed = {
+              content: '',
+              metadata: {},
+            };
+          }
         } else {
           const rawContent = (await importFn()) as string | { default: string };
           parsed = parseContent(
@@ -149,5 +195,9 @@ const generateUrlPath = (relativePath: string): string => {
 export const initializeContentIndex = async (): Promise<void> => {
   const index = await buildContentIndex();
   useContentIndex.getState().setEntries(index);
+
+  const { folders } = await loadContentMetadata();
+  useContentIndex.getState().setFolders(folders);
+
   useContentIndex.getState().setIsIndexed(true);
 };

@@ -8,8 +8,9 @@ import {
 } from 'framer-motion';
 import { Fragment, useRef, useState } from 'react';
 
+import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { useUI } from '@/lib/store';
-import { useWindowStore } from '@/stores/useWindowStore';
+import { useWindowStore, type Window } from '@/stores/useWindowStore';
 
 type DockIconType =
   | 'browser'
@@ -42,6 +43,30 @@ const BASE_SIZE = 56;
 const MAX_SCALE = 2.3;
 const DISTANCE = 140;
 
+const openFinderWindow = (
+  title: string,
+  path: string,
+  openWindow: (
+    window: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { appName?: string }
+  ) => void
+) => {
+  const { width, height } = WINDOW_DIMENSIONS.finder;
+  const position = getCenteredWindowPosition(width, height);
+
+  openWindow({
+    type: 'finder' as const,
+    title,
+    content: '',
+    position,
+    size: { width, height },
+    currentPath: path,
+    viewMode: 'icon' as const,
+    navigationHistory: [path],
+    navigationIndex: 0,
+    appName: 'Finder',
+  });
+};
+
 const Dock = () => {
   const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
   const { activeApp, setActiveApp } = useUI();
@@ -60,46 +85,38 @@ const Dock = () => {
 
   const handleIconClick = (iconId: DockIconType) => {
     if (iconId === 'finder') {
-      const windowWidth = 800;
-      const windowHeight = 600;
-      const centerX = (window.innerWidth - windowWidth) / 2;
-      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
-
-      const finderWindow = {
-        type: 'finder' as const,
-        title: 'Finder',
-        content: '',
-        position: { x: centerX, y: centerY + 22 },
-        size: { width: windowWidth, height: windowHeight },
-        currentPath: '/home',
-        viewMode: 'icon' as const,
-        navigationHistory: ['/home'],
-        navigationIndex: 0,
-        appName: 'Finder',
-      };
-
-      openWindow(finderWindow);
+      openFinderWindow('Finder', '/dock/finder', openWindow);
     } else if (iconId === 'browser') {
+      const { width, height } = WINDOW_DIMENSIONS.browser;
       openWindow({
         type: 'browser',
         title: 'Internet Explorer',
         content: '',
         position: { x: 100, y: 80 },
-        size: { width: 1100, height: 640 },
+        size: { width, height },
         url: '',
         history: [],
         historyIndex: -1,
       });
       setActiveApp('browser');
     } else if (iconId === 'terminal') {
+      const { width, height } = WINDOW_DIMENSIONS.terminal;
       openWindow({
         type: 'terminal',
         title: 'Terminal',
         content: '',
         position: { x: 150, y: 100 },
-        size: { width: 649, height: 436 },
+        size: { width, height },
       });
       setActiveApp('terminal');
+    } else if (iconId === 'reading') {
+      openFinderWindow('Reading', '/dock/reading', openWindow);
+    } else if (iconId === 'projects') {
+      openFinderWindow('Projects', '/dock/projects', openWindow);
+    } else if (iconId === 'writing') {
+      openFinderWindow('Writing', '/dock/writing', openWindow);
+    } else if (iconId === 'trash') {
+      openFinderWindow('Trash', '/dock/trash', openWindow);
     }
   };
 

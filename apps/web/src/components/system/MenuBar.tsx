@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import MenuBarMenu from '@/components/ui/aqua/MenuBarMenu';
+import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { getDefaultMenuItems, getTerminalMenuItems } from '@/lib/menus/terminalMenus';
 import { useWindowStore } from '@/stores/useWindowStore';
 
@@ -27,17 +28,15 @@ const MenuBar = () => {
   });
 
   const handleNewTerminalWindow = useCallback(() => {
-    const windowWidth = 649;
-    const windowHeight = 436;
-    const centerX = (window.innerWidth - windowWidth) / 2;
-    const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
+    const { width, height } = WINDOW_DIMENSIONS.terminal;
+    const position = getCenteredWindowPosition(width, height);
 
     openWindow({
       type: 'terminal',
       title: 'Terminal',
       content: '',
-      position: { x: centerX, y: centerY + 22 },
-      size: { width: windowWidth, height: windowHeight },
+      position,
+      size: { width, height },
     });
   }, [openWindow]);
 
@@ -50,17 +49,15 @@ const MenuBar = () => {
   }, [activeWindow, addTabToWindow, handleNewTerminalWindow]);
 
   const handleNewWindow = useCallback(() => {
-    const windowWidth = 800;
-    const windowHeight = 600;
-    const centerX = (window.innerWidth - windowWidth) / 2;
-    const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
+    const { width, height } = WINDOW_DIMENSIONS.finder;
+    const position = getCenteredWindowPosition(width, height);
 
     openWindow({
       type: 'finder',
       title: 'Finder',
       content: '',
-      position: { x: centerX, y: centerY + 22 },
-      size: { width: windowWidth, height: windowHeight },
+      position,
+      size: { width, height },
       currentPath: '/home',
       viewMode: 'icon',
       navigationHistory: ['/home'],

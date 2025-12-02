@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { DEFAULT_BOOKMARKS } from '@/config/defaultBookmarks';
+import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { useUI } from '@/lib/store';
 import { getHostnameFromUrl, sanitizeUrlPath } from '@/lib/utils';
@@ -527,10 +528,13 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
           ? 'pdfviewer'
           : 'textedit';
 
-    const windowWidth = entry.appType === 'pdfviewer' ? 800 : 600;
-    const windowHeight = entry.appType === 'pdfviewer' ? 700 : 500;
-    const centerX = (window.innerWidth - windowWidth) / 2;
-    const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
+    const dimensions =
+      entry.appType === 'pdfviewer'
+        ? WINDOW_DIMENSIONS.pdfviewer
+        : entry.appType === 'browser'
+          ? WINDOW_DIMENSIONS.browser
+          : WINDOW_DIMENSIONS.textedit;
+    const position = getCenteredWindowPosition(dimensions.width, dimensions.height);
 
     const title = entry.metadata.title || urlPath.split('/').pop() || 'Untitled';
 
@@ -550,8 +554,8 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       type: windowType,
       title,
       content,
-      position: { x: centerX, y: centerY + 22 },
-      size: { width: windowWidth, height: windowHeight },
+      position,
+      size: { width: dimensions.width, height: dimensions.height },
       urlPath,
       ...(windowType === 'browser' && {
         url: browserUrl,
@@ -586,17 +590,15 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       return existingBrowser;
     }
 
-    const windowWidth = 1100;
-    const windowHeight = 640;
-    const centerX = (window.innerWidth - windowWidth) / 2;
-    const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
+    const { width, height } = WINDOW_DIMENSIONS.browser;
+    const position = getCenteredWindowPosition(width, height);
 
     const newWindow: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> = {
       type: 'browser',
       title: 'Internet Explorer',
       content: '',
-      position: { x: centerX, y: centerY + 22 },
-      size: { width: windowWidth, height: windowHeight },
+      position,
+      size: { width, height },
       url: initialUrl || '',
       history: initialUrl ? [initialUrl] : [],
       historyIndex: initialUrl ? 0 : -1,

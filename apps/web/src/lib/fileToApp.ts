@@ -1,10 +1,11 @@
-export type AppType = 'textedit' | 'browser' | 'pdfviewer' | 'photos' | 'finder';
+export type AppType = 'textedit' | 'browser' | 'pdfviewer' | 'photos' | 'finder' | 'shortcut';
 
 export interface ContentMetadata {
   app?: AppType;
   title?: string;
   slug?: string;
   description?: string;
+  url?: string;
 }
 
 /**
@@ -20,6 +21,7 @@ const EXTENSION_TO_APP: Record<string, AppType> = {
   '.gif': 'browser',
   '.webp': 'browser',
   '.svg': 'browser',
+  '.webloc': 'shortcut',
 };
 
 /**

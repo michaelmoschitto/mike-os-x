@@ -1,6 +1,7 @@
 import { useContentIndex } from '@/lib/contentIndex';
 import type { ContentIndexEntry } from '@/lib/contentIndex';
 import { loadContentFile } from '@/lib/contentLoader';
+import { normalizeUrlPath } from '@/lib/utils';
 
 export interface ResolvedContent {
   entry: ContentIndexEntry;
@@ -12,7 +13,7 @@ export interface ResolvedContent {
  * Returns the content index entry and loaded content
  */
 export const resolveUrlToContent = async (urlPath: string): Promise<ResolvedContent> => {
-  const normalizedPath = urlPath.startsWith('/') ? urlPath : `/${urlPath}`;
+  const normalizedPath = normalizeUrlPath(urlPath);
 
   const entry = useContentIndex.getState().getEntry(normalizedPath);
 
@@ -32,6 +33,6 @@ export const resolveUrlToContent = async (urlPath: string): Promise<ResolvedCont
  * Checks if a URL path exists in the content index
  */
 export const urlPathExists = (urlPath: string): boolean => {
-  const normalizedPath = urlPath.startsWith('/') ? urlPath : `/${urlPath}`;
+  const normalizedPath = normalizeUrlPath(urlPath);
   return useContentIndex.getState().getEntry(normalizedPath) !== undefined;
 };

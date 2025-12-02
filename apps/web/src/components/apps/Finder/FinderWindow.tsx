@@ -10,6 +10,7 @@ import { loadContentFile } from '@/lib/contentLoader';
 import { getFolderContents, type FinderItemData } from '@/lib/finderContent';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
 import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
+import { validateAndNormalizeUrl } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
 interface FinderWindowProps {
@@ -18,7 +19,8 @@ interface FinderWindowProps {
 }
 
 const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
-  const { updateWindow, openWindowFromUrl } = useWindowStore();
+  const { updateWindow, openWindowFromUrl, navigateToUrl, getOrCreateBrowserWindow } =
+    useWindowStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loadingFile, setLoadingFile] = useState<string | null>(null);
 
@@ -95,6 +97,21 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
 
     const entry = useContentIndex.getState().getEntry(item.path);
     if (!entry) {
+      return;
+    }
+
+    // Handle shortcut files - navigate to browser with URL
+    if (entry.appType === 'shortcut') {
+      const targetUrl = entry.metadata.url;
+      if (targetUrl) {
+        const validatedUrl = validateAndNormalizeUrl(targetUrl);
+        if (validatedUrl) {
+          const browserWindow = getOrCreateBrowserWindow(validatedUrl);
+          navigateToUrl(browserWindow.id, validatedUrl);
+        } else {
+          console.error('Invalid URL in shortcut file:', targetUrl);
+        }
+      }
       return;
     }
 
