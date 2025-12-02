@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { parseContent } from '@/lib/contentLoader';
 import { getAppForFile, type ContentMetadata } from '@/lib/fileToApp';
+import { normalizeUrlPath } from '@/lib/utils';
 
 export interface ContentIndexEntry {
   urlPath: string; // Clean URL path without extension (e.g., "/ProjectWriteups/mezo")
@@ -34,7 +35,7 @@ export const useContentIndex = create<ContentIndexStore>((set, get) => ({
   setFolders: (folders) => set({ folders }),
   setIsIndexed: (isIndexed) => set({ isIndexed }),
   getEntry: (urlPath) => {
-    const normalizedPath = urlPath.startsWith('/') ? urlPath : `/${urlPath}`;
+    const normalizedPath = normalizeUrlPath(urlPath);
     return get().entries.get(normalizedPath);
   },
   getAllEntries: () => Array.from(get().entries.values()),
@@ -44,32 +45,44 @@ export const useContentIndex = create<ContentIndexStore>((set, get) => ({
  * Recursively scans the content directory and builds the index
  * In dev, this runs at runtime. In production, this could be pre-built.
  */
-export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry>> => {
-  const index = new Map<string, ContentIndexEntry>();
+type ContentMetadataRecord = Record<
+  string,
+  { size: number; mtime: string; birthtime: string; kind: string }
+>;
 
-  type ContentMetadataRecord = Record<
-    string,
-    { size: number; mtime: string; birthtime: string; kind: string }
-  >;
-
+/**
+ * Loads content metadata from the generated JSON file.
+ * Handles both old format (just files) and new format (files + folders).
+ */
+const loadContentMetadata = async (): Promise<{
+  files: ContentMetadataRecord;
+  folders: string[];
+}> => {
   let contentMetadata: ContentMetadataRecord = {};
   let contentFolders: string[] = [];
+
   try {
     const metadataModule = await import('@/generated/contentMetadata.json');
     const imported = metadataModule.default || metadataModule;
     if (imported && typeof imported === 'object') {
-      // Handle both old format (just files) and new format (files + folders)
       if ('files' in imported && 'folders' in imported) {
         contentMetadata = imported.files as ContentMetadataRecord;
         contentFolders = imported.folders as string[];
       } else {
-        // Old format - just files
         contentMetadata = imported as ContentMetadataRecord;
       }
     }
   } catch (error) {
     console.warn('Could not load content metadata, continuing without file stats:', error);
   }
+
+  return { files: contentMetadata, folders: contentFolders };
+};
+
+export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry>> => {
+  const index = new Map<string, ContentIndexEntry>();
+
+  const { files: contentMetadata } = await loadContentMetadata();
 
   try {
     const contentModules = import.meta.glob(
@@ -183,16 +196,8 @@ export const initializeContentIndex = async (): Promise<void> => {
   const index = await buildContentIndex();
   useContentIndex.getState().setEntries(index);
 
-  // Load folders from metadata
-  try {
-    const metadataModule = await import('@/generated/contentMetadata.json');
-    const imported = metadataModule.default || metadataModule;
-    if (imported && typeof imported === 'object' && 'folders' in imported) {
-      useContentIndex.getState().setFolders(imported.folders as string[]);
-    }
-  } catch (error) {
-    console.warn('Could not load folder metadata:', error);
-  }
+  const { folders } = await loadContentMetadata();
+  useContentIndex.getState().setFolders(folders);
 
   useContentIndex.getState().setIsIndexed(true);
 };

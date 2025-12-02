@@ -1,4 +1,5 @@
 import { useContentIndex, initializeContentIndex } from '@/lib/contentIndex';
+import { normalizePath, normalizeUrlPath } from '@/lib/utils';
 
 export interface FinderItemData {
   id: string;
@@ -42,11 +43,11 @@ export const getFolderContents = (path: string): FinderItemData[] => {
   const entries = useContentIndex.getState().getAllEntries();
   const folders = useContentIndex.getState().folders;
 
-  const normalizedPath = path.replace(/^\/+|\/+$/g, '');
+  const normalizedPath = normalizePath(path);
   const normalizedPathParts = normalizedPath ? normalizedPath.split('/') : [];
 
   for (const entry of entries) {
-    const entryPath = entry.urlPath.replace(/^\/+/, '');
+    const entryPath = normalizePath(entry.urlPath);
     const entryPathParts = entryPath ? entryPath.split('/') : [];
 
     const isInPath =
@@ -84,15 +85,16 @@ export const getFolderContents = (path: string): FinderItemData[] => {
       });
     } else if (depth > 1) {
       const immediateSubfolder = remainingParts[0];
-      const subfolderPath = normalizedPath
-        ? `/${normalizedPath}/${immediateSubfolder}`
-        : `/${immediateSubfolder}`;
+      const subfolderPath = normalizeUrlPath(
+        normalizedPath ? `${normalizedPath}/${immediateSubfolder}` : immediateSubfolder
+      );
       folderSet.add(subfolderPath);
     }
   }
 
   for (const folderPath of folders) {
-    const folderPathParts = folderPath.split('/').filter(Boolean);
+    const folderPathNormalized = normalizePath(folderPath);
+    const folderPathParts = folderPathNormalized ? folderPathNormalized.split('/') : [];
 
     const isInPath =
       normalizedPathParts.length === 0
@@ -107,9 +109,9 @@ export const getFolderContents = (path: string): FinderItemData[] => {
     const remainingParts = folderPathParts.slice(normalizedPathParts.length);
     if (remainingParts.length > 0) {
       const immediateSubfolder = remainingParts[0];
-      const subfolderPath = normalizedPath
-        ? `/${normalizedPath}/${immediateSubfolder}`
-        : `/${immediateSubfolder}`;
+      const subfolderPath = normalizeUrlPath(
+        normalizedPath ? `${normalizedPath}/${immediateSubfolder}` : immediateSubfolder
+      );
       folderSet.add(subfolderPath);
     }
   }

@@ -162,3 +162,32 @@ export const validatePdfUrl = (url: string): boolean => {
 
   return true;
 };
+
+/**
+ * Normalizes a file path by removing leading/trailing slashes and empty segments.
+ * Used for consistent path handling across the application.
+ *
+ * @param path - The path to normalize (e.g., "/dock/finder" or "dock/finder/")
+ * @returns Normalized path without leading/trailing slashes (e.g., "dock/finder")
+ */
+export const normalizePath = (path: string): string => {
+  if (!path || typeof path !== 'string') {
+    return '';
+  }
+  return path.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/');
+};
+
+/**
+ * Normalizes a URL path to always start with a single slash.
+ * Used for content index lookups and routing.
+ *
+ * @param urlPath - The URL path to normalize
+ * @returns Path starting with / (e.g., "/dock/finder")
+ */
+export const normalizeUrlPath = (urlPath: string): string => {
+  if (!urlPath || typeof urlPath !== 'string') {
+    return '/';
+  }
+  const normalized = urlPath.trim().replace(/\/+/g, '/');
+  return normalized.startsWith('/') ? normalized : `/${normalized}`;
+};
