@@ -40,10 +40,10 @@ export const getCenteredWindowPosition = (
   height: number
 ): { x: number; y: number } => {
   const centerX = (window.innerWidth - width) / 2;
-  const centerY = (window.innerHeight - height - UI_DIMENSIONS.menuBarHeight - UI_DIMENSIONS.dockHeight) / 2;
+  const centerY =
+    (window.innerHeight - height - UI_DIMENSIONS.menuBarHeight - UI_DIMENSIONS.dockHeight) / 2;
   return {
     x: centerX,
     y: centerY + UI_DIMENSIONS.menuBarHeight,
   };
 };
-
