@@ -115,6 +115,8 @@ const Dock = () => {
       openFinderWindow('Projects', '/dock/projects', openWindow);
     } else if (iconId === 'writing') {
       openFinderWindow('Writing', '/dock/writing', openWindow);
+    } else if (iconId === 'trash') {
+      openFinderWindow('Trash', '/dock/trash', openWindow);
     }
   };
 
