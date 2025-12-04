@@ -13,7 +13,7 @@ const PhotosGrid = ({ photos, onPhotoClick }: PhotosGridProps) => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-white p-4">
+    <div className="h-full overflow-y-auto bg-white p-4">
       {photos.length === 0 ? (
         <div className="flex h-full items-center justify-center">
           <p className="font-ui text-sm text-[var(--color-text-secondary)]">No photos found</p>

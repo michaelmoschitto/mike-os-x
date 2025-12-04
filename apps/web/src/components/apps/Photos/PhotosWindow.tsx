@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 
 import PhotosGrid from '@/components/apps/Photos/PhotosGrid';
+import { cn } from '@/lib/utils';
 import PhotosInfoSidebar from '@/components/apps/Photos/PhotosInfoSidebar';
 import PhotosSidebar from '@/components/apps/Photos/PhotosSidebar';
 import PhotosSingleView from '@/components/apps/Photos/PhotosSingleView';
@@ -218,7 +219,7 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
             currentAlbumPath={albumPath}
             onAlbumChange={handleAlbumChange}
           />
-          <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {showSingleView && selectedPhoto && selectedPhotoIndex !== null && (
               <PhotosSingleView
                 photo={selectedPhoto}
@@ -229,7 +230,9 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
                 onPrevious={handlePreviousPhoto}
               />
             )}
-            <PhotosGrid photos={photos} onPhotoClick={handlePhotoClick} />
+            <div className={cn(showSingleView && 'h-[200px] flex-shrink-0')}>
+              <PhotosGrid photos={photos} onPhotoClick={handlePhotoClick} />
+            </div>
           </div>
           {showInfoSidebar && showSingleView && selectedPhoto && selectedPhotoIndex !== null && (
             <PhotosInfoSidebar

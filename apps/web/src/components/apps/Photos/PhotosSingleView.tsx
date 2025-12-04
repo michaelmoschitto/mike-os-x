@@ -41,9 +41,9 @@ const PhotosSingleView = ({
   }, [onClose, onNext, onPrevious]);
 
   return (
-    <div className="flex flex-col">
-      <div className="aqua-pinstripe relative flex h-[400px] items-center justify-center overflow-hidden border-b border-[var(--color-border-subtle)]">
-        <div className="relative max-h-full max-w-full">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="aqua-pinstripe relative flex min-h-0 flex-1 items-center justify-center overflow-hidden border-b border-[var(--color-border-subtle)]">
+        <div className="relative flex h-full w-full items-center justify-center p-4">
           <img
             src={getImageUrl(photo)}
             alt={photo.name}

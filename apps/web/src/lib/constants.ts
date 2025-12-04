@@ -23,8 +23,8 @@ export const WINDOW_DIMENSIONS = {
     height: 700,
   },
   photos: {
-    width: 900,
-    height: 650,
+    width: 1100,
+    height: 800,
   },
 } as const;
 
