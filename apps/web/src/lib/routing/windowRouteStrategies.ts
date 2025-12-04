@@ -1,5 +1,5 @@
-import type { Window } from '@/stores/useWindowStore';
 import { buildPhotoRouteFromWindow, buildAlbumRouteFromWindow } from '@/lib/photosRouting';
+import type { Window } from '@/stores/useWindowStore';
 
 export interface WindowRouteStrategy {
   getRouteForWindow: (window: Window) => string;

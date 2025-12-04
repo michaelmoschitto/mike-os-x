@@ -7,7 +7,6 @@ interface PhotosGridProps {
 }
 
 const PhotosGrid = ({ photos, onPhotoClick }: PhotosGridProps) => {
-
   return (
     <div className="h-full overflow-y-auto bg-white p-4">
       {photos.length === 0 ? (

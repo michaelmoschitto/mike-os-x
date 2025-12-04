@@ -25,7 +25,10 @@ export interface TerminalTab {
 const getAppName = (
   windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder' | 'photos'
 ): string => {
-  const appNames: Record<'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder' | 'photos', string> = {
+  const appNames: Record<
+    'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder' | 'photos',
+    string
+  > = {
     browser: 'Internet Explorer',
     textedit: 'TextEdit',
     terminal: 'Terminal',
@@ -86,7 +89,11 @@ interface WindowStore {
   updateWindowPosition: (id: string, position: { x: number; y: number }) => void;
   updateWindowSize: (id: string, size: { width: number; height: number }) => void;
   updateWindowContent: (id: string, content: string) => void;
-  updateWindow: (id: string, updates: Partial<Window>, options?: { skipRouteSync?: boolean }) => void;
+  updateWindow: (
+    id: string,
+    updates: Partial<Window>,
+    options?: { skipRouteSync?: boolean }
+  ) => void;
   clearRouteSyncFlag: (id: string) => void;
   minimizeWindow: (id: string) => void;
   navigateToUrl: (id: string, url: string, title?: string, fromRoute?: boolean) => void;

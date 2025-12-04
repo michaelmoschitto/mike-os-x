@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import PhotosGrid from '@/components/apps/Photos/PhotosGrid';
-import { cn } from '@/lib/utils';
 import PhotosInfoSidebar from '@/components/apps/Photos/PhotosInfoSidebar';
 import PhotosSidebar from '@/components/apps/Photos/PhotosSidebar';
 import PhotosSingleView from '@/components/apps/Photos/PhotosSingleView';
@@ -11,6 +10,7 @@ import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
 import { getPhotoAlbums, getAlbumPhotos, type PhotoData } from '@/lib/photosContent';
 import { buildPhotoRoute, buildAlbumRoute } from '@/lib/photosRouting';
+import { cn } from '@/lib/utils';
 import { showCompactNotification } from '@/stores/notificationHelpers';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 

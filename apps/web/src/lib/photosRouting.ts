@@ -92,4 +92,3 @@ export const buildAlbumRouteFromWindow = (albumPath: string | undefined): string
 
   return `/photos?album=${encodeURIComponent(albumPath)}`;
 };
-

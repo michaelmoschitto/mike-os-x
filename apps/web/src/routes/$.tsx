@@ -2,11 +2,11 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
 import Desktop from '@/components/system/Desktop';
+import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { initializeContentIndex, useContentIndex } from '@/lib/contentIndex';
 import type { ContentIndexEntry } from '@/lib/contentIndex';
 import { getPhotoByPath, getAlbumPhotos } from '@/lib/photosContent';
 import { resolveUrlToContent } from '@/lib/urlResolver';
-import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { useWindowStore } from '@/stores/useWindowStore';
 
 export const Route = createFileRoute('/$')({

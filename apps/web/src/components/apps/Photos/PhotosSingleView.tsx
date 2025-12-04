@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { cn } from '@/lib/utils';
+
 import type { PhotoData } from '@/lib/photosContent';
 import { getPhotoImageUrl } from '@/lib/photosRouting';
+import { cn } from '@/lib/utils';
 
 interface PhotosSingleViewProps {
   photo: PhotoData;
@@ -20,7 +21,6 @@ const PhotosSingleView = ({
   onNext,
   onPrevious,
 }: PhotosSingleViewProps) => {
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {

@@ -1,5 +1,5 @@
 import { useContentIndex, initializeContentIndex } from '@/lib/contentIndex';
-import { normalizePath, normalizeUrlPath } from '@/lib/utils';
+import { normalizePath } from '@/lib/utils';
 
 export interface PhotoData {
   id: string;
@@ -79,7 +79,9 @@ export const getAlbumPhotos = (albumPath?: string): PhotoData[] => {
   for (const entry of entries) {
     const normalizedPath = normalizePath(entry.urlPath);
     const isDockPhoto = normalizedPath.startsWith('dock/photos');
-    const isDesktopPhoto = !normalizedPath.startsWith('dock') && imageExtensions.includes(entry.fileExtension.toLowerCase());
+    const isDesktopPhoto =
+      !normalizedPath.startsWith('dock') &&
+      imageExtensions.includes(entry.fileExtension.toLowerCase());
 
     if (!isDockPhoto && !isDesktopPhoto) {
       continue;
@@ -169,9 +171,8 @@ export const getPhotoByPath = (photoPath: string): PhotoData | null => {
 
   const pathParts = normalizedPath.split('/').filter(Boolean);
   const isDockPhoto = normalizedPath.startsWith('dock/photos');
-  const albumPath = isDockPhoto && pathParts.length >= 3 
-    ? pathParts.slice(0, 3).join('/') 
-    : 'desktop';
+  const albumPath =
+    isDockPhoto && pathParts.length >= 3 ? pathParts.slice(0, 3).join('/') : 'desktop';
   const photoName = pathParts[pathParts.length - 1] || normalizedPath;
 
   return {
@@ -188,4 +189,3 @@ export const getPhotoByPath = (photoPath: string): PhotoData | null => {
     dateCreated: entry.dateCreated,
   };
 };
-

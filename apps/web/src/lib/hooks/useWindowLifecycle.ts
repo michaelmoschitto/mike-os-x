@@ -24,7 +24,6 @@ export const useWindowLifecycle = ({
     updateWindowPosition,
     updateWindowSize,
     minimizeWindow,
-    skipNextRouteSync,
     clearRouteSyncFlag,
     getRouteToNavigateOnClose,
   } = useWindowStore();
@@ -56,22 +55,24 @@ export const useWindowLifecycle = ({
   useEffect(() => {
     if (!isActive) return;
     if (!routeStrategy.shouldSyncRoute(windowData)) return;
-    
+
     const route = routeStrategy.getRouteForWindow(windowData);
     const targetPath = route.split('?')[0];
     const targetSearch = route.includes('?') ? route.split('?')[1] : '';
     const targetRoute = `${targetPath}${targetSearch ? `?${targetSearch}` : ''}`;
-    
+
     const currentSkipFlag = useWindowStore.getState().skipNextRouteSync[windowData.id];
     const currentPath = window.location.pathname;
     const currentSearch = window.location.search;
-    const currentRoute = `${currentPath}${currentSearch}`;
-    
+
     if (currentSkipFlag) {
       const normalizedCurrent = currentPath.replace(/\/$/, '');
       const normalizedTarget = targetPath.replace(/\/$/, '');
-      
-      if (normalizedCurrent === normalizedTarget && currentSearch === (targetSearch ? `?${targetSearch}` : '')) {
+
+      if (
+        normalizedCurrent === normalizedTarget &&
+        currentSearch === (targetSearch ? `?${targetSearch}` : '')
+      ) {
         lastHandledRouteRef.current = targetRoute;
         clearRouteSyncFlag(windowData.id);
       }
@@ -84,8 +85,11 @@ export const useWindowLifecycle = ({
 
     const normalizedCurrent = currentPath.replace(/\/$/, '');
     const normalizedTarget = targetPath.replace(/\/$/, '');
-    
-    if (normalizedCurrent === normalizedTarget && currentSearch === (targetSearch ? `?${targetSearch}` : '')) {
+
+    if (
+      normalizedCurrent === normalizedTarget &&
+      currentSearch === (targetSearch ? `?${targetSearch}` : '')
+    ) {
       lastHandledRouteRef.current = targetRoute;
       return;
     }

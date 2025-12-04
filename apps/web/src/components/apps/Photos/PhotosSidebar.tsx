@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils';
 import type { AlbumData } from '@/lib/photosContent';
+import { cn } from '@/lib/utils';
 
 interface PhotosSidebarProps {
   albums: AlbumData[];

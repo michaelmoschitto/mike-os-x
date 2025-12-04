@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
 import { cn } from '@/lib/utils';
+import { EnvelopeIcon } from '@/components/system/NotificationIcons';
 import { useNotificationStore, type NotificationConfig } from '@/stores/useNotificationStore';
 
 const notificationSpring = {
@@ -10,24 +11,6 @@ const notificationSpring = {
   damping: 30,
   mass: 1,
 };
-
-const EnvelopeIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 16 16"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className="text-white"
-  >
-    <path
-      d="M2 3h12v10H2V3zm0 1l6 4 6-4v8H2V4z"
-      fill="currentColor"
-      stroke="currentColor"
-      strokeWidth="0.5"
-    />
-  </svg>
-);
 
 const CloseIcon = ({ className }: { className?: string }) => (
   <svg
