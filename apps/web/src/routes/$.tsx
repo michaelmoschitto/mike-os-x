@@ -7,7 +7,7 @@ import { initializeContentIndex, useContentIndex } from '@/lib/contentIndex';
 import type { ContentIndexEntry } from '@/lib/contentIndex';
 import { getPhotoByPath, getAlbumPhotos } from '@/lib/photosContent';
 import { resolveUrlToContent } from '@/lib/urlResolver';
-import { useWindowStore } from '@/stores/useWindowStore';
+import { useWindowStore, type Window } from '@/stores/useWindowStore';
 
 export const Route = createFileRoute('/$')({
   validateSearch: (search: Record<string, unknown>) => {
@@ -53,7 +53,9 @@ const handlePhotosRoute = (
   path: string | undefined,
   album: string | undefined,
   photo: string | undefined,
-  openWindow: (window: Parameters<ReturnType<typeof useWindowStore>['openWindow']>[0]) => void
+  openWindow: (
+    window: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { appName?: string }
+  ) => void
 ) => {
   const { windows, updateWindow, focusWindow } = useWindowStore.getState();
   const existingPhotosWindow = windows.find((w) => w.type === 'photos' && !w.isMinimized);

@@ -204,7 +204,9 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
                 onPrevious={handlePreviousPhoto}
               />
             )}
-            <div className={cn(showSingleView && 'h-[200px] flex-shrink-0')}>
+            <div
+              className={cn('flex min-h-0', showSingleView ? 'h-[200px] flex-shrink-0' : 'flex-1')}
+            >
               <PhotosGrid photos={photos} onPhotoClick={handlePhotoClick} />
             </div>
           </div>

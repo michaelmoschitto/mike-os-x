@@ -1,8 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
-import { cn } from '@/lib/utils';
 import { EnvelopeIcon } from '@/components/system/NotificationIcons';
+import { cn } from '@/lib/utils';
 import { useNotificationStore, type NotificationConfig } from '@/stores/useNotificationStore';
 
 const notificationSpring = {
