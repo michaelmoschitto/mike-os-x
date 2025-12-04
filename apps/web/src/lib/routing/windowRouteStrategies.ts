@@ -1,4 +1,5 @@
 import type { Window } from '@/stores/useWindowStore';
+import { buildPhotoRouteFromWindow, buildAlbumRouteFromWindow } from '@/lib/photosRouting';
 
 export interface WindowRouteStrategy {
   getRouteForWindow: (window: Window) => string;
@@ -39,39 +40,12 @@ const finderStrategy: WindowRouteStrategy = {
 
 const photosStrategy: WindowRouteStrategy = {
   getRouteForWindow: (window) => {
-    if (window.urlPath && window.selectedPhotoIndex !== undefined && window.selectedPhotoIndex !== null) {
-      const normalizedUrlPath = window.urlPath.startsWith('/') 
-        ? window.urlPath.slice(1) 
-        : window.urlPath;
-      const pathParts = normalizedUrlPath.split('/').filter(Boolean);
-      
-      if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
-        const albumName = pathParts[2];
-        const photoName = pathParts[pathParts.length - 1];
-        const photoNameWithoutExt = photoName.replace(/\.(jpg|jpeg|png|gif|webp|svg)$/i, '');
-        return `/photos/${albumName}/${photoNameWithoutExt}`;
-      }
-      
-      if (pathParts.length > 0 && pathParts[0] !== 'dock') {
-        const photoName = pathParts[pathParts.length - 1];
-        const photoNameWithoutExt = photoName.replace(/\.(jpg|jpeg|png|gif|webp|svg)$/i, '');
-        return `/photos/desktop/${photoNameWithoutExt}`;
-      }
-      
-      return `/photos?photo=${encodeURIComponent(window.urlPath)}`;
+    const photoRoute = buildPhotoRouteFromWindow(window.urlPath, window.selectedPhotoIndex);
+    if (photoRoute) {
+      return photoRoute;
     }
-    if (window.albumPath) {
-      const normalizedAlbumPath = window.albumPath.startsWith('/') 
-        ? window.albumPath.slice(1) 
-        : window.albumPath;
-      const pathParts = normalizedAlbumPath.split('/').filter(Boolean);
-      if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
-        const albumName = pathParts[2];
-        return `/photos/${albumName}`;
-      }
-      return `/photos?album=${encodeURIComponent(window.albumPath)}`;
-    }
-    return '/photos';
+
+    return buildAlbumRouteFromWindow(window.albumPath);
   },
   shouldSyncRoute: (window) => window.type === 'photos',
 };

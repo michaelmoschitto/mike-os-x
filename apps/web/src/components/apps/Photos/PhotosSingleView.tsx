@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import type { PhotoData } from '@/lib/photosContent';
-import { sanitizeUrlPath } from '@/lib/utils';
+import { getPhotoImageUrl } from '@/lib/photosRouting';
 
 interface PhotosSingleViewProps {
   photo: PhotoData;
@@ -20,10 +20,6 @@ const PhotosSingleView = ({
   onNext,
   onPrevious,
 }: PhotosSingleViewProps) => {
-  const getImageUrl = (photo: PhotoData) => {
-    const sanitizedPath = sanitizeUrlPath(photo.urlPath);
-    return `/content${sanitizedPath}${photo.fileExtension}`;
-  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,7 +41,7 @@ const PhotosSingleView = ({
       <div className="aqua-pinstripe relative flex min-h-0 flex-1 items-center justify-center overflow-hidden border-b border-[var(--color-border-subtle)]">
         <div className="relative flex h-full w-full items-center justify-center p-4">
           <img
-            src={getImageUrl(photo)}
+            src={getPhotoImageUrl(photo)}
             alt={photo.name}
             className="max-h-full max-w-full object-contain"
           />
@@ -58,6 +54,7 @@ const PhotosSingleView = ({
           onClick={onClose}
           type="button"
           title="Close"
+          aria-label="Close photo view"
           style={{
             position: 'absolute',
             top: '8px',
@@ -83,6 +80,7 @@ const PhotosSingleView = ({
               className="aqua-button-base flex h-[22px] w-[28px] items-center justify-center"
               onClick={onPrevious}
               title="Previous (←)"
+              aria-label={`Previous photo (${currentIndex} of ${photos.length})`}
               type="button"
             >
               <svg
@@ -102,6 +100,7 @@ const PhotosSingleView = ({
               className="aqua-button-base flex h-[22px] w-[28px] items-center justify-center"
               onClick={onNext}
               title="Next (→)"
+              aria-label={`Next photo (${currentIndex + 2} of ${photos.length})`}
               type="button"
             >
               <svg

@@ -1,5 +1,5 @@
 import type { PhotoData } from '@/lib/photosContent';
-import { sanitizeUrlPath } from '@/lib/utils';
+import { getPhotoImageUrl } from '@/lib/photosRouting';
 
 interface PhotosGridProps {
   photos: PhotoData[];
@@ -7,10 +7,6 @@ interface PhotosGridProps {
 }
 
 const PhotosGrid = ({ photos, onPhotoClick }: PhotosGridProps) => {
-  const getImageUrl = (photo: PhotoData) => {
-    const sanitizedPath = sanitizeUrlPath(photo.urlPath);
-    return `/content${sanitizedPath}${photo.fileExtension}`;
-  };
 
   return (
     <div className="h-full overflow-y-auto bg-white p-4">
@@ -28,7 +24,7 @@ const PhotosGrid = ({ photos, onPhotoClick }: PhotosGridProps) => {
             >
               <div className="relative aspect-square overflow-hidden rounded bg-gray-100">
                 <img
-                  src={getImageUrl(photo)}
+                  src={getPhotoImageUrl(photo)}
                   alt={photo.name}
                   className="h-full w-full object-cover transition-transform group-hover:scale-105"
                   loading="lazy"

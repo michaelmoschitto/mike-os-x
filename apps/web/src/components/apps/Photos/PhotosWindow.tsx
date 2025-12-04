@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 
 import PhotosGrid from '@/components/apps/Photos/PhotosGrid';
@@ -10,6 +10,7 @@ import PhotosToolbar from '@/components/apps/Photos/PhotosToolbar';
 import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
 import { getPhotoAlbums, getAlbumPhotos, type PhotoData } from '@/lib/photosContent';
+import { buildPhotoRoute, buildAlbumRoute } from '@/lib/photosRouting';
 import { showCompactNotification } from '@/stores/notificationHelpers';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
@@ -17,42 +18,6 @@ interface PhotosWindowProps {
   window: WindowType;
   isActive: boolean;
 }
-
-const buildPhotoUrl = (photo: PhotoData): string => {
-  const urlPath = photo.urlPath.startsWith('/') ? photo.urlPath.slice(1) : photo.urlPath;
-  const pathParts = urlPath.split('/').filter(Boolean);
-
-  if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
-    const albumName = pathParts[2];
-    const photoName = pathParts[pathParts.length - 1];
-    const photoNameWithoutExt = photoName.replace(/\.(jpg|jpeg|png|gif|webp|svg)$/i, '');
-    return `/photos/${albumName}/${photoNameWithoutExt}`;
-  }
-
-  if (pathParts.length > 0 && pathParts[0] !== 'dock') {
-    const photoName = pathParts[pathParts.length - 1];
-    const photoNameWithoutExt = photoName.replace(/\.(jpg|jpeg|png|gif|webp|svg)$/i, '');
-    return `/photos/desktop/${photoNameWithoutExt}`;
-  }
-
-  return `/photos?photo=${encodeURIComponent(photo.urlPath)}`;
-};
-
-const buildAlbumUrl = (albumPath?: string): string => {
-  if (!albumPath) {
-    return '/photos';
-  }
-
-  const normalizedAlbumPath = albumPath.startsWith('/') ? albumPath.slice(1) : albumPath;
-  const pathParts = normalizedAlbumPath.split('/').filter(Boolean);
-
-  if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
-    const albumName = pathParts[2];
-    return `/photos/${albumName}`;
-  }
-
-  return `/photos?album=${encodeURIComponent(albumPath)}`;
-};
 
 const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
   const navigate = useNavigate();
@@ -86,49 +51,58 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     return photos[selectedPhotoIndex] || null;
   }, [selectedPhotoIndex, photos]);
 
-  const handlePhotoClick = (photo: PhotoData) => {
-    const route = buildPhotoUrl(photo);
-    navigate({ to: route });
-  };
-
-  const handleCloseSingleView = () => {
-    const route = buildAlbumUrl(albumPath);
-    navigate({ to: route });
-  };
-
-  const handleAlbumChange = (newAlbumPath?: string) => {
-    const route = buildAlbumUrl(newAlbumPath);
-    navigate({ to: route });
-  };
-
-  const handleViewModeChange = (mode: 'grid' | 'slideshow') => {
-    if (mode === 'slideshow' && photos.length > 0 && selectedPhotoIndex === null) {
-      const firstPhoto = photos[0];
-      const route = buildPhotoUrl(firstPhoto);
+  const handlePhotoClick = useCallback(
+    (photo: PhotoData) => {
+      const route = buildPhotoRoute(photo);
       navigate({ to: route });
-    } else if (mode === 'grid') {
-      updateWindow(windowData.id, { isSlideshow: false }, { skipRouteSync: true });
-    }
-  };
+    },
+    [navigate]
+  );
 
-  const handleNextPhoto = () => {
+  const handleCloseSingleView = useCallback(() => {
+    const route = buildAlbumRoute(albumPath);
+    navigate({ to: route });
+  }, [albumPath, navigate]);
+
+  const handleAlbumChange = useCallback(
+    (newAlbumPath?: string) => {
+      const route = buildAlbumRoute(newAlbumPath);
+      navigate({ to: route });
+    },
+    [navigate]
+  );
+
+  const handleViewModeChange = useCallback(
+    (mode: 'grid' | 'slideshow') => {
+      if (mode === 'slideshow' && photos.length > 0 && selectedPhotoIndex === null) {
+        const firstPhoto = photos[0];
+        const route = buildPhotoRoute(firstPhoto);
+        navigate({ to: route });
+      } else if (mode === 'grid') {
+        updateWindow(windowData.id, { isSlideshow: false }, { skipRouteSync: true });
+      }
+    },
+    [photos, selectedPhotoIndex, navigate, updateWindow, windowData.id]
+  );
+
+  const handleNextPhoto = useCallback(() => {
     if (photos.length === 0) return;
     const nextIndex = selectedPhotoIndex === null ? 0 : (selectedPhotoIndex + 1) % photos.length;
     const nextPhoto = photos[nextIndex];
-    const route = buildPhotoUrl(nextPhoto);
+    const route = buildPhotoRoute(nextPhoto);
     navigate({ to: route });
-  };
+  }, [photos, selectedPhotoIndex, navigate]);
 
-  const handlePreviousPhoto = () => {
+  const handlePreviousPhoto = useCallback(() => {
     if (photos.length === 0) return;
     const prevIndex =
       selectedPhotoIndex === null
         ? photos.length - 1
         : (selectedPhotoIndex - 1 + photos.length) % photos.length;
     const prevPhoto = photos[prevIndex];
-    const route = buildPhotoUrl(prevPhoto);
+    const route = buildPhotoRoute(prevPhoto);
     navigate({ to: route });
-  };
+  }, [photos, selectedPhotoIndex, navigate]);
 
   const handleClose = () => {
     closeWindow(windowData.id);
@@ -150,20 +124,20 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     updateWindowSize(windowData.id, size);
   };
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     if (!selectedPhoto) return;
 
-    const photoUrl = buildPhotoUrl(selectedPhoto);
+    const photoUrl = buildPhotoRoute(selectedPhoto);
     const fullUrl = `${window.location.origin}${photoUrl}`;
 
     try {
       await navigator.clipboard.writeText(fullUrl);
-      showCompactNotification('URL Copied', 'Just copy the url :)', { type: 'success' });
+      showCompactNotification('URL Copied', 'Photo URL copied to clipboard', { type: 'success' });
     } catch (error) {
       console.error('Failed to copy URL:', error);
       showCompactNotification('Error', 'Failed to copy URL');
     }
-  };
+  }, [selectedPhoto]);
 
   useEffect(() => {
     if (!useContentIndex.getState().isIndexed) {
@@ -181,7 +155,7 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isSlideshow, slideshowPaused, selectedPhotoIndex, photos.length]);
+  }, [isSlideshow, slideshowPaused, photos.length, handleNextPhoto]);
 
   const showSingleView = selectedPhotoIndex !== null && selectedPhoto !== null;
 
