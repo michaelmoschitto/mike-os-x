@@ -23,21 +23,25 @@ export interface TerminalTab {
 }
 
 const getAppName = (
-  windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder'
+  windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder' | 'photos'
 ): string => {
-  const appNames: Record<'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder', string> = {
+  const appNames: Record<
+    'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder' | 'photos',
+    string
+  > = {
     browser: 'Internet Explorer',
     textedit: 'TextEdit',
     terminal: 'Terminal',
     pdfviewer: 'Preview',
     finder: 'Finder',
+    photos: 'Photos',
   };
   return appNames[windowType];
 };
 
 export interface Window {
   id: string;
-  type: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder';
+  type: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder' | 'photos';
   appName: string;
   title: string;
   content: string;
@@ -58,11 +62,14 @@ export interface Window {
   navigationIndex?: number;
   tabs?: TerminalTab[];
   activeTabId?: string;
+  albumPath?: string;
+  selectedPhotoIndex?: number;
+  isSlideshow?: boolean;
 }
 
 const getAppTypeForDock = (
-  windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder'
-): 'browser' | 'textedit' | 'terminal' | 'pdfviewer' | null => {
+  windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder' | 'photos'
+): 'browser' | 'textedit' | 'terminal' | 'pdfviewer' | 'photos' | null => {
   if (windowType === 'finder') return null;
   return windowType;
 };
@@ -71,8 +78,8 @@ interface WindowStore {
   windows: Window[];
   activeWindowId: string | null;
   maxZIndex: number;
-  routeNavigationWindowId: string | null;
   routeStack: string[];
+  skipNextRouteSync: Record<string, boolean>;
   openWindow: (
     window: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { appName?: string }
   ) => void;
@@ -82,7 +89,12 @@ interface WindowStore {
   updateWindowPosition: (id: string, position: { x: number; y: number }) => void;
   updateWindowSize: (id: string, size: { width: number; height: number }) => void;
   updateWindowContent: (id: string, content: string) => void;
-  updateWindow: (id: string, updates: Partial<Window>) => void;
+  updateWindow: (
+    id: string,
+    updates: Partial<Window>,
+    options?: { skipRouteSync?: boolean }
+  ) => void;
+  clearRouteSyncFlag: (id: string) => void;
   minimizeWindow: (id: string) => void;
   navigateToUrl: (id: string, url: string, title?: string, fromRoute?: boolean) => void;
   navigateBack: (id: string) => void;
@@ -109,8 +121,8 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
   windows: [],
   activeWindowId: null,
   maxZIndex: 100,
-  routeNavigationWindowId: null,
   routeStack: [],
+  skipNextRouteSync: {},
 
   openWindow: (window) => {
     const state = get();
@@ -267,10 +279,25 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     }));
   },
 
-  updateWindow: (id, updates) => {
-    set((state) => ({
-      windows: state.windows.map((w) => (w.id === id ? { ...w, ...updates } : w)),
-    }));
+  updateWindow: (id, updates, options) => {
+    set((state) => {
+      const skipRouteSync = options?.skipRouteSync === true;
+      const newSkipNextRouteSync = skipRouteSync
+        ? { ...state.skipNextRouteSync, [id]: true }
+        : state.skipNextRouteSync;
+
+      return {
+        windows: state.windows.map((w) => (w.id === id ? { ...w, ...updates } : w)),
+        skipNextRouteSync: newSkipNextRouteSync,
+      };
+    });
+  },
+
+  clearRouteSyncFlag: (id) => {
+    set((state) => {
+      const { [id]: _, ...rest } = state.skipNextRouteSync;
+      return { skipNextRouteSync: rest };
+    });
   },
 
   minimizeWindow: (id) => {
@@ -280,13 +307,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
   },
 
   navigateToUrl: (id, url, title?: string, fromRoute?: boolean) => {
-    if (fromRoute) {
-      set({ routeNavigationWindowId: id });
-      setTimeout(() => {
-        set({ routeNavigationWindowId: null });
-      }, 200);
-    }
-
     set((state) => {
       const strategy = getRouteStrategy('browser');
       const updatedWindows = state.windows.map((w) => {
@@ -335,7 +355,12 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
           .filter((r): r is string => r !== undefined);
       }
 
-      return { windows: updatedWindows, routeStack };
+      const skipRouteSync = fromRoute === true;
+      const newSkipNextRouteSync = skipRouteSync
+        ? { ...state.skipNextRouteSync, [id]: true }
+        : state.skipNextRouteSync;
+
+      return { windows: updatedWindows, routeStack, skipNextRouteSync: newSkipNextRouteSync };
     });
   },
 
@@ -514,6 +539,63 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
 
   openWindowFromUrl: (urlPath, content, entry) => {
     const state = get();
+
+    if (entry.appType === 'photos') {
+      import('@/lib/photosContent').then(({ getPhotoByPath, getAlbumPhotos }) => {
+        const existingPhotosWindow = state.windows.find(
+          (w) => w.type === 'photos' && !w.isMinimized
+        );
+        if (existingPhotosWindow) {
+          get().focusWindow(existingPhotosWindow.id);
+          const photo = getPhotoByPath(urlPath);
+          if (photo) {
+            const photos = getAlbumPhotos(photo.albumPath);
+            const index = photos.findIndex((p) => p.id === photo.id);
+            if (index !== -1) {
+              get().updateWindow(existingPhotosWindow.id, {
+                selectedPhotoIndex: index,
+                albumPath: photo.albumPath,
+              });
+            }
+          }
+          return;
+        }
+
+        const { width, height } = WINDOW_DIMENSIONS.photos;
+        const position = getCenteredWindowPosition(width, height);
+
+        const photo = getPhotoByPath(urlPath);
+        let albumPath: string | undefined;
+        let selectedPhotoIndex: number | undefined;
+
+        if (photo) {
+          const photos = getAlbumPhotos(photo.albumPath);
+          const index = photos.findIndex((p) => p.id === photo.id);
+          if (index !== -1) {
+            selectedPhotoIndex = index;
+            albumPath = photo.albumPath;
+          }
+        }
+
+        const newWindow: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> = {
+          type: 'photos',
+          title: 'Photos',
+          content: '',
+          position,
+          size: { width, height },
+          urlPath,
+          albumPath,
+          selectedPhotoIndex,
+        };
+
+        get().openWindow(newWindow);
+        const createdWindow = get().windows[get().windows.length - 1];
+        if (createdWindow) {
+          get().focusWindow(createdWindow.id);
+        }
+      });
+      return;
+    }
 
     const existingWindow = state.windows.find((w) => w.urlPath === urlPath && !w.isMinimized);
     if (existingWindow) {

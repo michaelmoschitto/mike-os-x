@@ -1,3 +1,4 @@
+import { buildPhotoRouteFromWindow, buildAlbumRouteFromWindow } from '@/lib/photosRouting';
 import type { Window } from '@/stores/useWindowStore';
 
 export interface WindowRouteStrategy {
@@ -37,8 +38,20 @@ const finderStrategy: WindowRouteStrategy = {
   shouldSyncRoute: () => false,
 };
 
+const photosStrategy: WindowRouteStrategy = {
+  getRouteForWindow: (window) => {
+    const photoRoute = buildPhotoRouteFromWindow(window.urlPath, window.selectedPhotoIndex);
+    if (photoRoute) {
+      return photoRoute;
+    }
+
+    return buildAlbumRouteFromWindow(window.albumPath);
+  },
+  shouldSyncRoute: (window) => window.type === 'photos',
+};
+
 export const windowRouteStrategies: Record<
-  'browser' | 'textedit' | 'terminal' | 'pdfviewer' | 'finder',
+  'browser' | 'textedit' | 'terminal' | 'pdfviewer' | 'finder' | 'photos',
   WindowRouteStrategy
 > = {
   browser: browserStrategy,
@@ -46,10 +59,11 @@ export const windowRouteStrategies: Record<
   terminal: terminalStrategy,
   pdfviewer: pdfViewerStrategy,
   finder: finderStrategy,
+  photos: photosStrategy,
 };
 
 export const getRouteStrategy = (
-  windowType: 'browser' | 'textedit' | 'terminal' | 'pdfviewer' | 'finder'
+  windowType: 'browser' | 'textedit' | 'terminal' | 'pdfviewer' | 'finder' | 'photos'
 ): WindowRouteStrategy => {
   return windowRouteStrategies[windowType];
 };

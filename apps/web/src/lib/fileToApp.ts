@@ -15,12 +15,12 @@ const EXTENSION_TO_APP: Record<string, AppType> = {
   '.md': 'textedit',
   '.txt': 'textedit',
   '.pdf': 'pdfviewer',
-  '.jpg': 'browser',
-  '.jpeg': 'browser',
-  '.png': 'browser',
-  '.gif': 'browser',
-  '.webp': 'browser',
-  '.svg': 'browser',
+  '.jpg': 'photos',
+  '.jpeg': 'photos',
+  '.png': 'photos',
+  '.gif': 'photos',
+  '.webp': 'photos',
+  '.svg': 'photos',
   '.webloc': 'shortcut',
 };
 
