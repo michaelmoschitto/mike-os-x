@@ -9,7 +9,7 @@ import PhotosToolbar from '@/components/apps/Photos/PhotosToolbar';
 import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
 import { getPhotoAlbums, getAlbumPhotos, type PhotoData } from '@/lib/photosContent';
-import { useNotificationStore } from '@/stores/useNotificationStore';
+import { showCompactNotification } from '@/stores/notificationHelpers';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
 interface PhotosWindowProps {
@@ -63,8 +63,6 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     updateWindowPosition,
     updateWindowSize,
   } = useWindowStore();
-  const showNotification = useNotificationStore((state) => state.showNotification);
-
   const selectedPhotoIndex = windowData.selectedPhotoIndex ?? null;
   const isSlideshow = windowData.isSlideshow ?? false;
 
@@ -159,10 +157,10 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
 
     try {
       await navigator.clipboard.writeText(fullUrl);
-      showNotification('copy the url');
+      showCompactNotification('URL Copied', 'Just copy the url :)', { type: 'success' });
     } catch (error) {
       console.error('Failed to copy URL:', error);
-      showNotification('Failed to copy URL');
+      showCompactNotification('Error', 'Failed to copy URL');
     }
   };
 

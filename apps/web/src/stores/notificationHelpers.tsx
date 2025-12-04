@@ -200,3 +200,25 @@ export const showSuccessNotification = (
     autoDismiss: options?.autoDismiss ?? 3000,
   });
 };
+
+export const showCompactNotification = (
+  title: string,
+  message: string,
+  options?: {
+    icon?: React.ReactNode;
+    autoDismiss?: number;
+    timestamp?: string;
+    type?: 'info' | 'success';
+  }
+) => {
+  const store = useNotificationStore.getState();
+  store.showNotification({
+    type: options?.type || 'info',
+    title,
+    message,
+    icon: options?.icon,
+    variant: 'compact',
+    autoDismiss: options?.autoDismiss ?? 3000,
+    timestamp: options?.timestamp,
+  });
+};

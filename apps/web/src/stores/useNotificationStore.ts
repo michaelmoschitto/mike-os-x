@@ -12,6 +12,8 @@ export interface NotificationButton {
   action: () => void;
 }
 
+export type NotificationVariant = 'default' | 'compact';
+
 export interface NotificationConfig {
   type: NotificationType;
   title: string;
@@ -20,6 +22,9 @@ export interface NotificationConfig {
   primaryButton?: NotificationButton;
   secondaryButton?: NotificationButton;
   autoDismiss?: number;
+  variant?: NotificationVariant;
+  message?: string;
+  timestamp?: string;
 }
 
 export interface NotificationState {

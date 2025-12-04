@@ -127,6 +127,35 @@ body {
       inset 0 -1px 0 rgba(255, 255, 255, 0.4);
   }
 
+  .aqua-dialog {
+    border: 1px solid rgba(91, 141, 217, 0.08);
+    border-radius: 10px;
+    background: white;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.8) inset,
+      0 0 0 2px rgba(91, 141, 217, 0.04),
+      0 15px 40px rgba(0, 0, 0, 0.5),
+      0 2px 8px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+  }
+
+  .aqua-dialog-titlebar {
+    height: 28px;
+    border-bottom: 1px solid #4a7ba8;
+    border-radius: 10px 10px 0 0;
+    background: linear-gradient(
+      to bottom,
+      #6ba3d9 0%,
+      #5a92c8 30%,
+      #4a81b7 50%,
+      #3b70a6 70%,
+      #2f5f95 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  }
+
   .aqua-button {
     background: linear-gradient(to bottom, #ffffff, #e8e8e8);
     border: 1px solid #a0a0a0;
