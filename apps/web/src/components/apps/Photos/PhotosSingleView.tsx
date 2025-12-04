@@ -42,7 +42,7 @@ const PhotosSingleView = ({
 
   return (
     <div className="flex flex-col">
-      <div className="aqua-pinstripe relative flex h-[400px] items-center justify-center border-b border-[var(--color-border-subtle)] overflow-hidden">
+      <div className="aqua-pinstripe relative flex h-[400px] items-center justify-center overflow-hidden border-b border-[var(--color-border-subtle)]">
         <div className="relative max-h-full max-w-full">
           <img
             src={getImageUrl(photo)}
@@ -52,45 +52,76 @@ const PhotosSingleView = ({
         </div>
         <button
           className={cn(
-            'aqua-button-base absolute right-2 top-2 z-10 flex h-[22px] w-[22px] items-center justify-center p-0',
-            'focus:outline-none focus:ring-2 focus:ring-[var(--color-aqua-blue)]'
+            'aqua-button-base absolute top-2 right-2 z-50 flex h-[22px] w-[22px] items-center justify-center p-0',
+            'focus:ring-2 focus:ring-[var(--color-aqua-blue)] focus:outline-none'
           )}
           onClick={onClose}
           type="button"
           title="Close"
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+          }}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         </button>
+        {photos.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center justify-center gap-2">
+            <button
+              className="aqua-button-base flex h-[22px] w-[28px] items-center justify-center"
+              onClick={onPrevious}
+              title="Previous (←)"
+              type="button"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <button
+              className="aqua-button-base flex h-[22px] w-[28px] items-center justify-center"
+              onClick={onNext}
+              title="Next (→)"
+              type="button"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
-      {photos.length > 1 && (
-        <div className="flex items-center justify-center gap-2 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-subtle)] p-2">
-          <button
-            className="aqua-button-base flex h-[22px] w-[28px] items-center justify-center"
-            onClick={onPrevious}
-            title="Previous (←)"
-            type="button"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-          <button
-            className="aqua-button-base flex h-[22px] w-[28px] items-center justify-center"
-            onClick={onNext}
-            title="Next (→)"
-            type="button"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
-        </div>
-      )}
     </div>
   );
 };
 
 export default PhotosSingleView;
-

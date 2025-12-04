@@ -46,4 +46,3 @@ const PhotosGrid = ({ photos, onPhotoClick }: PhotosGridProps) => {
 };
 
 export default PhotosGrid;
-

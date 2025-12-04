@@ -70,11 +70,10 @@ const handlePhotosRoute = (
 
     if (photoName) {
       // Content index stores urlPath WITHOUT extension, so look up without extension
-      const testPath = albumName === 'desktop' 
-        ? photoName
-        : `dock/photos/${albumName}/${photoName}`;
+      const testPath =
+        albumName === 'desktop' ? photoName : `dock/photos/${albumName}/${photoName}`;
       const foundPhoto = getPhotoByPath(testPath);
-      
+
       if (foundPhoto) {
         photoUrlPath = foundPhoto.urlPath;
         const photos = getAlbumPhotos(foundPhoto.albumPath);
@@ -109,17 +108,17 @@ const handlePhotosRoute = (
 
   if (existingPhotosWindow) {
     focusWindow(existingPhotosWindow.id);
-    
+
     const currentState = existingPhotosWindow;
-    const willChange = 
+    const willChange =
       currentState.albumPath !== albumPath ||
       currentState.selectedPhotoIndex !== selectedPhotoIndex ||
       currentState.urlPath !== (photoUrlPath || existingPhotosWindow.urlPath);
-    
+
     if (!willChange) {
       return;
     }
-    
+
     updateWindow(
       existingPhotosWindow.id,
       {

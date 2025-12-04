@@ -16,7 +16,7 @@ const PhotosSidebar = ({ albums, currentAlbumPath, onAlbumChange }: PhotosSideba
       <div className="space-y-1">
         <button
           className={cn(
-            'w-full rounded px-2 py-1 text-left text-[11px] font-ui',
+            'font-ui w-full rounded px-2 py-1 text-left text-[11px]',
             !currentAlbumPath
               ? 'bg-[var(--color-aqua-blue)]/20 text-[var(--color-aqua-blue)]'
               : 'text-[var(--color-text-primary)] hover:bg-white/20'
@@ -29,7 +29,7 @@ const PhotosSidebar = ({ albums, currentAlbumPath, onAlbumChange }: PhotosSideba
           <button
             key={album.path}
             className={cn(
-              'w-full rounded px-2 py-1 text-left text-[11px] font-ui',
+              'font-ui w-full rounded px-2 py-1 text-left text-[11px]',
               currentAlbumPath === album.path
                 ? 'bg-[var(--color-aqua-blue)]/20 text-[var(--color-aqua-blue)]'
                 : 'text-[var(--color-text-primary)] hover:bg-white/20'
@@ -45,4 +45,3 @@ const PhotosSidebar = ({ albums, currentAlbumPath, onAlbumChange }: PhotosSideba
 };
 
 export default PhotosSidebar;
-

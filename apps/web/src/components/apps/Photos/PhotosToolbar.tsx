@@ -40,7 +40,7 @@ const PhotosToolbar = ({
           <input
             type="text"
             placeholder="Search"
-            className="aqua-input h-[22px] w-[200px] rounded border border-[var(--color-border-subtle)] bg-white/50 px-2 text-[11px] font-ui focus:outline-none focus:ring-1 focus:ring-[var(--color-aqua-blue)]"
+            className="aqua-input font-ui h-[22px] w-[200px] rounded border border-[var(--color-border-subtle)] bg-white/50 px-2 text-[11px] focus:ring-1 focus:ring-[var(--color-aqua-blue)] focus:outline-none"
           />
         </div>
         <div className="aqua-toolbar-divider h-[24px]" />
@@ -48,7 +48,7 @@ const PhotosToolbar = ({
           <select
             value={currentAlbum.path || ''}
             onChange={(e) => onAlbumChange(e.target.value || undefined)}
-            className="aqua-button-base h-[22px] rounded border border-[var(--color-border-subtle)] bg-white/50 px-2 text-[11px] font-ui focus:outline-none focus:ring-1 focus:ring-[var(--color-aqua-blue)]"
+            className="aqua-button-base font-ui h-[22px] rounded border border-[var(--color-border-subtle)] bg-white/50 px-2 text-[11px] focus:ring-1 focus:ring-[var(--color-aqua-blue)] focus:outline-none"
           >
             <option value="">All Photos</option>
             {albums.map((album) => (
@@ -62,7 +62,7 @@ const PhotosToolbar = ({
       <div className="flex items-center gap-2">
         {isSlideshow && (
           <button
-            className="aqua-button-base flex h-[22px] items-center gap-1 px-2 text-[11px] font-ui"
+            className="aqua-button-base font-ui flex h-[22px] items-center gap-1 px-2 text-[11px]"
             onClick={onSlideshowPause}
             title={slideshowPaused ? 'Resume Slideshow' : 'Pause Slideshow'}
           >
@@ -91,7 +91,14 @@ const PhotosToolbar = ({
               <rect x="1" y="1" width="4.5" height="4.5" stroke="currentColor" strokeWidth="1" />
               <rect x="8.5" y="1" width="4.5" height="4.5" stroke="currentColor" strokeWidth="1" />
               <rect x="1" y="8.5" width="4.5" height="4.5" stroke="currentColor" strokeWidth="1" />
-              <rect x="8.5" y="8.5" width="4.5" height="4.5" stroke="currentColor" strokeWidth="1" />
+              <rect
+                x="8.5"
+                y="8.5"
+                width="4.5"
+                height="4.5"
+                stroke="currentColor"
+                strokeWidth="1"
+              />
             </svg>
           </button>
           <button
@@ -136,7 +143,7 @@ const PhotosToolbar = ({
             </svg>
           </button>
           <button
-            className="aqua-button-base flex h-[22px] items-center gap-1 px-2 text-[11px] font-ui"
+            className="aqua-button-base font-ui flex h-[22px] items-center gap-1 px-2 text-[11px]"
             title="Share"
             type="button"
             onClick={onShare}
@@ -151,4 +158,3 @@ const PhotosToolbar = ({
 };
 
 export default PhotosToolbar;
-

@@ -20,20 +20,20 @@ interface PhotosWindowProps {
 const buildPhotoUrl = (photo: PhotoData): string => {
   const urlPath = photo.urlPath.startsWith('/') ? photo.urlPath.slice(1) : photo.urlPath;
   const pathParts = urlPath.split('/').filter(Boolean);
-  
+
   if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
     const albumName = pathParts[2];
     const photoName = pathParts[pathParts.length - 1];
     const photoNameWithoutExt = photoName.replace(/\.(jpg|jpeg|png|gif|webp|svg)$/i, '');
     return `/photos/${albumName}/${photoNameWithoutExt}`;
   }
-  
+
   if (pathParts.length > 0 && pathParts[0] !== 'dock') {
     const photoName = pathParts[pathParts.length - 1];
     const photoNameWithoutExt = photoName.replace(/\.(jpg|jpeg|png|gif|webp|svg)$/i, '');
     return `/photos/desktop/${photoNameWithoutExt}`;
   }
-  
+
   return `/photos?photo=${encodeURIComponent(photo.urlPath)}`;
 };
 
@@ -41,26 +41,33 @@ const buildAlbumUrl = (albumPath?: string): string => {
   if (!albumPath) {
     return '/photos';
   }
-  
+
   const normalizedAlbumPath = albumPath.startsWith('/') ? albumPath.slice(1) : albumPath;
   const pathParts = normalizedAlbumPath.split('/').filter(Boolean);
-  
+
   if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
     const albumName = pathParts[2];
     return `/photos/${albumName}`;
   }
-  
+
   return `/photos?album=${encodeURIComponent(albumPath)}`;
 };
 
 const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
   const navigate = useNavigate();
-  const { updateWindow, closeWindow, focusWindow, minimizeWindow, updateWindowPosition, updateWindowSize } = useWindowStore();
+  const {
+    updateWindow,
+    closeWindow,
+    focusWindow,
+    minimizeWindow,
+    updateWindowPosition,
+    updateWindowSize,
+  } = useWindowStore();
   const showNotification = useNotificationStore((state) => state.showNotification);
-  
+
   const selectedPhotoIndex = windowData.selectedPhotoIndex ?? null;
   const isSlideshow = windowData.isSlideshow ?? false;
-  
+
   const [slideshowPaused, setSlideshowPaused] = useState(false);
   const [showInfoSidebar, setShowInfoSidebar] = useState(true);
 
@@ -116,7 +123,9 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
   const handlePreviousPhoto = () => {
     if (photos.length === 0) return;
     const prevIndex =
-      selectedPhotoIndex === null ? photos.length - 1 : (selectedPhotoIndex - 1 + photos.length) % photos.length;
+      selectedPhotoIndex === null
+        ? photos.length - 1
+        : (selectedPhotoIndex - 1 + photos.length) % photos.length;
     const prevPhoto = photos[prevIndex];
     const route = buildPhotoUrl(prevPhoto);
     navigate({ to: route });
