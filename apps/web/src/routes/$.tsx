@@ -53,7 +53,7 @@ const handlePhotosRoute = (
   path: string | undefined,
   album: string | undefined,
   photo: string | undefined,
-  openWindow: ReturnType<typeof useWindowStore>['openWindow']
+  openWindow: (window: Parameters<ReturnType<typeof useWindowStore>['openWindow']>[0]) => void
 ) => {
   const { windows, updateWindow, focusWindow } = useWindowStore.getState();
   const existingPhotosWindow = windows.find((w) => w.type === 'photos' && !w.isMinimized);
