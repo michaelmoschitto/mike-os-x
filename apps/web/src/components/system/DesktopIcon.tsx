@@ -90,6 +90,15 @@ const DesktopIcon = ({
         position: { x: centerX, y: centerY + 22 },
         size: { width: windowWidth, height: windowHeight },
       });
+      return;
+    }
+
+    if (icon.type === 'file' && icon.urlPath) {
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+      if (imageExtensions.includes(icon.fileExtension?.toLowerCase() || '')) {
+        navigate({ to: `/photos?photo=${encodeURIComponent(icon.urlPath)}` });
+        return;
+      }
     }
   };
 

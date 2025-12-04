@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { BrowserWindow } from '@/components/apps/Browser';
 import { FinderWindow } from '@/components/apps/Finder';
 import { PDFViewerWindow } from '@/components/apps/PDFViewer';
+import { PhotosWindow } from '@/components/apps/Photos';
 import { TerminalWindow } from '@/components/apps/Terminal';
 import { TextEditWindow } from '@/components/apps/TextEdit';
 import DesktopIcons from '@/components/system/DesktopIcons';
@@ -66,6 +67,15 @@ const Desktop = () => {
             if (window.type === 'finder') {
               return (
                 <FinderWindow
+                  key={window.id}
+                  window={window}
+                  isActive={window.id === activeWindowId}
+                />
+              );
+            }
+            if (window.type === 'photos') {
+              return (
+                <PhotosWindow
                   key={window.id}
                   window={window}
                   isActive={window.id === activeWindowId}
