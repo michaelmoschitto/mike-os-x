@@ -18,7 +18,7 @@ const PhotosSidebar = ({ albums, currentAlbumPath, onAlbumChange }: PhotosSideba
           className={cn(
             'font-ui w-full rounded px-2 py-1 text-left text-[11px]',
             !currentAlbumPath
-              ? 'bg-[var(--color-aqua-blue)]/20 text-[var(--color-aqua-blue)]'
+              ? 'bg-[var(--color-highlight)] text-white'
               : 'text-[var(--color-text-primary)] hover:bg-white/20'
           )}
           onClick={() => onAlbumChange(undefined)}
@@ -31,7 +31,7 @@ const PhotosSidebar = ({ albums, currentAlbumPath, onAlbumChange }: PhotosSideba
             className={cn(
               'font-ui w-full rounded px-2 py-1 text-left text-[11px]',
               currentAlbumPath === album.path
-                ? 'bg-[var(--color-aqua-blue)]/20 text-[var(--color-aqua-blue)]'
+                ? 'bg-[var(--color-highlight)] text-white'
                 : 'text-[var(--color-text-primary)] hover:bg-white/20'
             )}
             onClick={() => onAlbumChange(album.path)}
