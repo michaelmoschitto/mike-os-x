@@ -69,30 +69,23 @@ const handlePhotosRoute = (
     const photoName = pathParts[2];
 
     if (photoName) {
-      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-      let foundPhoto: ReturnType<typeof getPhotoByPath> | null = null;
-
-          for (const ext of imageExtensions) {
-            const testPath = albumName === 'desktop' 
-              ? `${photoName}${ext}`
-              : `dock/photos/${albumName}/${photoName}${ext}`;
-            foundPhoto = getPhotoByPath(testPath);
-            if (foundPhoto) {
-              photoUrlPath = foundPhoto.urlPath;
-              break;
-            }
-          }
-
+      // Content index stores urlPath WITHOUT extension, so look up without extension
+      const testPath = albumName === 'desktop' 
+        ? photoName
+        : `dock/photos/${albumName}/${photoName}`;
+      const foundPhoto = getPhotoByPath(testPath);
+      
       if (foundPhoto) {
+        photoUrlPath = foundPhoto.urlPath;
         const photos = getAlbumPhotos(foundPhoto.albumPath);
-        const index = photos.findIndex((p) => p.id === foundPhoto!.id);
+        const index = photos.findIndex((p) => p.id === foundPhoto.id);
         if (index !== -1) {
           selectedPhotoIndex = index;
           albumPath = foundPhoto.albumPath;
         }
       }
     } else {
-          albumPath = `dock/photos/${albumName}`;
+      albumPath = `dock/photos/${albumName}`;
     }
   } else {
     if (album) {
