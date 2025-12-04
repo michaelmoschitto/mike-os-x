@@ -41,54 +41,53 @@ const PhotosSingleView = ({
   }, [onClose, onNext, onPrevious]);
 
   return (
-    <div className="relative flex h-[400px] items-center justify-center border-b border-[var(--color-border-subtle)] bg-black">
-      <div className="relative max-h-full max-w-full">
-        <img
-          src={getImageUrl(photo)}
-          alt={photo.name}
-          className="max-h-full max-w-full object-contain"
-        />
-        {photos.length > 1 && (
-          <>
-            <button
-              className={cn(
-                'absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70',
-                'focus:outline-none focus:ring-2 focus:ring-[var(--color-aqua-blue)]'
-              )}
-              onClick={onPrevious}
-              title="Previous (←)"
-              type="button"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
-            <button
-              className={cn(
-                'absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70',
-                'focus:outline-none focus:ring-2 focus:ring-[var(--color-aqua-blue)]'
-              )}
-              onClick={onNext}
-              title="Next (→)"
-              type="button"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </button>
-          </>
-        )}
+    <div className="flex flex-col">
+      <div className="aqua-pinstripe relative flex h-[400px] items-center justify-center border-b border-[var(--color-border-subtle)] overflow-hidden">
+        <div className="relative max-h-full max-w-full">
+          <img
+            src={getImageUrl(photo)}
+            alt={photo.name}
+            className="max-h-full max-w-full object-contain"
+          />
+        </div>
+        <button
+          className={cn(
+            'aqua-button-base absolute right-2 top-2 z-10 flex h-[22px] w-[22px] items-center justify-center p-0',
+            'focus:outline-none focus:ring-2 focus:ring-[var(--color-aqua-blue)]'
+          )}
+          onClick={onClose}
+          type="button"
+          title="Close"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
       </div>
-      <button
-        className={cn(
-          'absolute right-4 top-4 rounded bg-white/20 px-3 py-1 text-[11px] font-ui text-white transition-colors hover:bg-white/30',
-          'focus:outline-none focus:ring-2 focus:ring-[var(--color-aqua-blue)]'
-        )}
-        onClick={onClose}
-        type="button"
-      >
-        Close
-      </button>
+      {photos.length > 1 && (
+        <div className="flex items-center justify-center gap-2 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-subtle)] p-2">
+          <button
+            className="aqua-button-base flex h-[22px] w-[28px] items-center justify-center"
+            onClick={onPrevious}
+            title="Previous (←)"
+            type="button"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <button
+            className="aqua-button-base flex h-[22px] w-[28px] items-center justify-center"
+            onClick={onNext}
+            title="Next (→)"
+            type="button"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

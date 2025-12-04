@@ -9,6 +9,7 @@ import PhotosToolbar from '@/components/apps/Photos/PhotosToolbar';
 import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
 import { getPhotoAlbums, getAlbumPhotos, type PhotoData } from '@/lib/photosContent';
+import { useNotificationStore } from '@/stores/useNotificationStore';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
 interface PhotosWindowProps {
@@ -55,6 +56,7 @@ const buildAlbumUrl = (albumPath?: string): string => {
 const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
   const navigate = useNavigate();
   const { updateWindow, closeWindow, focusWindow, minimizeWindow, updateWindowPosition, updateWindowSize } = useWindowStore();
+  const showNotification = useNotificationStore((state) => state.showNotification);
   
   const selectedPhotoIndex = windowData.selectedPhotoIndex ?? null;
   const isSlideshow = windowData.isSlideshow ?? false;
@@ -140,6 +142,21 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     updateWindowSize(windowData.id, size);
   };
 
+  const handleShare = async () => {
+    if (!selectedPhoto) return;
+
+    const photoUrl = buildPhotoUrl(selectedPhoto);
+    const fullUrl = `${window.location.origin}${photoUrl}`;
+
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      showNotification('copy the url');
+    } catch (error) {
+      console.error('Failed to copy URL:', error);
+      showNotification('Failed to copy URL');
+    }
+  };
+
   useEffect(() => {
     if (!useContentIndex.getState().isIndexed) {
       import('@/lib/contentIndex').then(({ initializeContentIndex }) => {
@@ -181,10 +198,12 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
           isSlideshow={isSlideshow}
           slideshowPaused={slideshowPaused}
           showInfoSidebar={showInfoSidebar}
+          selectedPhoto={selectedPhoto}
           onAlbumChange={handleAlbumChange}
           onViewModeChange={handleViewModeChange}
           onSlideshowPause={() => setSlideshowPaused(!slideshowPaused)}
           onToggleInfo={() => setShowInfoSidebar(!showInfoSidebar)}
+          onShare={handleShare}
         />
         <div className="flex flex-1 overflow-hidden">
           <PhotosSidebar

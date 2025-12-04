@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import type { AlbumData } from '@/lib/photosContent';
+import type { AlbumData, PhotoData } from '@/lib/photosContent';
 
 interface PhotosToolbarProps {
   albums: AlbumData[];
@@ -7,10 +7,12 @@ interface PhotosToolbarProps {
   isSlideshow: boolean;
   slideshowPaused: boolean;
   showInfoSidebar: boolean;
+  selectedPhoto: PhotoData | null;
   onAlbumChange: (albumPath?: string) => void;
   onViewModeChange: (mode: 'grid' | 'slideshow') => void;
   onSlideshowPause: () => void;
   onToggleInfo: () => void;
+  onShare: () => void;
 }
 
 const PhotosToolbar = ({
@@ -19,10 +21,12 @@ const PhotosToolbar = ({
   isSlideshow,
   slideshowPaused,
   showInfoSidebar,
+  selectedPhoto,
   onAlbumChange,
   onViewModeChange,
   onSlideshowPause,
   onToggleInfo,
+  onShare,
 }: PhotosToolbarProps) => {
   const currentAlbum = albums.find((a) => a.path === currentAlbumPath) || {
     name: 'All Photos',
@@ -133,22 +137,10 @@ const PhotosToolbar = ({
           </button>
           <button
             className="aqua-button-base flex h-[22px] items-center gap-1 px-2 text-[11px] font-ui"
-            title="Move View"
-            type="button"
-          >
-            Move View
-          </button>
-          <button
-            className="aqua-button-base flex h-[22px] items-center gap-1 px-2 text-[11px] font-ui"
-            title="Slideshow"
-            type="button"
-          >
-            Slideshow
-          </button>
-          <button
-            className="aqua-button-base flex h-[22px] items-center gap-1 px-2 text-[11px] font-ui"
             title="Share"
             type="button"
+            onClick={onShare}
+            disabled={!selectedPhoto}
           >
             Share
           </button>
