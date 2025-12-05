@@ -36,14 +36,6 @@ const PhotosToolbar = ({
   return (
     <div className="aqua-pinstripe flex h-[52px] items-center justify-between border-b border-[var(--color-border-subtle)] px-3">
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Search"
-            className="aqua-input font-ui h-[22px] w-[200px] rounded border border-[var(--color-border-subtle)] bg-white/50 px-2 text-[11px] focus:ring-1 focus:ring-[var(--color-aqua-blue)] focus:outline-none"
-          />
-        </div>
-        <div className="aqua-toolbar-divider h-[24px]" />
         <div className="flex items-center gap-1">
           <select
             value={currentAlbum.path || ''}

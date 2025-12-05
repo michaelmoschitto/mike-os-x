@@ -120,7 +120,7 @@ const Dock = () => {
     } else if (iconId === 'trash') {
       openFinderWindow('Trash', '/dock/trash', openWindow);
     } else if (iconId === 'photos') {
-      navigate({ to: '/photos' });
+      navigate({ to: '/photos' as any });
     }
   };
 

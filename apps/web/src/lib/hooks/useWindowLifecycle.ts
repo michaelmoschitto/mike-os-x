@@ -5,6 +5,22 @@ import type { WindowRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import type { Window } from '@/stores/useWindowStore';
 import { useWindowStore } from '@/stores/useWindowStore';
 
+const areRoutesEqual = (
+  currentPath: string,
+  currentSearch: string,
+  targetPath: string,
+  targetSearch: string
+): boolean => {
+  const normalizedCurrent = currentPath.replace(/\/$/, '');
+  const normalizedTarget = targetPath.replace(/\/$/, '');
+  const normalizedCurrentSearch = currentSearch || '';
+  const normalizedTargetSearch = targetSearch ? `?${targetSearch}` : '';
+
+  return (
+    normalizedCurrent === normalizedTarget && normalizedCurrentSearch === normalizedTargetSearch
+  );
+};
+
 interface UseWindowLifecycleOptions {
   window: Window;
   isActive: boolean;
@@ -65,14 +81,10 @@ export const useWindowLifecycle = ({
     const currentPath = window.location.pathname;
     const currentSearch = window.location.search;
 
-    if (currentSkipFlag) {
-      const normalizedCurrent = currentPath.replace(/\/$/, '');
-      const normalizedTarget = targetPath.replace(/\/$/, '');
+    const routesAreEqual = areRoutesEqual(currentPath, currentSearch, targetPath, targetSearch);
 
-      if (
-        normalizedCurrent === normalizedTarget &&
-        currentSearch === (targetSearch ? `?${targetSearch}` : '')
-      ) {
+    if (currentSkipFlag) {
+      if (routesAreEqual) {
         lastHandledRouteRef.current = targetRoute;
         clearRouteSyncFlag(windowData.id);
       }
@@ -83,13 +95,7 @@ export const useWindowLifecycle = ({
       return;
     }
 
-    const normalizedCurrent = currentPath.replace(/\/$/, '');
-    const normalizedTarget = targetPath.replace(/\/$/, '');
-
-    if (
-      normalizedCurrent === normalizedTarget &&
-      currentSearch === (targetSearch ? `?${targetSearch}` : '')
-    ) {
+    if (routesAreEqual) {
       lastHandledRouteRef.current = targetRoute;
       return;
     }
