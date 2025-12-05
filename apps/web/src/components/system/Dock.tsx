@@ -1,4 +1,3 @@
-import { useNavigate } from '@tanstack/react-router';
 import {
   motion,
   useMotionValue,
@@ -72,7 +71,6 @@ const Dock = () => {
   const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
   const { activeApp, setActiveApp } = useUI();
   const { openWindow } = useWindowStore();
-  const navigate = useNavigate();
   const dockRef = useRef<HTMLDivElement>(null);
   const mouseX = useMotionValue(Infinity);
 
@@ -120,7 +118,16 @@ const Dock = () => {
     } else if (iconId === 'trash') {
       openFinderWindow('Trash', '/dock/trash', openWindow);
     } else if (iconId === 'photos') {
-      navigate({ to: '/photos' as any });
+      const { width, height } = WINDOW_DIMENSIONS.photos;
+      const position = getCenteredWindowPosition(width, height);
+      openWindow({
+        type: 'photos',
+        title: 'Photos',
+        content: '',
+        position,
+        size: { width, height },
+      });
+      setActiveApp('photos');
     }
   };
 
