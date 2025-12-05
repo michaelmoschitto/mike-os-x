@@ -22,11 +22,19 @@ export const Route = createFileRoute('/$')({
     const path = params._splat || '';
 
     if (path === 'browser' || path.startsWith('browser/')) {
-      return { isBrowserRoute: true, isPhotosRoute: false, resolved: null, error: null, path };
+      return { isBrowserRoute: true, isPhotosRoute: false, isTerminalRoute: false, isFinderRoute: false, resolved: null, error: null, path };
     }
 
     if (path === 'photos' || path.startsWith('photos/')) {
-      return { isBrowserRoute: false, isPhotosRoute: true, resolved: null, error: null, path };
+      return { isBrowserRoute: false, isPhotosRoute: true, isTerminalRoute: false, isFinderRoute: false, resolved: null, error: null, path };
+    }
+
+    if (path === 'terminal') {
+      return { isBrowserRoute: false, isPhotosRoute: false, isTerminalRoute: true, isFinderRoute: false, resolved: null, error: null, path };
+    }
+
+    if (path.startsWith('dock/')) {
+      return { isBrowserRoute: false, isPhotosRoute: false, isTerminalRoute: false, isFinderRoute: true, finderPath: path, resolved: null, error: null, path };
     }
 
     const indexState = useContentIndex.getState();
@@ -36,11 +44,13 @@ export const Route = createFileRoute('/$')({
 
     try {
       const resolved = await resolveUrlToContent(path);
-      return { isBrowserRoute: false, isPhotosRoute: false, resolved, error: null, path };
+      return { isBrowserRoute: false, isPhotosRoute: false, isTerminalRoute: false, isFinderRoute: false, resolved, error: null, path };
     } catch (error) {
       return {
         isBrowserRoute: false,
         isPhotosRoute: false,
+        isTerminalRoute: false,
+        isFinderRoute: false,
         resolved: null,
         error: error instanceof Error ? error.message : 'Unknown error',
         path,
@@ -151,8 +161,71 @@ const handlePhotosRoute = (
   });
 };
 
+const handleTerminalRoute = (openWindow: OpenWindowFunction) => {
+  const { windows, focusWindow } = useWindowStore.getState();
+  const existingTerminalWindow = windows.find((w) => w.type === 'terminal' && !w.isMinimized);
+
+  if (existingTerminalWindow) {
+    focusWindow(existingTerminalWindow.id);
+    return;
+  }
+
+  const { width, height } = WINDOW_DIMENSIONS.terminal;
+  const position = getCenteredWindowPosition(width, height);
+
+  openWindow({
+    type: 'terminal',
+    title: 'Terminal',
+    content: '',
+    position,
+    size: { width, height },
+  });
+};
+
+const handleFinderRoute = (finderPath: string, openWindow: OpenWindowFunction) => {
+  const { windows, focusWindow } = useWindowStore.getState();
+  
+  // Normalize paths for comparison (remove leading slashes)
+  const normalizedFinderPath = finderPath.replace(/^\//, '');
+  
+  const existingFinderWindow = windows.find(
+    (w) => 
+      w.type === 'finder' && 
+      (w.currentPath || '').replace(/^\//, '') === normalizedFinderPath && 
+      !w.isMinimized
+  );
+
+  if (existingFinderWindow) {
+    focusWindow(existingFinderWindow.id);
+    return;
+  }
+
+  const pathParts = finderPath.split('/').filter(Boolean);
+  const title = pathParts.length > 1 ? pathParts[pathParts.length - 1] : 'Finder';
+  const capitalizedTitle = title.charAt(0).toUpperCase() + title.slice(1);
+
+  // Ensure we use the path with a leading slash for consistency in the window store
+  const windowPath = finderPath.startsWith('/') ? finderPath : `/${finderPath}`;
+
+  const { width, height } = WINDOW_DIMENSIONS.finder;
+  const position = getCenteredWindowPosition(width, height);
+
+  openWindow({
+    type: 'finder',
+    title: capitalizedTitle,
+    content: '',
+    position,
+    size: { width, height },
+    currentPath: windowPath,
+    viewMode: 'icon',
+    navigationHistory: [windowPath],
+    navigationIndex: 0,
+    appName: 'Finder',
+  });
+};
+
 function PathComponent() {
-  const { resolved, error, isBrowserRoute, isPhotosRoute, path } = Route.useLoaderData();
+  const { resolved, error, isBrowserRoute, isPhotosRoute, isTerminalRoute, isFinderRoute, finderPath, path } = Route.useLoaderData();
   const { url, album, photo } = Route.useSearch();
   const { getOrCreateBrowserWindow, focusWindow, navigateToUrl, openWindowFromUrl, openWindow } =
     useWindowStore();
@@ -191,6 +264,16 @@ function PathComponent() {
       return;
     }
 
+    if (isTerminalRoute) {
+      handleTerminalRoute(openWindow);
+      return;
+    }
+
+    if (isFinderRoute && finderPath) {
+      handleFinderRoute(finderPath, openWindow);
+      return;
+    }
+
     if (resolved && !error) {
       const entry: ContentIndexEntry = resolved.entry;
       openWindowFromUrl(entry.urlPath, resolved.content, {
@@ -202,6 +285,9 @@ function PathComponent() {
   }, [
     isBrowserRoute,
     isPhotosRoute,
+    isTerminalRoute,
+    isFinderRoute,
+    finderPath,
     path,
     url,
     album,

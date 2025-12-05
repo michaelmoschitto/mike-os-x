@@ -22,8 +22,8 @@ const textEditStrategy: WindowRouteStrategy = {
 };
 
 const terminalStrategy: WindowRouteStrategy = {
-  getRouteForWindow: () => '/',
-  shouldSyncRoute: () => false,
+  getRouteForWindow: () => '/terminal',
+  shouldSyncRoute: () => true,
 };
 
 const pdfViewerStrategy: WindowRouteStrategy = {
@@ -34,8 +34,15 @@ const pdfViewerStrategy: WindowRouteStrategy = {
 };
 
 const finderStrategy: WindowRouteStrategy = {
-  getRouteForWindow: () => '/',
-  shouldSyncRoute: () => false,
+  getRouteForWindow: (window) => {
+    if (window.currentPath?.startsWith('/dock/')) {
+      return window.currentPath;
+    }
+    return '/';
+  },
+  shouldSyncRoute: (window) => {
+    return window.currentPath?.startsWith('/dock/') ?? false;
+  },
 };
 
 const photosStrategy: WindowRouteStrategy = {
