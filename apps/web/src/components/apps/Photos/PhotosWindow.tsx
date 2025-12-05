@@ -107,7 +107,6 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     navigate({ to: route });
   }, [photos, selectedPhotoIndex, navigate]);
 
-
   const handleShare = useCallback(async () => {
     if (!selectedPhoto) return;
 

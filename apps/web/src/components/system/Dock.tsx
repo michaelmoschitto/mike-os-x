@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router';
 import {
   motion,
   useMotionValue,
@@ -7,7 +8,6 @@ import {
   type MotionValue,
 } from 'framer-motion';
 import { Fragment, useRef, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
 
 import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { useUI } from '@/lib/store';
