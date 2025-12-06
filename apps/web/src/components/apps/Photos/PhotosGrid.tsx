@@ -79,6 +79,28 @@ const PhotosGrid = ({
     }
   }, [selectedIndex, isCarouselMode]);
 
+  // Grid configuration - must be calculated before any early returns to maintain hook order
+  const gap = 16; // 16px gap (gap-4)
+  const padding = 16; // 16px padding (p-4)
+  const columnCount = 4;
+  const availableWidth = dimensions.width - padding * 2;
+  const columnWidth = (availableWidth - gap * (columnCount - 1)) / columnCount;
+  const rowHeight = columnWidth + 40; // Add space for photo name
+  const rowCount = Math.ceil(photos.length / columnCount);
+
+  const cellProps: CellData = useMemo(
+    () => ({
+      photos,
+      columnCount,
+      columnWidth,
+      gap,
+      failedImages,
+      onImageError: handleImageError,
+      onPhotoInteraction: handlePhotoInteraction,
+    }),
+    [photos, columnCount, columnWidth, gap, failedImages]
+  );
+
   if (photos.length === 0) {
     return (
       <div className="flex h-full min-h-0 flex-col overflow-y-auto bg-white p-4">
@@ -174,15 +196,6 @@ const PhotosGrid = ({
     );
   }
 
-  // Grid configuration
-  const gap = 16; // 16px gap (gap-4)
-  const padding = 16; // 16px padding (p-4)
-  const columnCount = 4;
-  const availableWidth = dimensions.width - padding * 2;
-  const columnWidth = (availableWidth - gap * (columnCount - 1)) / columnCount;
-  const rowHeight = columnWidth + 40; // Add space for photo name
-  const rowCount = Math.ceil(photos.length / columnCount);
-
   const Cell = ({
     columnIndex,
     rowIndex,
@@ -257,19 +270,6 @@ const PhotosGrid = ({
       </div>
     );
   };
-
-  const cellProps: CellData = useMemo(
-    () => ({
-      photos,
-      columnCount,
-      columnWidth,
-      gap,
-      failedImages,
-      onImageError: handleImageError,
-      onPhotoInteraction: handlePhotoInteraction,
-    }),
-    [photos, columnCount, columnWidth, gap, failedImages]
-  );
 
   return (
     <div ref={containerRef} className="flex h-full min-h-0 flex-col bg-white">
