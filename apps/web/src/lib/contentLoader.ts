@@ -11,14 +11,13 @@ let globModulesCache: Record<string, () => Promise<string | { default: string }>
 
 const getGlobModules = (): Record<string, () => Promise<string | { default: string }>> => {
   if (!globModulesCache) {
-    globModulesCache = import.meta.glob(
-      '../../content/**/*.{md,txt,pdf,jpg,jpeg,png,gif,webp,svg}',
-      {
-        eager: false,
-        query: '?raw',
-        import: 'default',
-      }
-    ) as Record<string, () => Promise<string | { default: string }>>;
+    // Only import text files with ?raw - images and PDFs should not be loaded as strings
+    // Images are served as static files from public/content/
+    globModulesCache = import.meta.glob('../../content/**/*.{md,txt}', {
+      eager: false,
+      query: '?raw',
+      import: 'default',
+    }) as Record<string, () => Promise<string | { default: string }>>;
   }
   return globModulesCache;
 };

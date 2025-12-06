@@ -1,3 +1,4 @@
+import { BINARY_FILE_EXTENSIONS } from '@/lib/constants';
 import { useContentIndex } from '@/lib/contentIndex';
 import type { ContentIndexEntry } from '@/lib/contentIndex';
 import { loadContentFile } from '@/lib/contentLoader';
@@ -19,6 +20,17 @@ export const resolveUrlToContent = async (urlPath: string): Promise<ResolvedCont
 
   if (!entry) {
     throw new Error(`Content not found for URL: ${normalizedPath}`);
+  }
+
+  if (
+    BINARY_FILE_EXTENSIONS.includes(
+      entry.fileExtension.toLowerCase() as (typeof BINARY_FILE_EXTENSIONS)[number]
+    )
+  ) {
+    return {
+      entry,
+      content: '',
+    };
   }
 
   const loaded = await loadContentFile(entry.filePath);

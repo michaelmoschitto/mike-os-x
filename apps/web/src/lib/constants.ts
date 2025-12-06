@@ -24,7 +24,7 @@ export const WINDOW_DIMENSIONS = {
   },
   photos: {
     width: 1100,
-    height: 800,
+    height: 650,
   },
 } as const;
 
@@ -35,6 +35,20 @@ export const UI_DIMENSIONS = {
   menuBarHeight: 22,
   dockHeight: 60,
 } as const;
+
+/**
+ * File extensions that should be treated as binary files
+ * These files are not loaded as text content and are served as static files
+ */
+export const BINARY_FILE_EXTENSIONS = [
+  '.pdf',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+  '.webp',
+  '.svg',
+] as const;
 
 /**
  * Calculates centered window position accounting for menu bar and dock

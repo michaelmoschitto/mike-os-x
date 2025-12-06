@@ -85,15 +85,21 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
   const { files: contentMetadata } = await loadContentMetadata();
 
   try {
-    const contentModules = import.meta.glob(
-      '../../content/**/*.{md,txt,pdf,jpg,jpeg,png,gif,webp,svg,webloc}',
-      {
-        eager: false,
-        query: '?raw',
-        import: 'default',
-      }
-    );
+    // Import text-based files (md, txt, webloc) with ?raw query to get their content
+    const contentModules = import.meta.glob('../../content/**/*.{md,txt,webloc}', {
+      eager: false,
+      query: '?raw',
+      import: 'default',
+    });
 
+    // Import PDFs and images without ?raw - we just need the paths, not the content
+    // Images are served directly from public/content/ as static files
+    // Note: import.meta.glob requires a static string literal, so we can't use the constant here
+    const binaryModules = import.meta.glob('../../content/**/*.{pdf,jpg,jpeg,png,gif,webp,svg}', {
+      eager: false,
+    });
+
+    // Process text files that need content parsing
     for (const [filePath, importFn] of Object.entries(contentModules)) {
       const globKey = filePath;
       const relativePath = filePath.replace(/^\.\.\/\.\.\/content\//, '');
@@ -102,20 +108,11 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
       const urlPath = generateUrlPath(relativePath);
 
       try {
-        const isBinary = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(
-          fileExtension.toLowerCase()
-        );
         const isWebloc = fileExtension.toLowerCase() === '.webloc';
 
         let parsed: { content: string; metadata: ContentMetadata };
 
-        if (isBinary) {
-          // Don't try to load binary files as strings
-          parsed = {
-            content: '',
-            metadata: {},
-          };
-        } else if (isWebloc) {
+        if (isWebloc) {
           // Parse .webloc JSON files to extract URL
           const rawContent = (await importFn()) as string | { default: string };
           const contentString =
@@ -167,6 +164,41 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
           }
         } else {
           index.set(finalUrlPath, entry);
+        }
+      } catch (error) {
+        console.warn(`Failed to index ${filePath}:`, error);
+      }
+    }
+
+    // Process binary files (images, PDFs) without importing their content
+    // These are served as static files from public/content/
+    for (const filePath of Object.keys(binaryModules)) {
+      const globKey = filePath;
+      const relativePath = filePath.replace(/^\.\.\/\.\.\/content\//, '');
+      const extensionMatch = relativePath.match(/\.([^.]+)$/);
+      const fileExtension = extensionMatch ? `.${extensionMatch[1]}` : '';
+      const urlPath = generateUrlPath(relativePath);
+
+      try {
+        const appType = getAppForFile(fileExtension, {});
+        const fileMetadata =
+          contentMetadata[relativePath] || contentMetadata[relativePath.replace(/^\.\//, '')];
+
+        const entry: ContentIndexEntry = {
+          urlPath,
+          filePath: globKey,
+          fileExtension,
+          appType,
+          metadata: {},
+          fileSize: fileMetadata?.size,
+          dateModified: fileMetadata?.mtime ? new Date(fileMetadata.mtime) : undefined,
+          dateCreated: fileMetadata?.birthtime ? new Date(fileMetadata.birthtime) : undefined,
+          kind: fileMetadata?.kind,
+        };
+
+        const existing = index.get(urlPath);
+        if (!existing) {
+          index.set(urlPath, entry);
         }
       } catch (error) {
         console.warn(`Failed to index ${filePath}:`, error);

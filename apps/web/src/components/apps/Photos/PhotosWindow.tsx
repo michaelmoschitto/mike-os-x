@@ -190,7 +190,12 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
             <div
               className={cn('flex min-h-0', showSingleView ? 'h-[200px] flex-shrink-0' : 'flex-1')}
             >
-              <PhotosGrid photos={photos} onPhotoClick={handlePhotoClick} />
+              <PhotosGrid
+                photos={photos}
+                onPhotoClick={handlePhotoClick}
+                selectedIndex={showSingleView ? selectedPhotoIndex : null}
+                isCarouselMode={showSingleView}
+              />
             </div>
           </div>
           {showInfoSidebar && showSingleView && selectedPhoto && selectedPhotoIndex !== null && (
