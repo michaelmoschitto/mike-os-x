@@ -8,8 +8,10 @@ import PhotosSingleView from '@/components/apps/Photos/PhotosSingleView';
 import PhotosToolbar from '@/components/apps/Photos/PhotosToolbar';
 import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
+import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
 import { getPhotoAlbums, getAlbumPhotos, type PhotoData } from '@/lib/photosContent';
 import { buildPhotoRoute, buildAlbumRoute } from '@/lib/photosRouting';
+import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { cn } from '@/lib/utils';
 import { showCompactNotification } from '@/stores/notificationHelpers';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
@@ -21,16 +23,17 @@ interface PhotosWindowProps {
 
 const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
   const navigate = useNavigate();
-  const {
-    updateWindow,
-    closeWindow,
-    focusWindow,
-    minimizeWindow,
-    updateWindowPosition,
-    updateWindowSize,
-  } = useWindowStore();
+  const { updateWindow } = useWindowStore();
   const selectedPhotoIndex = windowData.selectedPhotoIndex ?? null;
   const isSlideshow = windowData.isSlideshow ?? false;
+
+  const routeStrategy = getRouteStrategy('photos');
+  const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
+    useWindowLifecycle({
+      window: windowData,
+      isActive,
+      routeStrategy,
+    });
 
   const [slideshowPaused, setSlideshowPaused] = useState(false);
   const [showInfoSidebar, setShowInfoSidebar] = useState(true);
@@ -103,26 +106,6 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     const route = buildPhotoRoute(prevPhoto);
     navigate({ to: route });
   }, [photos, selectedPhotoIndex, navigate]);
-
-  const handleClose = () => {
-    closeWindow(windowData.id);
-  };
-
-  const handleFocus = () => {
-    focusWindow(windowData.id);
-  };
-
-  const handleMinimize = () => {
-    minimizeWindow(windowData.id);
-  };
-
-  const handleDragEnd = (position: { x: number; y: number }) => {
-    updateWindowPosition(windowData.id, position);
-  };
-
-  const handleResize = (size: { width: number; height: number }) => {
-    updateWindowSize(windowData.id, size);
-  };
 
   const handleShare = useCallback(async () => {
     if (!selectedPhoto) return;

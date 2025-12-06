@@ -281,14 +281,37 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
 
   updateWindow: (id, updates, options) => {
     set((state) => {
+      const window = state.windows.find((w) => w.id === id);
+      if (!window) return { windows: state.windows };
+
+      const updatedWindow = { ...window, ...updates };
+      const strategy = getRouteStrategy(updatedWindow.type);
+      const newRoute = strategy.shouldSyncRoute(updatedWindow)
+        ? strategy.getRouteForWindow(updatedWindow)
+        : undefined;
+
+      const finalWindow = { ...updatedWindow, route: newRoute };
+
+      let routeStack = state.routeStack;
+      if (window.route && newRoute && window.route !== newRoute) {
+        routeStack = routeStack.map((r) => (r === window.route ? newRoute : r));
+      } else if (!window.route && newRoute) {
+        // If it didn't have a route but now does, append it
+        routeStack = [...routeStack, newRoute];
+      } else if (window.route && !newRoute) {
+        // If it had a route but now doesn't, remove it
+        routeStack = routeStack.filter((r) => r !== window.route);
+      }
+
       const skipRouteSync = options?.skipRouteSync === true;
       const newSkipNextRouteSync = skipRouteSync
         ? { ...state.skipNextRouteSync, [id]: true }
         : state.skipNextRouteSync;
 
       return {
-        windows: state.windows.map((w) => (w.id === id ? { ...w, ...updates } : w)),
+        windows: state.windows.map((w) => (w.id === id ? finalWindow : w)),
         skipNextRouteSync: newSkipNextRouteSync,
+        routeStack,
       };
     });
   },

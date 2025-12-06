@@ -118,11 +118,6 @@ const Dock = () => {
     } else if (iconId === 'trash') {
       openFinderWindow('Trash', '/dock/trash', openWindow);
     } else if (iconId === 'photos') {
-      import('@/lib/contentIndex').then(({ initializeContentIndex, useContentIndex }) => {
-        if (!useContentIndex.getState().isIndexed) {
-          initializeContentIndex();
-        }
-      });
       const { width, height } = WINDOW_DIMENSIONS.photos;
       const position = getCenteredWindowPosition(width, height);
       openWindow({

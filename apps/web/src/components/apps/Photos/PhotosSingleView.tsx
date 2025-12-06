@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { PhotoData } from '@/lib/photosContent';
 import { getPhotoImageUrl } from '@/lib/photosRouting';
@@ -21,6 +21,12 @@ const PhotosSingleView = ({
   onNext,
   onPrevious,
 }: PhotosSingleViewProps) => {
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [photo.id]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -40,11 +46,31 @@ const PhotosSingleView = ({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="aqua-pinstripe relative flex min-h-0 flex-1 items-center justify-center overflow-hidden border-b border-[var(--color-border-subtle)]">
         <div className="relative flex h-full w-full items-center justify-center p-4">
-          <img
-            src={getPhotoImageUrl(photo)}
-            alt={photo.name}
-            className="max-h-full max-w-full object-contain"
-          />
+          {imageError ? (
+            <div className="flex flex-col items-center gap-4">
+              <svg
+                width="96"
+                height="96"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="text-gray-400"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+              <p className="font-ui text-sm text-gray-500">Failed to load photo</p>
+            </div>
+          ) : (
+            <img
+              src={getPhotoImageUrl(photo)}
+              alt={photo.name}
+              className="max-h-full max-w-full object-contain"
+              onError={() => setImageError(true)}
+            />
+          )}
         </div>
         <button
           className={cn(
