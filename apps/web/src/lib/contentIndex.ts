@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 
-import { BINARY_FILE_EXTENSIONS } from '@/lib/constants';
 import { parseContent } from '@/lib/contentLoader';
 import { getAppForFile, type ContentMetadata } from '@/lib/fileToApp';
 import { normalizeUrlPath } from '@/lib/utils';
