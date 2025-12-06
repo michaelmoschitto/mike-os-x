@@ -5,6 +5,8 @@ import { WebLinksAddon } from 'xterm-addon-web-links';
 
 import TerminalTabBar from '@/components/apps/Terminal/TerminalTabBar';
 import Window from '@/components/window/Window';
+import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
+import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import type { InputMessage, ResizeMessage } from '@/lib/terminal/messageProtocol';
 import { useWebSocketManager } from '@/stores/useWebSocketManager';
 import {
@@ -31,19 +33,23 @@ interface TerminalInstance {
 const MIN_SESSION_DURATION_FOR_CLOSE_MESSAGE_MS = 500;
 
 const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) => {
-  const {
-    closeWindow,
-    focusWindow,
-    updateWindowPosition,
-    updateWindowSize,
-    minimizeWindow,
-    closeTab,
-    setActiveTab: setActiveTabInStore,
-    reorderTabs,
-  } = useWindowStore();
+  const { closeTab, setActiveTab: setActiveTabInStore, reorderTabs } = useWindowStore();
 
   const { registerSession, unregisterSession, sendMessage, connectionState } =
     useWebSocketManager();
+
+  const routeStrategy = getRouteStrategy('terminal');
+  const {
+    handleClose: baseHandleClose,
+    handleFocus: baseHandleFocus,
+    handleMinimize,
+    handleDragEnd,
+    handleResize: baseHandleResize,
+  } = useWindowLifecycle({
+    window: windowData,
+    isActive,
+    routeStrategy,
+  });
 
   const terminalsRef = useRef<Map<string, TerminalInstance>>(new Map());
   const containersRef = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -264,6 +270,7 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
   }, [windowData.size, activeTabId, connectionState, sendMessage, tabs]);
 
   const handleClose = () => {
+    // Terminal-specific cleanup
     tabs.forEach((tab) => {
       unregisterSession(tab.sessionId);
     });
@@ -272,15 +279,16 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
       instance.terminal.dispose();
     });
     terminalsRef.current.clear();
-    closeWindow(windowData.id);
-  };
 
-  const handleMinimize = () => {
-    minimizeWindow(windowData.id);
+    // Use base handler for routing and window management
+    baseHandleClose();
   };
 
   const handleFocus = () => {
-    focusWindow(windowData.id);
+    // Use base handler for routing and window management
+    baseHandleFocus();
+
+    // Terminal-specific focus behavior
     if (activeTabId) {
       const instance = terminalsRef.current.get(activeTabId);
       if (instance) {
@@ -291,12 +299,11 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
     }
   };
 
-  const handleDragEnd = (position: { x: number; y: number }) => {
-    updateWindowPosition(windowData.id, position);
-  };
-
   const handleResize = (size: { width: number; height: number }) => {
-    updateWindowSize(windowData.id, size);
+    // Use base handler for window management
+    baseHandleResize(size);
+
+    // Terminal-specific resize behavior
     if (activeTabId) {
       const instance = terminalsRef.current.get(activeTabId);
       if (instance?.fitAddon) {
