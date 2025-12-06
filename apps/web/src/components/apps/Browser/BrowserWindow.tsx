@@ -1,4 +1,3 @@
-import { useNavigate } from '@tanstack/react-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import BookmarkDialog from '@/components/apps/Browser/BookmarkDialog';
@@ -16,7 +15,6 @@ interface BrowserWindowProps {
 }
 
 const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => {
-  const navigate = useNavigate();
   const { navigateToUrl, navigateBack, navigateForward, addBookmark, removeBookmark } =
     useWindowStore();
 
@@ -52,7 +50,7 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
     navigateToUrl(windowData.id, url, title, fromRoute);
 
     if (url.startsWith('/')) {
-      navigate({ to: url });
+      window.location.href = url;
     }
   };
 
@@ -61,20 +59,20 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
       navigateBack(windowData.id);
       const prevUrl = history[historyIndex - 1];
       if (prevUrl && prevUrl.startsWith('/')) {
-        navigate({ to: prevUrl });
+        window.location.href = prevUrl;
       }
     }
-  }, [canGoBack, navigateBack, windowData.id, history, historyIndex, navigate]);
+  }, [canGoBack, navigateBack, windowData.id, history, historyIndex]);
 
   const handleForward = useCallback(() => {
     if (canGoForward) {
       navigateForward(windowData.id);
       const nextUrl = history[historyIndex + 1];
       if (nextUrl && nextUrl.startsWith('/')) {
-        navigate({ to: nextUrl });
+        window.location.href = nextUrl;
       }
     }
-  }, [canGoForward, navigateForward, windowData.id, history, historyIndex, navigate]);
+  }, [canGoForward, navigateForward, windowData.id, history, historyIndex]);
 
   const handleRefresh = useCallback(() => {
     if (currentUrl) {

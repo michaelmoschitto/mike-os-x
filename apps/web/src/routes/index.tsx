@@ -8,32 +8,73 @@ import { reconcileWindowsWithUrl } from '@/lib/routing/windowReconciliation';
 import { useWindowStore } from '@/stores/useWindowStore';
 
 export const Route = createFileRoute('/')({
+  validateSearch: (search: Record<string, unknown>) => {
+    const w = search.w;
+    const wArray = w === undefined ? undefined : (Array.isArray(w) ? w : [w]);
+    
+    return {
+      w: wArray as string[] | undefined,
+      state: (search.state as string) || undefined,
+    };
+  },
   loader: async () => {
-    // Check for multi-window mode
     const searchParams = new URLSearchParams(window.location.search);
-    const windowIdentifiers = searchParams.getAll('w');
+    const rawWindowIdentifiers = searchParams.getAll('w');
     const stateParam = searchParams.get('state');
     
     console.log('[Index Loader] URL:', window.location.href);
-    console.log('[Index Loader] Window identifiers:', windowIdentifiers);
-    console.log('[Index Loader] State param:', stateParam);
+    console.log('[Index Loader] Raw window identifiers:', rawWindowIdentifiers);
+    
+    // TanStack Router may serialize arrays as JSON strings like '["terminal"]'
+    // We need to flatten these back to individual window IDs
+    const windowIdentifiers: string[] = [];
+    for (const w of rawWindowIdentifiers) {
+      if (w.startsWith('[') && w.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(w);
+          if (Array.isArray(parsed)) {
+            windowIdentifiers.push(...parsed);
+          } else {
+            windowIdentifiers.push(w);
+          }
+        } catch {
+          windowIdentifiers.push(w);
+        }
+      } else {
+        windowIdentifiers.push(w);
+      }
+    }
+    
+    console.log('[Index Loader] Parsed window identifiers:', windowIdentifiers);
     
     if (windowIdentifiers.length > 0 || stateParam) {
       console.log('[Index Loader] Multi-window mode detected!');
-      const windowConfigs = deserializeUrlToWindows(searchParams);
-      console.log('[Index Loader] Deserialized window configs:', windowConfigs);
       
-      // Initialize content index if needed for photos/documents
-      const needsContentIndex = windowConfigs.some(
-        w => w.config.type === 'photos' || w.config.urlPath
+      // Initialize content index BEFORE deserialization if any window might need it
+      // Photos, Finder, TextEdit, PDFViewer, and content windows all need the content index
+      const mightNeedContentIndex = windowIdentifiers.some(
+        id => id.startsWith('photos') || id.startsWith('finder') || 
+              id.startsWith('textedit') || id.startsWith('pdfviewer') || id.includes('/')
       );
       
-      if (needsContentIndex) {
+      if (mightNeedContentIndex) {
         const indexState = useContentIndex.getState();
         if (!indexState.isIndexed) {
+          console.log('[Index Loader] Initializing content index before deserialization');
           await initializeContentIndex();
         }
       }
+      
+      // Build clean URLSearchParams for deserialization
+      const cleanParams = new URLSearchParams();
+      for (const id of windowIdentifiers) {
+        cleanParams.append('w', id);
+      }
+      if (stateParam) {
+        cleanParams.set('state', stateParam);
+      }
+      
+      const windowConfigs = deserializeUrlToWindows(cleanParams);
       
       return {
         mode: 'multi-window' as const,
@@ -41,46 +82,33 @@ export const Route = createFileRoute('/')({
       };
     }
     
-    // Empty desktop
-    return {
-      mode: 'empty' as const,
-    };
+    return { mode: 'empty' as const };
   },
   component: IndexComponent,
 });
 
 function IndexComponent() {
-  console.log('[IndexComponent] Component rendering');
   const loaderData = Route.useLoaderData();
   const { openWindow, closeWindow, updateWindow, focusWindow, windows } = useWindowStore();
-  const reconciledRef = useRef<Set<string>>(new Set());
-  
-  console.log('[IndexComponent] Current loaderData:', loaderData);
-  
+  const lastReconciledUrl = useRef<string>('');
+
   useEffect(() => {
-    // Create a stable key from loaderData to detect changes
-    const loaderDataKey = JSON.stringify(loaderData);
+    const currentUrl = window.location.href;
     
     console.log('[IndexComponent] useEffect triggered', { 
-      currentUrl: window.location.href,
-      loaderMode: 'mode' in loaderData ? loaderData.mode : 'unknown',
-      currentWindowCount: windows.length,
-      hasBeenReconciled: reconciledRef.current.has(loaderDataKey)
+      loaderData, 
+      currentUrl,
+      lastReconciledUrl: lastReconciledUrl.current,
     });
     
-    // Skip if we've already reconciled this exact loaderData (prevents double reconciliation in Strict Mode)
-    if (reconciledRef.current.has(loaderDataKey)) {
-      console.log('[IndexComponent] Already reconciled this loaderData, skipping');
-      return;
-    }
-    
-    console.log('[IndexComponent] New loaderData, will reconcile');
-    reconciledRef.current.add(loaderDataKey);
-    
-    // Multi-window mode
-    if ('mode' in loaderData && loaderData.mode === 'multi-window') {
-      console.log('[IndexComponent] Multi-window mode, reconciling with', loaderData.windowConfigs.length, 'windows');
-      console.log('[IndexComponent] Window configs:', loaderData.windowConfigs.map(c => c.identifier));
+    if (loaderData.mode === 'multi-window') {
+      if (lastReconciledUrl.current === currentUrl) {
+        console.log('[IndexComponent] Already reconciled this URL, skipping');
+        return;
+      }
+      
+      console.log('[IndexComponent] Multi-window mode', { windowConfigs: loaderData.windowConfigs });
+      lastReconciledUrl.current = currentUrl;
       
       reconcileWindowsWithUrl(loaderData.windowConfigs, {
         openWindow,
@@ -89,9 +117,17 @@ function IndexComponent() {
         focusWindow,
         windows,
       });
-    } else if ('mode' in loaderData && loaderData.mode === 'empty') {
-      console.log('[IndexComponent] Empty desktop mode - reconciling with empty config');
-      // Use reconciliation to close all windows (this is more reliable than closing directly)
+      return;
+    }
+    
+    if (loaderData.mode === 'empty') {
+      if (lastReconciledUrl.current === currentUrl) {
+        return;
+      }
+      
+      console.log('[IndexComponent] Empty desktop mode');
+      lastReconciledUrl.current = currentUrl;
+      
       reconcileWindowsWithUrl([], {
         openWindow,
         closeWindow,
@@ -100,8 +136,7 @@ function IndexComponent() {
         windows,
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaderData, openWindow, closeWindow, updateWindow, focusWindow]);
-  
+  }, [loaderData, openWindow, closeWindow, updateWindow, focusWindow, windows]);
+
   return <Desktop />;
 }

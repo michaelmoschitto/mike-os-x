@@ -1,9 +1,7 @@
-import { useNavigate } from '@tanstack/react-router';
 import { motion, useMotionValue } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
 import type { DesktopIconData } from '@/stores/useDesktopStore';
-import { useWindowStore } from '@/stores/useWindowStore';
 
 interface DesktopIconProps {
   icon: DesktopIconData;
@@ -26,8 +24,6 @@ const DesktopIcon = ({
   const y = useMotionValue(position.y);
   const isDragging = useRef(false);
   const lastClickTime = useRef(0);
-  const openWindow = useWindowStore((state) => state.openWindow);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isDragging.current) {
@@ -52,53 +48,61 @@ const DesktopIcon = ({
   };
 
   const handleDoubleClick = () => {
+    // Get existing windows from URL, handling TanStack Router's JSON serialization
+    const currentParams = new URLSearchParams(window.location.search);
+    const rawWindows = currentParams.getAll('w');
+    
+    // TanStack Router may serialize arrays as JSON strings like '["terminal"]'
+    const existingWindows: string[] = [];
+    for (const w of rawWindows) {
+      if (w.startsWith('[') && w.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(w);
+          if (Array.isArray(parsed)) {
+            existingWindows.push(...parsed);
+          } else {
+            existingWindows.push(w);
+          }
+        } catch {
+          existingWindows.push(w);
+        }
+      } else {
+        existingWindows.push(w);
+      }
+    }
+
     if (icon.type === 'folder' && icon.urlPath) {
-      const windowWidth = 800;
-      const windowHeight = 600;
-      const centerX = (window.innerWidth - windowWidth) / 2;
-      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
-
-      openWindow({
-        type: 'finder',
-        title: icon.label,
-        content: '',
-        position: { x: centerX, y: centerY + 22 },
-        size: { width: windowWidth, height: windowHeight },
-        currentPath: icon.urlPath,
-        viewMode: 'icon',
-        navigationHistory: [icon.urlPath],
-        navigationIndex: 0,
-      });
+      // Open folder in finder with path
+      const newWindowId = `finder:${icon.urlPath}`;
+      const allWindows = [...existingWindows, newWindowId];
+      window.location.href = '/?w=' + allWindows.join('&w=');
       return;
     }
 
-    if (icon.urlPath) {
-      navigate({ to: icon.urlPath });
-      return;
-    }
-
-    if (icon.type === 'file' && (icon.fileExtension === 'txt' || icon.fileExtension === 'md')) {
-      const windowWidth = 600;
-      const windowHeight = 500;
-      const centerX = (window.innerWidth - windowWidth) / 2;
-      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
-
-      openWindow({
-        type: 'textedit',
-        title: icon.label,
-        content: icon.content || '',
-        position: { x: centerX, y: centerY + 22 },
-        size: { width: windowWidth, height: windowHeight },
-      });
-      return;
-    }
-
-    if (icon.type === 'file' && icon.urlPath) {
+    if (icon.type === 'file') {
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-      if (imageExtensions.includes(icon.fileExtension?.toLowerCase() || '')) {
-        navigate({ to: `/photos?photo=${encodeURIComponent(icon.urlPath)}` });
+      const isImage = imageExtensions.includes(icon.fileExtension?.toLowerCase() || '');
+      
+      if (isImage && icon.urlPath) {
+        // Open image in photos app
+        const newWindowId = `photos:${icon.urlPath}`;
+        const allWindows = [...existingWindows, newWindowId];
+        window.location.href = '/?w=' + allWindows.join('&w=');
         return;
       }
+      
+      if (icon.fileExtension === 'txt' || icon.fileExtension === 'md') {
+        // Open text file in textedit
+        const newWindowId = icon.urlPath ? `textedit:${icon.urlPath}` : 'textedit';
+        const allWindows = [...existingWindows, newWindowId];
+        window.location.href = '/?w=' + allWindows.join('&w=');
+        return;
+      }
+    }
+
+    // Fallback: navigate to the content URL path directly
+    if (icon.urlPath) {
+      window.location.href = icon.urlPath;
     }
   };
 

@@ -8,9 +8,7 @@ import {
 } from 'framer-motion';
 import { Fragment, useRef, useState } from 'react';
 
-import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { useUI } from '@/lib/store';
-import { useWindowStore, type Window } from '@/stores/useWindowStore';
 
 type DockIconType =
   | 'browser'
@@ -43,34 +41,9 @@ const BASE_SIZE = 56;
 const MAX_SCALE = 2.3;
 const DISTANCE = 140;
 
-const openFinderWindow = (
-  title: string,
-  path: string,
-  openWindow: (
-    window: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { appName?: string }
-  ) => void
-) => {
-  const { width, height } = WINDOW_DIMENSIONS.finder;
-  const position = getCenteredWindowPosition(width, height);
-
-  openWindow({
-    type: 'finder' as const,
-    title,
-    content: '',
-    position,
-    size: { width, height },
-    currentPath: path,
-    viewMode: 'icon' as const,
-    navigationHistory: [path],
-    navigationIndex: 0,
-    appName: 'Finder',
-  });
-};
-
 const Dock = () => {
   const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
-  const { activeApp, setActiveApp } = useUI();
-  const { openWindow } = useWindowStore();
+  const { activeApp } = useUI();
   const dockRef = useRef<HTMLDivElement>(null);
   const mouseX = useMotionValue(Infinity);
 
@@ -84,51 +57,58 @@ const Dock = () => {
   };
 
   const handleIconClick = (iconId: DockIconType) => {
-    if (iconId === 'finder') {
-      openFinderWindow('Finder', '/dock/finder', openWindow);
-    } else if (iconId === 'browser') {
-      const { width, height } = WINDOW_DIMENSIONS.browser;
-      openWindow({
-        type: 'browser',
-        title: 'Internet Explorer',
-        content: '',
-        position: { x: 100, y: 80 },
-        size: { width, height },
-        url: '',
-        history: [],
-        historyIndex: -1,
-      });
-      setActiveApp('browser');
-    } else if (iconId === 'terminal') {
-      const { width, height } = WINDOW_DIMENSIONS.terminal;
-      openWindow({
-        type: 'terminal',
-        title: 'Terminal',
-        content: '',
-        position: { x: 150, y: 100 },
-        size: { width, height },
-      });
-      setActiveApp('terminal');
-    } else if (iconId === 'reading') {
-      openFinderWindow('Reading', '/dock/reading', openWindow);
-    } else if (iconId === 'projects') {
-      openFinderWindow('Projects', '/dock/projects', openWindow);
-    } else if (iconId === 'writing') {
-      openFinderWindow('Writing', '/dock/writing', openWindow);
-    } else if (iconId === 'trash') {
-      openFinderWindow('Trash', '/dock/trash', openWindow);
-    } else if (iconId === 'photos') {
-      const { width, height } = WINDOW_DIMENSIONS.photos;
-      const position = getCenteredWindowPosition(width, height);
-      openWindow({
-        type: 'photos',
-        title: 'Photos',
-        content: '',
-        position,
-        size: { width, height },
-      });
-      setActiveApp('photos');
+    const windowMap: Record<string, string> = {
+      finder: 'finder:dock/finder',
+      browser: 'browser:about:blank',
+      terminal: 'terminal',
+      reading: 'finder:dock/reading',
+      projects: 'finder:dock/projects',
+      writing: 'finder:dock/writing',
+      trash: 'finder:dock/trash',
+      photos: 'photos',
+    };
+
+    const newWindowId = windowMap[iconId];
+    if (!newWindowId) return;
+
+    // Get existing windows from URL, handling TanStack Router's JSON serialization
+    const currentParams = new URLSearchParams(window.location.search);
+    const rawWindows = currentParams.getAll('w');
+
+    // TanStack Router may serialize arrays as JSON strings like '["terminal"]'
+    // We need to flatten these back to individual window IDs
+    const existingWindows: string[] = [];
+    for (const w of rawWindows) {
+      if (w.startsWith('[') && w.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(w);
+          if (Array.isArray(parsed)) {
+            existingWindows.push(...parsed);
+          } else {
+            existingWindows.push(w);
+          }
+        } catch {
+          existingWindows.push(w);
+        }
+      } else {
+        existingWindows.push(w);
+      }
     }
+
+    // Check if this window is already open (by type, not exact match)
+    const windowType = newWindowId.split(':')[0];
+    const alreadyOpen = existingWindows.some(
+      (w) => w.startsWith(windowType + ':') || w === windowType
+    );
+
+    if (alreadyOpen) {
+      return;
+    }
+
+    // Add new window to existing windows
+    const allWindows = [...existingWindows, newWindowId];
+    const newUrl = '/?w=' + allWindows.join('&w=');
+    window.location.href = newUrl;
   };
 
   return (

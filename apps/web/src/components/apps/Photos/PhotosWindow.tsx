@@ -1,4 +1,3 @@
-import { useNavigate } from '@tanstack/react-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import PhotosGrid from '@/components/apps/Photos/PhotosGrid';
@@ -63,7 +62,6 @@ interface PhotosWindowProps {
 }
 
 const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
-  const navigate = useNavigate();
   const { updateWindow } = useWindowStore();
   const selectedPhotoIndex = windowData.selectedPhotoIndex ?? null;
   const isSlideshow = windowData.isSlideshow ?? false;
@@ -93,38 +91,32 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     return photos[selectedPhotoIndex] || null;
   }, [selectedPhotoIndex, photos]);
 
-  const handlePhotoClick = useCallback(
-    (photo: PhotoData) => {
-      const route = buildPhotoRoute(photo);
-      navigate({ to: route });
-    },
-    [navigate]
-  );
+  const handlePhotoClick = useCallback((photo: PhotoData) => {
+    const route = buildPhotoRoute(photo);
+    window.location.href = route;
+  }, []);
 
   const handleCloseSingleView = useCallback(() => {
     const route = buildAlbumRoute(albumPath);
-    navigate({ to: route });
-  }, [albumPath, navigate]);
+    window.location.href = route;
+  }, [albumPath]);
 
-  const handleAlbumChange = useCallback(
-    (newAlbumPath?: string) => {
-      const route = buildAlbumRoute(newAlbumPath);
-      navigate({ to: route });
-    },
-    [navigate]
-  );
+  const handleAlbumChange = useCallback((newAlbumPath?: string) => {
+    const route = buildAlbumRoute(newAlbumPath);
+    window.location.href = route;
+  }, []);
 
   const handleViewModeChange = useCallback(
     (mode: 'grid' | 'slideshow') => {
       if (mode === 'slideshow' && photos.length > 0 && selectedPhotoIndex === null) {
         const firstPhoto = photos[0];
         const route = buildPhotoRoute(firstPhoto);
-        navigate({ to: route });
+        window.location.href = route;
       } else if (mode === 'grid') {
         updateWindow(windowData.id, { isSlideshow: false }, { skipRouteSync: true });
       }
     },
-    [photos, selectedPhotoIndex, navigate, updateWindow, windowData.id]
+    [photos, selectedPhotoIndex, updateWindow, windowData.id]
   );
 
   const handleNextPhoto = useCallback(() => {
@@ -132,8 +124,8 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     const nextIndex = selectedPhotoIndex === null ? 0 : (selectedPhotoIndex + 1) % photos.length;
     const nextPhoto = photos[nextIndex];
     const route = buildPhotoRoute(nextPhoto);
-    navigate({ to: route });
-  }, [photos, selectedPhotoIndex, navigate]);
+    window.location.href = route;
+  }, [photos, selectedPhotoIndex]);
 
   const handlePreviousPhoto = useCallback(() => {
     if (photos.length === 0) return;
@@ -143,8 +135,8 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
         : (selectedPhotoIndex - 1 + photos.length) % photos.length;
     const prevPhoto = photos[prevIndex];
     const route = buildPhotoRoute(prevPhoto);
-    navigate({ to: route });
-  }, [photos, selectedPhotoIndex, navigate]);
+    window.location.href = route;
+  }, [photos, selectedPhotoIndex]);
 
   const handleShare = useCallback(async () => {
     if (!selectedPhoto) return;

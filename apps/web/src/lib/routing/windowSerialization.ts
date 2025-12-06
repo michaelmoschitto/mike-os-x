@@ -144,9 +144,14 @@ export function serializeWindow(window: Window): string | null {
       return null;
 
     case 'pdfviewer':
+      if (window.urlPath) {
+        return `pdfviewer:${normalizePathForRouting(window.urlPath)}`;
+      }
+      return null;
+
     case 'textedit':
       if (window.urlPath) {
-        return normalizePathForRouting(window.urlPath);
+        return `textedit:${normalizePathForRouting(window.urlPath)}`;
       }
       return null;
 
@@ -291,10 +296,42 @@ export function deserializeWindow(identifier: string): Partial<Window> | null {
     };
   }
 
-  // PDF Viewer or TextEdit (urlPath based)
-  // We need to determine the type from the content
-  // For now, we'll return a generic config and let the reconciliation handle it
-  const urlPath = '/' + identifier;
+  // TextEdit with explicit prefix
+  if (identifier.startsWith('textedit:')) {
+    const path = identifier.substring(9);
+    const { width, height } = WINDOW_DIMENSIONS.textedit;
+    const position = getCenteredWindowPosition(width, height);
+    const urlPath = path.startsWith('/') ? path : `/${path}`;
+
+    return {
+      type: 'textedit',
+      title: path.split('/').pop() || 'Document',
+      content: '',
+      position,
+      size: { width, height },
+      urlPath,
+    };
+  }
+
+  // PDF Viewer with explicit prefix
+  if (identifier.startsWith('pdfviewer:')) {
+    const path = identifier.substring(10);
+    const { width, height } = WINDOW_DIMENSIONS.pdfviewer;
+    const position = getCenteredWindowPosition(width, height);
+    const urlPath = path.startsWith('/') ? path : `/${path}`;
+
+    return {
+      type: 'pdfviewer',
+      title: path.split('/').pop() || 'Document',
+      content: '',
+      position,
+      size: { width, height },
+      urlPath,
+    };
+  }
+
+  // Generic content path (urlPath based) - fallback
+  const urlPath = identifier.startsWith('/') ? identifier : '/' + identifier;
 
   // Default to textedit, will be resolved by content type later
   const { width, height } = WINDOW_DIMENSIONS.textedit;
@@ -479,11 +516,10 @@ export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowCo
           }
         } else if (windowState.type === 'finder' && windowState.args.length > 0) {
           identifier = `finder:${windowState.args[0]}`;
-        } else if (
-          (windowState.type === 'pdfviewer' || windowState.type === 'textedit') &&
-          windowState.args.length > 0
-        ) {
-          identifier = windowState.args[0];
+        } else if (windowState.type === 'pdfviewer' && windowState.args.length > 0) {
+          identifier = `pdfviewer:${windowState.args[0]}`;
+        } else if (windowState.type === 'textedit' && windowState.args.length > 0) {
+          identifier = `textedit:${windowState.args[0]}`;
         } else {
           continue;
         }
