@@ -15,12 +15,6 @@ The Photos app was experiencing severe memory issues when displaying large photo
 
 **Code smell:** Rendering all photos at once with `photos.map()` created hundreds of DOM nodes, each with image elements that consumed memory regardless of visibility.
 
-**Quantified impact:**
-
-- **Before:** 100 photos = ~100 DOM nodes + 100 image elements in memory = ~50-100MB memory usage
-- **After:** 100 photos = ~8-12 visible DOM nodes + lazy-loaded images = ~5-10MB memory usage
-- **Memory reduction:** 90%+ for large collections
-
 ## Design Patterns Used
 
 ### 1. DOM Virtualization Pattern: Render Only Visible Items
