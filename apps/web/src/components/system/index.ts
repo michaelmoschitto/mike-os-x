@@ -3,3 +3,4 @@ export { default as DesktopIcon } from './DesktopIcon';
 export { default as DesktopIcons } from './DesktopIcons';
 export { default as Dock } from './Dock';
 export { default as MenuBar } from './MenuBar';
+export { default as MobileBanner } from './MobileBanner';

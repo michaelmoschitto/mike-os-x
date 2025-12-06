@@ -9,6 +9,7 @@ import { TextEditWindow } from '@/components/apps/TextEdit';
 import DesktopIcons from '@/components/system/DesktopIcons';
 import Dock from '@/components/system/Dock';
 import MenuBar from '@/components/system/MenuBar';
+import MobileBanner from '@/components/system/MobileBanner';
 import Notification from '@/components/system/Notification';
 import { useDesktopStore } from '@/stores/useDesktopStore';
 import { useWindowStore } from '@/stores/useWindowStore';
@@ -24,6 +25,7 @@ const Desktop = () => {
 
   return (
     <div className="relative h-screen w-screen overflow-hidden">
+      <MobileBanner />
       <MenuBar />
 
       {/* Desktop background - starts below menu bar */}
