@@ -6,7 +6,6 @@ import { WebLinksAddon } from 'xterm-addon-web-links';
 import TerminalTabBar from '@/components/apps/Terminal/TerminalTabBar';
 import Window from '@/components/window/Window';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
-import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import type { InputMessage, ResizeMessage } from '@/lib/terminal/messageProtocol';
 import { useWebSocketManager } from '@/stores/useWebSocketManager';
 import {
@@ -38,7 +37,6 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
   const { registerSession, unregisterSession, sendMessage, connectionState } =
     useWebSocketManager();
 
-  const routeStrategy = getRouteStrategy('terminal');
   const {
     handleClose: baseHandleClose,
     handleFocus: baseHandleFocus,
@@ -48,7 +46,6 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
   } = useWindowLifecycle({
     window: windowData,
     isActive,
-    routeStrategy,
   });
 
   const terminalsRef = useRef<Map<string, TerminalInstance>>(new Map());
@@ -270,6 +267,7 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
   }, [windowData.size, activeTabId, connectionState, sendMessage, tabs]);
 
   const handleClose = () => {
+    console.log('[TerminalWindow] handleClose called');
     // Terminal-specific cleanup
     tabs.forEach((tab) => {
       unregisterSession(tab.sessionId);
@@ -280,6 +278,7 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
     });
     terminalsRef.current.clear();
 
+    console.log('[TerminalWindow] Calling baseHandleClose');
     // Use base handler for routing and window management
     baseHandleClose();
   };

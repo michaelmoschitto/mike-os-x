@@ -9,7 +9,6 @@ import { useContentIndex } from '@/lib/contentIndex';
 import { loadContentFile } from '@/lib/contentLoader';
 import { getFolderContents, type FinderItemData } from '@/lib/finderContent';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
-import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { validateAndNormalizeUrl } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
@@ -31,12 +30,10 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
   const navigationHistory = windowData.navigationHistory || [currentPath];
   const navigationIndex = windowData.navigationIndex ?? navigationHistory.length - 1;
 
-  const routeStrategy = getRouteStrategy('finder');
   const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
     useWindowLifecycle({
       window: windowData,
       isActive,
-      routeStrategy,
     });
 
   const items = useMemo(() => {

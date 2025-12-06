@@ -2,7 +2,12 @@ import { useRef, useState, useEffect, useLayoutEffect, useMemo, useCallback } fr
 import { Grid } from 'react-window';
 
 import type { PhotoData } from '@/lib/photosContent';
-import { getPhotoImageUrl } from '@/lib/photosRouting';
+
+// Helper to get photo image URL
+const getPhotoImageUrl = (photo: PhotoData): string => {
+  const sanitizedPath = photo.urlPath.startsWith('/') ? photo.urlPath : '/' + photo.urlPath;
+  return `/content${sanitizedPath}${photo.fileExtension}`;
+};
 
 interface PhotosGridProps {
   photos: PhotoData[];

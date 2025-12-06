@@ -10,11 +10,52 @@ import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
 import { getPhotoAlbums, getAlbumPhotos, type PhotoData } from '@/lib/photosContent';
-import { buildPhotoRoute, buildAlbumRoute } from '@/lib/photosRouting';
-import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { cn } from '@/lib/utils';
 import { showCompactNotification } from '@/stores/notificationHelpers';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
+
+// Helper functions to build photo routes (inline replacements for deleted photosRouting.ts)
+const removeFileExtension = (filename: string): string => {
+  return filename.replace(/\.(jpg|jpeg|png|gif|webp|svg)$/i, '');
+};
+
+const buildPhotoRoute = (photo: PhotoData): string => {
+  const normalizedPath = photo.urlPath.startsWith('/') ? photo.urlPath.slice(1) : photo.urlPath;
+  const pathParts = normalizedPath.split('/').filter(Boolean);
+
+  // Photos in dock/photos/album structure
+  if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
+    const albumName = pathParts[2];
+    const photoName = pathParts[pathParts.length - 1];
+    const photoNameWithoutExt = removeFileExtension(photoName);
+    return `/?w=photos:${albumName}:${photoNameWithoutExt}`;
+  }
+
+  // Desktop photos
+  if (pathParts.length > 0 && pathParts[0] !== 'dock') {
+    const photoName = pathParts[pathParts.length - 1];
+    const photoNameWithoutExt = removeFileExtension(photoName);
+    return `/?w=photos:desktop:${photoNameWithoutExt}`;
+  }
+
+  return `/?w=photos`;
+};
+
+const buildAlbumRoute = (albumPath?: string): string => {
+  if (!albumPath) {
+    return '/?w=photos';
+  }
+
+  const normalizedAlbumPath = albumPath.startsWith('/') ? albumPath.slice(1) : albumPath;
+  const pathParts = normalizedAlbumPath.split('/').filter(Boolean);
+
+  if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
+    const albumName = pathParts[2];
+    return `/?w=photos:${albumName}`;
+  }
+
+  return '/?w=photos';
+};
 
 interface PhotosWindowProps {
   window: WindowType;
@@ -27,12 +68,10 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
   const selectedPhotoIndex = windowData.selectedPhotoIndex ?? null;
   const isSlideshow = windowData.isSlideshow ?? false;
 
-  const routeStrategy = getRouteStrategy('photos');
   const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
     useWindowLifecycle({
       window: windowData,
       isActive,
-      routeStrategy,
     });
 
   const [slideshowPaused, setSlideshowPaused] = useState(false);

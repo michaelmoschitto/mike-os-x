@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 import { DEFAULT_BOOKMARKS } from '@/config/defaultBookmarks';
 import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
-import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
+import { serializeWindowsToUrl } from '@/lib/routing/windowSerialization';
 import { useUI } from '@/lib/store';
 import { getHostnameFromUrl, sanitizeUrlPath } from '@/lib/utils';
 
@@ -55,7 +55,6 @@ export interface Window {
   browsingHistory?: HistoryEntry[];
   bookmarks?: BookmarkItem[];
   urlPath?: string;
-  route?: string;
   currentPath?: string;
   viewMode?: 'icon' | 'list' | 'column';
   navigationHistory?: string[];
@@ -78,14 +77,14 @@ interface WindowStore {
   windows: Window[];
   activeWindowId: string | null;
   maxZIndex: number;
-  routeStack: string[];
   skipNextRouteSync: Record<string, boolean>;
   openWindow: (
     window: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { appName?: string }
   ) => void;
   closeWindow: (id: string) => void;
   focusWindow: (id: string) => void;
-  getRouteToNavigateOnClose: (id: string) => string | null;
+  getMultiWindowUrlOnClose: (id: string) => string;
+  getVisibleWindows: () => Window[];
   updateWindowPosition: (id: string, position: { x: number; y: number }) => void;
   updateWindowSize: (id: string, size: { width: number; height: number }) => void;
   updateWindowContent: (id: string, content: string) => void;
@@ -121,7 +120,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
   windows: [],
   activeWindowId: null,
   maxZIndex: 100,
-  routeStack: [],
   skipNextRouteSync: {},
 
   openWindow: (window) => {
@@ -138,11 +136,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     const bookmarks =
       window.type === 'browser' && !window.bookmarks ? DEFAULT_BOOKMARKS : window.bookmarks;
 
-    const strategy = getRouteStrategy(window.type);
-    const route = strategy.shouldSyncRoute(window as Window)
-      ? strategy.getRouteForWindow(window as Window)
-      : undefined;
-
     const newWindow: Window = {
       ...window,
       id,
@@ -151,7 +144,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       zIndex,
       isMinimized: false,
       bookmarks,
-      route,
       ...(window.type === 'terminal' && {
         tabs:
           window.tabs ||
@@ -175,14 +167,12 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       newWindow.activeTabId = newWindow.tabs[0].id;
     }
 
-    const routeStack = route ? [...state.routeStack, route] : state.routeStack;
     const appType = getAppTypeForDock(window.type);
 
     set({
       windows: [...state.windows, newWindow],
       activeWindowId: id,
       maxZIndex: zIndex,
-      routeStack,
     });
 
     if (appType) {
@@ -192,8 +182,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
 
   closeWindow: (id) => {
     const state = get();
-    const windowToClose = state.windows.find((w) => w.id === id);
-
     const windows = state.windows.filter((w) => w.id !== id);
     const activeWindowId =
       state.activeWindowId === id
@@ -205,39 +193,19 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     const nextActiveWindow = activeWindowId ? windows.find((w) => w.id === activeWindowId) : null;
     const nextAppType = nextActiveWindow ? getAppTypeForDock(nextActiveWindow.type) : null;
 
-    const routeStack = windowToClose?.route
-      ? state.routeStack.filter((r) => r !== windowToClose.route)
-      : state.routeStack;
-
-    set({ windows, activeWindowId, routeStack });
+    set({ windows, activeWindowId });
 
     useUI.getState().setActiveApp(nextAppType);
   },
 
-  getRouteToNavigateOnClose: (id) => {
+  getMultiWindowUrlOnClose: (id) => {
     const state = get();
-    const windowToClose = state.windows.find((w) => w.id === id);
-    if (!windowToClose) return null;
+    const remainingWindows = state.windows.filter((w) => w.id !== id && !w.isMinimized);
+    return serializeWindowsToUrl(remainingWindows);
+  },
 
-    const windows = state.windows.filter((w) => w.id !== id);
-    if (windows.length === 0) {
-      return '/';
-    }
-
-    const nextActiveWindow = windows[windows.length - 1];
-    if (nextActiveWindow?.route) {
-      return nextActiveWindow.route;
-    }
-
-    const filteredRouteStack = windowToClose?.route
-      ? state.routeStack.filter((r) => r !== windowToClose.route)
-      : state.routeStack;
-
-    if (filteredRouteStack.length > 0) {
-      return filteredRouteStack[filteredRouteStack.length - 1];
-    }
-
-    return '/';
+  getVisibleWindows: () => {
+    return get().windows.filter((w) => !w.isMinimized);
   },
 
   focusWindow: (id) => {
@@ -285,23 +253,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       if (!window) return { windows: state.windows };
 
       const updatedWindow = { ...window, ...updates };
-      const strategy = getRouteStrategy(updatedWindow.type);
-      const newRoute = strategy.shouldSyncRoute(updatedWindow)
-        ? strategy.getRouteForWindow(updatedWindow)
-        : undefined;
-
-      const finalWindow = { ...updatedWindow, route: newRoute };
-
-      let routeStack = state.routeStack;
-      if (window.route && newRoute && window.route !== newRoute) {
-        routeStack = routeStack.map((r) => (r === window.route ? newRoute : r));
-      } else if (!window.route && newRoute) {
-        // If it didn't have a route but now does, append it
-        routeStack = [...routeStack, newRoute];
-      } else if (window.route && !newRoute) {
-        // If it had a route but now doesn't, remove it
-        routeStack = routeStack.filter((r) => r !== window.route);
-      }
 
       const skipRouteSync = options?.skipRouteSync === true;
       const newSkipNextRouteSync = skipRouteSync
@@ -309,9 +260,8 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
         : state.skipNextRouteSync;
 
       return {
-        windows: state.windows.map((w) => (w.id === id ? finalWindow : w)),
+        windows: state.windows.map((w) => (w.id === id ? updatedWindow : w)),
         skipNextRouteSync: newSkipNextRouteSync,
-        routeStack,
       };
     });
   },
@@ -331,7 +281,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
 
   navigateToUrl: (id, url, title?: string, fromRoute?: boolean) => {
     set((state) => {
-      const strategy = getRouteStrategy('browser');
       const updatedWindows = state.windows.map((w) => {
         if (w.id === id && w.type === 'browser') {
           const history = w.history || [];
@@ -349,7 +298,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
           const filteredHistory = browsingHistory.filter((entry) => entry.url !== url);
           const updatedBrowsingHistory = [newHistoryEntry, ...filteredHistory].slice(0, 100);
 
-          const updatedWindow = {
+          return {
             ...w,
             url,
             urlPath: url.startsWith('/') ? url : w.urlPath,
@@ -357,33 +306,16 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
             historyIndex: newHistory.length - 1,
             browsingHistory: updatedBrowsingHistory,
           };
-
-          const newRoute = strategy.getRouteForWindow(updatedWindow);
-
-          return {
-            ...updatedWindow,
-            route: newRoute,
-          };
         }
         return w;
       });
-
-      const updatedWindow = updatedWindows.find((w) => w.id === id);
-      const oldWindow = state.windows.find((w) => w.id === id);
-      let routeStack = state.routeStack;
-
-      if (oldWindow?.route && updatedWindow?.route && oldWindow.route !== updatedWindow.route) {
-        routeStack = routeStack
-          .map((r) => (r === oldWindow.route ? updatedWindow.route : r))
-          .filter((r): r is string => r !== undefined);
-      }
 
       const skipRouteSync = fromRoute === true;
       const newSkipNextRouteSync = skipRouteSync
         ? { ...state.skipNextRouteSync, [id]: true }
         : state.skipNextRouteSync;
 
-      return { windows: updatedWindows, routeStack, skipNextRouteSync: newSkipNextRouteSync };
+      return { windows: updatedWindows, skipNextRouteSync: newSkipNextRouteSync };
     });
   },
 

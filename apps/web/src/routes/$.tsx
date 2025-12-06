@@ -6,13 +6,27 @@ import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { initializeContentIndex, useContentIndex } from '@/lib/contentIndex';
 import type { ContentIndexEntry } from '@/lib/contentIndex';
 import { getPhotoByPath, getAlbumPhotos } from '@/lib/photosContent';
+import { deserializeUrlToWindows } from '@/lib/routing/windowSerialization';
+import { reconcileWindowsWithUrl } from '@/lib/routing/windowReconciliation';
 import { resolveUrlToContent } from '@/lib/urlResolver';
 import { useWindowStore } from '@/stores/useWindowStore';
 import type { Window } from '@/stores/useWindowStore';
 
 export const Route = createFileRoute('/$')({
   validateSearch: (search: Record<string, unknown>) => {
+    // Only include 'w' parameter if it has actual values
+    const w = Array.isArray(search.w) 
+      ? search.w 
+      : search.w 
+        ? [search.w] 
+        : undefined;
+    
     return {
+      // Multi-window mode params - conditionally include
+      ...(w && w.length > 0 ? { w: w as string[] } : {}),
+      state: (search.state as string) || undefined,
+      
+      // Legacy single-window mode params (backward compatibility)
       url: (search.url as string) || undefined,
       album: (search.album as string) || undefined,
       photo: (search.photo as string) || undefined,
@@ -20,7 +34,44 @@ export const Route = createFileRoute('/$')({
   },
   loader: async ({ params }) => {
     const path = params._splat || '';
+    
+    // Check for multi-window mode
+    // Note: We read from window.location.search because the loader runs before validation
+    // The deserialization will filter out invalid identifiers
+    const searchParams = new URLSearchParams(window.location.search);
+    const windowIdentifiers = searchParams.getAll('w');
+    const stateParam = searchParams.get('state');
+    
+    console.log('[Loader] URL:', window.location.href);
+    console.log('[Loader] Search params:', window.location.search);
+    console.log('[Loader] Window identifiers:', windowIdentifiers);
+    console.log('[Loader] State param:', stateParam);
+    
+    if (windowIdentifiers.length > 0 || stateParam) {
+      console.log('[Loader] Multi-window mode detected!');
+      const windowConfigs = deserializeUrlToWindows(searchParams);
+      console.log('[Loader] Deserialized window configs:', windowConfigs);
+      
+      // Initialize content index if needed for photos/documents
+      const needsContentIndex = windowConfigs.some(
+        w => w.config.type === 'photos' || w.config.urlPath
+      );
+      
+      if (needsContentIndex) {
+        const indexState = useContentIndex.getState();
+        if (!indexState.isIndexed) {
+          await initializeContentIndex();
+        }
+      }
+      
+      return {
+        mode: 'multi-window' as const,
+        windowConfigs,
+        path,
+      };
+    }
 
+    // Legacy single-window mode
     if (path === 'browser' || path.startsWith('browser/')) {
       return {
         isBrowserRoute: true,
@@ -266,21 +317,39 @@ const handleFinderRoute = (finderPath: string, openWindow: OpenWindowFunction) =
 };
 
 function PathComponent() {
-  const {
-    resolved,
-    error,
-    isBrowserRoute,
-    isPhotosRoute,
-    isTerminalRoute,
-    isFinderRoute,
-    finderPath,
-    path,
-  } = Route.useLoaderData();
+  const loaderData = Route.useLoaderData();
   const { url, album, photo } = Route.useSearch();
-  const { getOrCreateBrowserWindow, focusWindow, navigateToUrl, openWindowFromUrl, openWindow } =
+  const { getOrCreateBrowserWindow, focusWindow, navigateToUrl, openWindowFromUrl, openWindow, closeWindow, updateWindow, windows } =
     useWindowStore();
 
   useEffect(() => {
+    console.log('[PathComponent] useEffect triggered', { loaderData });
+    
+    // Multi-window mode
+    if ('mode' in loaderData && loaderData.mode === 'multi-window') {
+      console.log('[PathComponent] Multi-window mode detected', { windowConfigs: loaderData.windowConfigs });
+      reconcileWindowsWithUrl(loaderData.windowConfigs, {
+        openWindow,
+        closeWindow,
+        updateWindow,
+        focusWindow,
+        windows,
+      });
+      return;
+    }
+    
+    // Legacy single-window mode
+    const {
+      resolved,
+      error,
+      isBrowserRoute,
+      isPhotosRoute,
+      isTerminalRoute,
+      isFinderRoute,
+      finderPath,
+      path,
+    } = loaderData as any;
+    
     if (isBrowserRoute) {
       const browserWindow = getOrCreateBrowserWindow();
 
@@ -333,23 +402,21 @@ function PathComponent() {
       });
     }
   }, [
-    isBrowserRoute,
-    isPhotosRoute,
-    isTerminalRoute,
-    isFinderRoute,
-    finderPath,
-    path,
+    loaderData,
     url,
     album,
     photo,
     getOrCreateBrowserWindow,
     focusWindow,
     navigateToUrl,
-    resolved,
-    error,
     openWindowFromUrl,
     openWindow,
+    closeWindow,
+    updateWindow,
+    windows,
   ]);
+
+  const error = 'error' in loaderData ? loaderData.error : null;
 
   return (
     <>

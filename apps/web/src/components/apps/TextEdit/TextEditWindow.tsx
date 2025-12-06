@@ -4,7 +4,6 @@ import TextEditRuler from '@/components/apps/TextEdit/TextEditRuler';
 import TextEditToolbar from '@/components/apps/TextEdit/TextEditToolbar';
 import Window from '@/components/window/Window';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
-import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
 interface TextEditWindowProps {
@@ -15,12 +14,10 @@ interface TextEditWindowProps {
 const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) => {
   const { updateWindowContent } = useWindowStore();
 
-  const routeStrategy = getRouteStrategy('textedit');
   const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
     useWindowLifecycle({
       window: windowData,
       isActive,
-      routeStrategy,
     });
 
   const [alignment, setAlignment] = useState<'left' | 'center' | 'right' | 'justify'>('left');

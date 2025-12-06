@@ -1,7 +1,6 @@
 import PDFViewer from '@/components/apps/PDFViewer/PDFViewer';
 import Window from '@/components/window/Window';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
-import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { sanitizeUrlPath, validatePdfUrl } from '@/lib/utils';
 import type { Window as WindowType } from '@/stores/useWindowStore';
 
@@ -11,12 +10,10 @@ interface PDFViewerWindowProps {
 }
 
 const PDFViewerWindow = ({ window: windowData, isActive }: PDFViewerWindowProps) => {
-  const routeStrategy = getRouteStrategy('pdfviewer');
   const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
     useWindowLifecycle({
       window: windowData,
       isActive,
-      routeStrategy,
     });
 
   const sanitizedPath = windowData.urlPath ? sanitizeUrlPath(windowData.urlPath) : '';

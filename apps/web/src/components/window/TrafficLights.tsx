@@ -71,7 +71,9 @@ const TrafficLights = ({
             debugMode ? 'bg-red-500/50' : 'opacity-0'
           )}
           onClick={(e) => {
+            console.log('[TrafficLights] Close button clicked!');
             e.stopPropagation();
+            console.log('[TrafficLights] Calling onClose:', typeof onClose);
             onClose?.();
           }}
           onMouseDown={(e) => e.stopPropagation()}

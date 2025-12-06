@@ -7,7 +7,6 @@ import BrowserContent from '@/components/apps/Browser/BrowserContent';
 import BrowserToolbar from '@/components/apps/Browser/BrowserToolbar';
 import Window from '@/components/window/Window';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
-import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { findBookmarkLocation, getHostnameFromUrl, isUrlBookmarked } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
@@ -21,12 +20,10 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   const { navigateToUrl, navigateBack, navigateForward, addBookmark, removeBookmark } =
     useWindowStore();
 
-  const routeStrategy = getRouteStrategy('browser');
   const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
     useWindowLifecycle({
       window: windowData,
       isActive,
-      routeStrategy,
     });
 
   const [isLoading, setIsLoading] = useState(false);
