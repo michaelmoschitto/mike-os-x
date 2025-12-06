@@ -21,6 +21,17 @@ export const resolveUrlToContent = async (urlPath: string): Promise<ResolvedCont
     throw new Error(`Content not found for URL: ${normalizedPath}`);
   }
 
+  // Binary files (PDFs, images) are served as static assets from /content/
+  // They don't need content loading - just return the entry with empty content
+  const binaryExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+  if (binaryExtensions.includes(entry.fileExtension.toLowerCase())) {
+    return {
+      entry,
+      content: '', // Binary files are served as static assets, no content needed
+    };
+  }
+
+  // Only load content for text files (.md, .txt, .webloc)
   const loaded = await loadContentFile(entry.filePath);
 
   return {
