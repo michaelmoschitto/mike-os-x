@@ -1,3 +1,4 @@
+import { BINARY_FILE_EXTENSIONS } from '@/lib/constants';
 import { useContentIndex } from '@/lib/contentIndex';
 import type { ContentIndexEntry } from '@/lib/contentIndex';
 import { loadContentFile } from '@/lib/contentLoader';
@@ -21,8 +22,11 @@ export const resolveUrlToContent = async (urlPath: string): Promise<ResolvedCont
     throw new Error(`Content not found for URL: ${normalizedPath}`);
   }
 
-  const binaryExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-  if (binaryExtensions.includes(entry.fileExtension.toLowerCase())) {
+  if (
+    BINARY_FILE_EXTENSIONS.includes(
+      entry.fileExtension.toLowerCase() as (typeof BINARY_FILE_EXTENSIONS)[number]
+    )
+  ) {
     return {
       entry,
       content: '',

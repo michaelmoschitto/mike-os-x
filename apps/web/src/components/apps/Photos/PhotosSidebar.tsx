@@ -13,10 +13,10 @@ const PhotosSidebar = ({ albums, currentAlbumPath, onAlbumChange }: PhotosSideba
       <div className="font-ui mb-2 text-[11px] font-semibold text-[var(--color-text-secondary)]">
         Albums
       </div>
-      <div className="flex flex-col overflow-y-auto max-h-full space-y-1">
+      <div className="flex max-h-full flex-col space-y-1 overflow-y-auto">
         <button
           className={cn(
-            'font-ui w-full rounded px-2 py-1 text-left text-[11px] flex-shrink-0',
+            'font-ui w-full flex-shrink-0 rounded px-2 py-1 text-left text-[11px]',
             !currentAlbumPath
               ? 'bg-[var(--color-highlight)] text-white'
               : 'text-[var(--color-text-primary)] hover:bg-white/20'
@@ -29,7 +29,7 @@ const PhotosSidebar = ({ albums, currentAlbumPath, onAlbumChange }: PhotosSideba
           <button
             key={album.path}
             className={cn(
-              'font-ui w-full rounded px-2 py-1 text-left text-[11px] flex-shrink-0',
+              'font-ui w-full flex-shrink-0 rounded px-2 py-1 text-left text-[11px]',
               currentAlbumPath === album.path
                 ? 'bg-[var(--color-highlight)] text-white'
                 : 'text-[var(--color-text-primary)] hover:bg-white/20'

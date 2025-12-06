@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { BINARY_FILE_EXTENSIONS } from '@/lib/constants';
 import { parseContent } from '@/lib/contentLoader';
 import { getAppForFile, type ContentMetadata } from '@/lib/fileToApp';
 import { normalizeUrlPath } from '@/lib/utils';
@@ -94,6 +95,7 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
 
     // Import PDFs and images without ?raw - we just need the paths, not the content
     // Images are served directly from public/content/ as static files
+    // Note: import.meta.glob requires a static string literal, so we can't use the constant here
     const binaryModules = import.meta.glob('../../content/**/*.{pdf,jpg,jpeg,png,gif,webp,svg}', {
       eager: false,
     });

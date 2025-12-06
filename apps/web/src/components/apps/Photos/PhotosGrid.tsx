@@ -1,5 +1,5 @@
-import { useRef, useState, useEffect, useMemo } from 'react';
-import { Grid, type CellComponentProps } from 'react-window';
+import { useRef, useState, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
+import { Grid } from 'react-window';
 
 import type { PhotoData } from '@/lib/photosContent';
 import { getPhotoImageUrl } from '@/lib/photosRouting';
@@ -20,11 +20,19 @@ interface CellData {
   photos: PhotoData[];
   columnCount: number;
   columnWidth: number;
+  rowHeight: number;
   gap: number;
   failedImages: Set<string>;
   onImageError: (photoId: string) => void;
   onPhotoInteraction: (photo: PhotoData, e: React.KeyboardEvent | React.MouseEvent) => void;
 }
+
+type GridCellProps = {
+  columnIndex: number;
+  rowIndex: number;
+  style: React.CSSProperties;
+  data: CellData;
+};
 
 const PhotosGrid = ({
   photos,
@@ -36,39 +44,51 @@ const PhotosGrid = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
-  const handleImageError = (photoId: string) => {
+  const handleImageError = useCallback((photoId: string) => {
     setFailedImages((prev) => new Set(prev).add(photoId));
-  };
+  }, []);
 
-  const handlePhotoInteraction = (photo: PhotoData, e: React.KeyboardEvent | React.MouseEvent) => {
-    if (e.type === 'click') {
-      onPhotoClick(photo);
-    } else if (e.type === 'keydown') {
-      const keyEvent = e as React.KeyboardEvent;
-      if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
-        keyEvent.preventDefault();
+  const handlePhotoInteraction = useCallback(
+    (photo: PhotoData, e: React.KeyboardEvent | React.MouseEvent) => {
+      if (e.type === 'click') {
         onPhotoClick(photo);
+      } else if (e.type === 'keydown') {
+        const keyEvent = e as React.KeyboardEvent;
+        if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+          keyEvent.preventDefault();
+          onPhotoClick(photo);
+        }
       }
-    }
-  };
+    },
+    [onPhotoClick]
+  );
 
   // Update dimensions on mount and resize
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
     const updateDimensions = () => {
-      if (containerRef.current) {
-        const { width, height } = containerRef.current.getBoundingClientRect();
+      if (container) {
+        const { width, height } = container.getBoundingClientRect();
         setDimensions({ width, height });
       }
     };
 
+    // Measure immediately
     updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
+
+    const resizeObserver = new ResizeObserver(updateDimensions);
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, []);
 
   // Scroll to selected item in carousel mode
   const selectedItemRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     if (isCarouselMode && selectedIndex !== null && selectedItemRef.current) {
       selectedItemRef.current.scrollIntoView({
@@ -79,26 +99,36 @@ const PhotosGrid = ({
     }
   }, [selectedIndex, isCarouselMode]);
 
-  // Grid configuration - must be calculated before any early returns to maintain hook order
-  const gap = 16; // 16px gap (gap-4)
-  const padding = 16; // 16px padding (p-4)
+  // Grid configuration - calculate these before early returns to ensure hooks are always called
+  const gap = 16;
+  const padding = 16;
   const columnCount = 4;
   const availableWidth = dimensions.width - padding * 2;
   const columnWidth = (availableWidth - gap * (columnCount - 1)) / columnCount;
-  const rowHeight = columnWidth + 40; // Add space for photo name
+  const rowHeight = columnWidth + 40;
   const rowCount = Math.ceil(photos.length / columnCount);
 
-  const cellProps: CellData = useMemo(
+  const cellData: CellData = useMemo(
     () => ({
       photos,
       columnCount,
       columnWidth,
+      rowHeight,
       gap,
       failedImages,
       onImageError: handleImageError,
       onPhotoInteraction: handlePhotoInteraction,
     }),
-    [photos, columnCount, columnWidth, gap, failedImages]
+    [
+      photos,
+      columnCount,
+      columnWidth,
+      rowHeight,
+      gap,
+      failedImages,
+      handleImageError,
+      handlePhotoInteraction,
+    ]
   );
 
   if (photos.length === 0) {
@@ -117,7 +147,7 @@ const PhotosGrid = ({
 
     return (
       <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
-        <div className="flex h-full items-center overflow-x-auto overflow-y-hidden px-4 scrollbar-hide">
+        <div className="scrollbar-hide flex h-full items-center overflow-x-auto overflow-y-hidden px-4">
           <div className="flex h-full items-center gap-3 py-4">
             {photos.map((photo, index) => {
               const hasError = failedImages.has(photo.id);
@@ -142,9 +172,7 @@ const PhotosGrid = ({
                 >
                   <div
                     className={`relative overflow-hidden rounded ${
-                      isSelected
-                        ? 'ring-[3px] ring-[var(--color-highlight)] ring-offset-2'
-                        : ''
+                      isSelected ? 'ring-[3px] ring-[var(--color-highlight)] ring-offset-2' : ''
                     }`}
                     style={{ height: thumbnailSize }}
                   >
@@ -196,37 +224,34 @@ const PhotosGrid = ({
     );
   }
 
-  const Cell = ({
-    columnIndex,
-    rowIndex,
-    style,
-    photos,
-    columnCount,
-    columnWidth,
-    gap,
-    failedImages,
-    onImageError,
-    onPhotoInteraction,
-  }: CellComponentProps<CellData>) => {
+  const Cell = ({ columnIndex, rowIndex, style, data }: GridCellProps) => {
+    const {
+      photos,
+      columnCount,
+      columnWidth,
+      gap,
+      failedImages,
+      onImageError,
+      onPhotoInteraction,
+    } = data;
     const index = rowIndex * columnCount + columnIndex;
     if (index >= photos.length) return <div style={style} />;
 
     const photo = photos[index];
     const hasError = failedImages.has(photo.id);
 
-    // Adjust style to account for gaps
-    const adjustedStyle = {
+    const isLastColumn = columnIndex === columnCount - 1;
+    const cellStyle: React.CSSProperties = {
       ...style,
-      left: Number(style.left) + gap * columnIndex,
-      top: Number(style.top) + gap * rowIndex,
+      paddingRight: isLastColumn ? 0 : gap,
+      paddingBottom: gap,
       width: columnWidth,
-      height: rowHeight,
     };
 
     return (
-      <div style={adjustedStyle}>
+      <div style={cellStyle}>
         <div
-          className="group cursor-pointer"
+          className="group flex h-full cursor-pointer flex-col"
           onClick={(e) => onPhotoInteraction(photo, e)}
           onKeyDown={(e) => onPhotoInteraction(photo, e)}
           role="button"
@@ -234,8 +259,8 @@ const PhotosGrid = ({
           aria-label={`View photo ${photo.name}`}
         >
           <div
-            className="relative overflow-hidden rounded bg-gray-100"
-            style={{ height: columnWidth }}
+            className="relative flex-shrink-0 overflow-hidden rounded bg-gray-100"
+            style={{ height: columnWidth, width: columnWidth }}
           >
             {hasError ? (
               <div className="flex h-full w-full items-center justify-center bg-gray-200">
@@ -257,7 +282,7 @@ const PhotosGrid = ({
               <img
                 src={getPhotoImageUrl(photo)}
                 alt={photo.name}
-                className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                className="block h-full w-full object-cover"
                 loading="lazy"
                 onError={() => onImageError(photo.id)}
               />
@@ -271,20 +296,22 @@ const PhotosGrid = ({
     );
   };
 
+  const gridHeight = Math.max(0, dimensions.height - padding * 2);
+  const gridWidth = Math.max(0, dimensions.width - padding * 2);
+
   return (
-    <div ref={containerRef} className="flex h-full min-h-0 flex-col bg-white">
-      <div style={{ padding: `${padding}px` }}>
+    <div ref={containerRef} className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
+      <div className="h-full" style={{ padding: `${padding}px` }}>
         <Grid
-          cellComponent={Cell}
-          cellProps={cellProps}
+          cellComponent={(props) => <Cell {...props} data={cellData} />}
+          cellProps={{}}
           columnCount={columnCount}
           columnWidth={columnWidth + gap}
-          defaultHeight={dimensions.height - padding * 2}
+          defaultHeight={gridHeight}
           rowCount={rowCount}
           rowHeight={rowHeight + gap}
-          defaultWidth={dimensions.width - padding * 2}
+          defaultWidth={gridWidth}
           overscanCount={2}
-          style={{ overflow: 'auto' }}
         />
       </div>
     </div>

@@ -37,6 +37,20 @@ export const UI_DIMENSIONS = {
 } as const;
 
 /**
+ * File extensions that should be treated as binary files
+ * These files are not loaded as text content and are served as static files
+ */
+export const BINARY_FILE_EXTENSIONS = [
+  '.pdf',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+  '.webp',
+  '.svg',
+] as const;
+
+/**
  * Calculates centered window position accounting for menu bar and dock
  */
 export const getCenteredWindowPosition = (
