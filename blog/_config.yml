@@ -1,27 +1,30 @@
 title: "Mike's Blog"
-author: "Michael Moschitto"
-description: "Thoughts on software engineering, AI, and building things."
+author: 'Michael Moschitto'
+description: 'Thoughts on software engineering, AI, and building things.'
 
-email: "michael@michaelmoschitto.com"
-github_username: "MichaelMoschitto"
-linkedin_username: "michaelmoschitto"
+email: 'michael@michaelmoschitto.com'
+github_username: 'MichaelMoschitto'
+linkedin_username: 'michaelmoschitto'
 
-baseurl: ""
-url: "https://blog.mikemoschitto.com"
+baseurl: ''
+url: 'https://blog.mikemoschitto.com'
+
+# OpenGraph / Social Media Image
+image: '/LOGO.png'
 
 header_pages:
   - resume.md
   - reading.md
   - archive.md
 
-theme: "minima"
+theme: 'minima'
 
 rss: rss
 
 kramdown:
   syntax_highlighter_opts:
     disable: true
-    
+
 plugins:
   - jekyll-feed
   - jekyll-sitemap
@@ -32,8 +35,7 @@ titles_from_headings:
 
 defaults:
   - scope:
-      path: ""
+      path: ''
       type: posts
     values:
       tags: Other
-
