@@ -24,9 +24,9 @@ I'm excited to do a bit more writing about how this is built and some of the tec
 
 ## Connect
 
-- https://linkedin.com/in/michaelmoschitto
-- me@mikemoschitto.com
-- https://os.mikemoschitto.com/resume
+- <a href="https://linkedin.com/in/michaelmoschitto" style="color: #3b9cff; text-decoration: underline;">LinkedIn</a>
+- <a href="mailto:me@mikemoschitto.com" style="color: #3b9cff; text-decoration: underline;">me@mikemoschitto.com</a>
+- <a href="https://os.mikemoschitto.com/resume" style="color: #3b9cff; text-decoration: underline;">Resume</a>
 
 ---
 
