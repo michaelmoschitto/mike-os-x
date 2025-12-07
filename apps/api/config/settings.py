@@ -109,8 +109,8 @@ class Settings(BaseSettings):
                 "Please set the ADMIN_API_KEY environment variable."
             )
 
-    rate_limit_connections: int = Field(default=5)
-    rate_limit_commands: int = Field(default=100)
+    rate_limit_connections: int = Field(default=50)
+    rate_limit_commands: int = Field(default=5000)
 
     # Container Resources
     container_memory: str = Field(default="1g")
