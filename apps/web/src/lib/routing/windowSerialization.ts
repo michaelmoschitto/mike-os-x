@@ -479,15 +479,27 @@ export function serializeWindowsToUrl(windows: Window[]): string {
   }
 
   // Simple format for < 5 windows
-  const params = new URLSearchParams();
+  const identifiers: string[] = [];
   for (const window of visibleWindows) {
     const identifier = serializeWindow(window);
     if (identifier) {
-      params.append('w', identifier);
+      identifiers.push(identifier);
     }
   }
 
-  const queryString = params.toString();
+  if (identifiers.length === 0) {
+    return '/';
+  }
+
+  // Build clean, readable query string manually
+  // We control the identifiers, so we can safely build without aggressive encoding
+  // Only encode characters that would break URL parsing: &, =, and spaces
+  const encodeIdentifier = (id: string): string => {
+    return id.replace(/&/g, '%26').replace(/=/g, '%3D').replace(/ /g, '%20');
+  };
+
+  const queryParts = identifiers.map((id) => `w=${encodeIdentifier(id)}`);
+  const queryString = queryParts.join('&');
 
   // Defensive check: ensure no nested query strings (should never happen)
   if (queryString.includes('?')) {
