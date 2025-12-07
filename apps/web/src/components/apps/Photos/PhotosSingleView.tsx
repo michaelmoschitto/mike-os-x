@@ -1,13 +1,8 @@
 import { useEffect, useState } from 'react';
 
 import type { PhotoData } from '@/lib/photosContent';
+import { getPhotoImageUrl } from '@/lib/photosUtils';
 import { cn } from '@/lib/utils';
-
-// Helper to get photo image URL
-const getPhotoImageUrl = (photo: PhotoData): string => {
-  const sanitizedPath = photo.urlPath.startsWith('/') ? photo.urlPath : '/' + photo.urlPath;
-  return `/content${sanitizedPath}${photo.fileExtension}`;
-};
 
 interface PhotosSingleViewProps {
   photo: PhotoData;
