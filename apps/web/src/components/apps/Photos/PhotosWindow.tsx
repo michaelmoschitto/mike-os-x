@@ -77,11 +77,9 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
 
   const handlePhotoClick = useCallback(
     (photo: PhotoData) => {
-      // Find the photo's index in the current album
       const photoIndex = photos.findIndex((p) => p.id === photo.id);
       if (photoIndex === -1) return;
 
-      // Update the window store directly
       updateWindow(
         windowData.id,
         {
@@ -96,7 +94,6 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
   );
 
   const handleCloseSingleView = useCallback(() => {
-    // Update window to close single view (clear selected photo)
     updateWindow(
       windowData.id,
       {
@@ -127,7 +124,6 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
   const handleViewModeChange = useCallback(
     (mode: 'grid' | 'slideshow') => {
       if (mode === 'slideshow' && photos.length > 0 && selectedPhotoIndex === null) {
-        // Start slideshow with first photo
         const firstPhoto = photos[0];
         const photoIndex = photos.findIndex((p) => p.id === firstPhoto.id);
         if (photoIndex !== -1) {

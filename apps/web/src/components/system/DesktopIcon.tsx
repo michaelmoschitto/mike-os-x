@@ -68,6 +68,7 @@ const DesktopIcon = ({
 
       if (isImage && icon.urlPath) {
         // Open image in photos app
+        // TODO: im pretty sure this doesn't work
         const normalizedPath = normalizePathForRouting(icon.urlPath);
         const newWindowId = `photos:${normalizedPath}`;
         addWindow(existingWindows, newWindowId);
@@ -75,7 +76,6 @@ const DesktopIcon = ({
       }
 
       if (icon.fileExtension === 'pdf' && icon.urlPath) {
-        // Open PDF in PDF viewer
         const normalizedPath = normalizePathForRouting(icon.urlPath);
         const newWindowId = `pdfviewer:${normalizedPath}`;
         addWindow(existingWindows, newWindowId);
@@ -83,7 +83,6 @@ const DesktopIcon = ({
       }
 
       if (icon.fileExtension === 'txt' || icon.fileExtension === 'md') {
-        // Open text file in textedit
         const normalizedPath = icon.urlPath ? normalizePathForRouting(icon.urlPath) : '';
         const newWindowId = normalizedPath ? `textedit:${normalizedPath}` : 'textedit';
         addWindow(existingWindows, newWindowId);

@@ -22,7 +22,6 @@ export const useWindowLifecycle = ({
     const strategy = getWindowTypeStrategy(windowData.type);
     let windowIdentifier = serializeWindow(windowData);
 
-    // Use fallback identifier if window doesn't serialize normally
     if (!windowIdentifier && strategy.getFallbackIdentifier) {
       windowIdentifier = strategy.getFallbackIdentifier(windowData);
     }

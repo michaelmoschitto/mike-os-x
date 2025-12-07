@@ -28,12 +28,10 @@ export interface WindowStoreActions {
 function needsUpdate(currentWindow: Window, newConfig: Partial<Window>): boolean {
   const strategy = getWindowTypeStrategy(currentWindow.type);
 
-  // Check type-specific updates using strategy
   if (strategy.needsUpdate(currentWindow, newConfig)) {
     return true;
   }
 
-  // Check position/size if provided (extended state)
   if (newConfig.position) {
     if (
       currentWindow.position.x !== newConfig.position.x ||
@@ -65,7 +63,6 @@ export function reconcileWindowsWithUrl(
 ): void {
   const visibleWindows = windowStore.windows.filter((w) => !w.isMinimized);
 
-  // Create maps for efficient lookup
   const urlMap = new Map<string, WindowConfig>();
   for (const config of urlWindowConfigs) {
     urlMap.set(config.identifier, config);
@@ -79,8 +76,7 @@ export function reconcileWindowsWithUrl(
     }
   }
 
-  // Special handling for windows that require special reconciliation
-  // (e.g., photos - only one instance allowed)
+  // (ex: photos only one instance allowed)
   const windowsRequiringSpecialReconciliation = visibleWindows.filter((w) => {
     const strategy = getWindowTypeStrategy(w.type);
     return strategy.requiresSpecialReconciliation === true;
@@ -94,28 +90,23 @@ export function reconcileWindowsWithUrl(
     });
 
     if (specialConfigs.length > 0) {
-      // Use the last config (most recent in URL)
       const specialConfig = specialConfigs[specialConfigs.length - 1];
 
-      // Update existing window if needed
       if (needsUpdate(specialWindow, specialConfig.config)) {
         windowStore.updateWindow(specialWindow.id, specialConfig.config, {
           skipRouteSync: true,
         });
       }
-      // Focus if it's the last window in URL
       if (urlWindowConfigs[urlWindowConfigs.length - 1].identifier === specialConfig.identifier) {
         windowStore.focusWindow(specialWindow.id);
       }
 
-      // Remove special configs from processing (already handled)
       urlWindowConfigs = urlWindowConfigs.filter((c) => c.identifier !== specialConfig.identifier);
       const specialIdentifier = serializeWindow(specialWindow);
       if (specialIdentifier) {
         currentMap.delete(specialIdentifier);
       }
     } else {
-      // Special window exists but not in URL - close it
       windowStore.closeWindow(specialWindow.id);
       const specialIdentifier = serializeWindow(specialWindow);
       if (specialIdentifier) {
@@ -124,10 +115,8 @@ export function reconcileWindowsWithUrl(
     }
   }
 
-  // Find windows to close (in current but not in URL)
   const toClose: Window[] = [];
   for (const window of visibleWindows) {
-    // Skip windows that require special reconciliation (already handled above)
     const strategy = getWindowTypeStrategy(window.type);
     if (strategy.requiresSpecialReconciliation === true) {
       continue;
@@ -139,7 +128,6 @@ export function reconcileWindowsWithUrl(
     }
   }
 
-  // Find windows to open (in URL but not in current)
   const toOpen: WindowConfig[] = [];
   for (const config of urlWindowConfigs) {
     if (!currentMap.has(config.identifier)) {
@@ -147,7 +135,6 @@ export function reconcileWindowsWithUrl(
     }
   }
 
-  // Find windows to update (in both but different state)
   const toUpdate: Array<{ window: Window; config: Partial<Window> }> = [];
   for (const config of urlWindowConfigs) {
     const currentWindow = currentMap.get(config.identifier);
@@ -156,28 +143,22 @@ export function reconcileWindowsWithUrl(
     }
   }
 
-  // 1. Close windows not in URL
   for (const window of toClose) {
     windowStore.closeWindow(window.id);
   }
 
-  // 2. Update existing windows
   for (const { window, config } of toUpdate) {
     windowStore.updateWindow(window.id, config, { skipRouteSync: true });
   }
 
-  // 3. Open new windows
   for (const config of toOpen) {
     windowStore.openWindow(config.config);
   }
 
-  // 4. Focus the last window (if any windows exist)
   if (urlWindowConfigs.length > 0) {
-    // Find the actual window instance for the last identifier
     const lastIdentifier = urlWindowConfigs[urlWindowConfigs.length - 1].identifier;
     const lastConfigStrategy = getStrategyForIdentifier(lastIdentifier);
 
-    // Special case: if last window requires special reconciliation, find it by type
     if (lastConfigStrategy?.requiresSpecialReconciliation) {
       const allCurrentWindows = windowStore.windows.filter((w) => !w.isMinimized);
       const specialWindow = allCurrentWindows.find((w) => {
@@ -190,7 +171,6 @@ export function reconcileWindowsWithUrl(
       }
     }
 
-    // Find matching window
     const allCurrentWindows = windowStore.windows.filter((w) => !w.isMinimized);
     for (const window of allCurrentWindows) {
       const identifier = serializeWindow(window);

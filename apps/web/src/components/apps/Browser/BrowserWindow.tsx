@@ -43,6 +43,19 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   const canGoBack = historyIndex > 0;
   const canGoForward = historyIndex < history.length - 1;
 
+  const navigateToRoute = useCallback(
+    (url: string) => {
+      if (!url.startsWith('/')) return;
+
+      if (url === '/') {
+        navigate({ to: '/', search: { w: undefined, state: undefined } });
+      } else {
+        navigate({ to: '/$', params: { _splat: url.slice(1) } });
+      }
+    },
+    [navigate]
+  );
+
   const handleNavigate = (
     url: string,
     title?: string,
@@ -50,43 +63,28 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   ) => {
     const fromRoute = syncSource === 'route';
     navigateToUrl(windowData.id, url, title, fromRoute);
-
-    if (url.startsWith('/')) {
-      if (url === '/') {
-        navigate({ to: '/', search: { w: undefined, state: undefined } });
-      } else {
-        navigate({ to: '/$', params: { _splat: url.slice(1) } });
-      }
-    }
+    navigateToRoute(url);
   };
 
   const handleBack = useCallback(() => {
     if (canGoBack) {
       navigateBack(windowData.id);
       const prevUrl = history[historyIndex - 1];
-      if (prevUrl && prevUrl.startsWith('/')) {
-        if (prevUrl === '/') {
-          navigate({ to: '/', search: { w: undefined, state: undefined } });
-        } else {
-          navigate({ to: '/$', params: { _splat: prevUrl.slice(1) } });
-        }
+      if (prevUrl) {
+        navigateToRoute(prevUrl);
       }
     }
-  }, [canGoBack, navigateBack, windowData.id, history, historyIndex, navigate]);
+  }, [canGoBack, navigateBack, windowData.id, history, historyIndex, navigateToRoute]);
 
   const handleForward = useCallback(() => {
     if (canGoForward) {
       navigateForward(windowData.id);
       const nextUrl = history[historyIndex + 1];
-      if (nextUrl && nextUrl.startsWith('/')) {
-        if (nextUrl === '/') {
-          navigate({ to: '/', search: { w: undefined, state: undefined } });
-        } else {
-          navigate({ to: '/$', params: { _splat: nextUrl.slice(1) } });
-        }
+      if (nextUrl) {
+        navigateToRoute(nextUrl);
       }
     }
-  }, [canGoForward, navigateForward, windowData.id, history, historyIndex, navigate]);
+  }, [canGoForward, navigateForward, windowData.id, history, historyIndex, navigateToRoute]);
 
   const handleRefresh = useCallback(() => {
     if (currentUrl) {
@@ -196,10 +194,6 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
     handleForward,
     handleRefresh,
   ]);
-
-  // Note: URL synchronization is now handled centrally by useUrlSync hook
-  // in routes/index.tsx. This ensures all window changes are synced to URL
-  // in a single place, preventing sync loops and missed updates.
 
   const getWindowTitle = () => {
     return 'Internet Explorer';

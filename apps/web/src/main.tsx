@@ -29,7 +29,6 @@ const router = createRouter({
       result.w = w;
     }
 
-    // Handle 'state'
     const state = params.get('state');
     if (state) {
       result.state = state;
@@ -43,31 +42,24 @@ const router = createRouter({
     let windows: string[] = [];
     let stateValue: string | undefined;
 
-    // Robustly determine windows array
     if (Array.isArray(search)) {
-      // Case: Input is directly the array of windows
       windows = search;
     } else if (search && typeof search === 'object') {
-      // Case: Input is object wrapper
       if (Array.isArray(search.w)) {
         windows = search.w;
       } else if (typeof search.w === 'string') {
         windows = [search.w];
       } else if (search.w && typeof search.w === 'object') {
-        // Case: Array-like object (fixes w=0=... issue)
         windows = Object.values(search.w);
       }
 
-      // Extract state if present
       if (search.state) {
         stateValue = String(search.state);
       }
     }
 
-    // Process windows with minimal encoding
     windows.forEach((w: string) => {
       if (typeof w === 'string' && w.length > 0) {
-        // Inline minimal encoding logic
         const encoded = w.replace(/&/g, '%26').replace(/=/g, '%3D').replace(/ /g, '%20');
         parts.push(`w=${encoded}`);
       }
@@ -78,7 +70,6 @@ const router = createRouter({
     }
 
     const result = parts.join('&');
-    // Return WITH '?' prefix to ensure router constructs correct URL
     return result ? `?${result}` : '';
   },
 });

@@ -118,7 +118,6 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
     try {
       const existingWindows = parseWindowIdentifiersFromUrl();
 
-      // Build window identifier based on appType
       const normalizedPath = normalizePathForRouting(item.path);
       let windowIdentifier: string;
 
@@ -142,10 +141,8 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
       } else if (entry.appType === 'pdfviewer' || entry.appType === 'pdf') {
         windowIdentifier = `pdfviewer:${normalizedPath}`;
       } else if (entry.appType === 'browser') {
-        // For browser type (images), use browser window
         windowIdentifier = `browser:${normalizedPath}`;
       } else {
-        // Text files and other content
         windowIdentifier = `textedit:${normalizedPath}`;
       }
 

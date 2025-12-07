@@ -30,10 +30,8 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
   const editorRef = useRef<HTMLDivElement>(null);
   const hasLoadedRef = useRef(false);
 
-  // Subscribe to content index state
   const isIndexed = useContentIndex((state) => state.isIndexed);
 
-  // Load content from urlPath if content is empty
   useEffect(() => {
     // Skip if already loaded or no urlPath or content exists
     if (hasLoadedRef.current || !windowData.urlPath || windowData.content) {
