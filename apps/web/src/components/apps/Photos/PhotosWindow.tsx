@@ -1,4 +1,3 @@
-import { useNavigate } from '@tanstack/react-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import PhotosGrid from '@/components/apps/Photos/PhotosGrid';
@@ -10,11 +9,36 @@ import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
 import { getPhotoAlbums, getAlbumPhotos, type PhotoData } from '@/lib/photosContent';
-import { buildPhotoRoute, buildAlbumRoute } from '@/lib/photosRouting';
-import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
+import { serializeWindow } from '@/lib/routing/windowSerialization';
 import { cn } from '@/lib/utils';
 import { showCompactNotification } from '@/stores/notificationHelpers';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
+
+const buildPhotoRoute = (photo: PhotoData, photos: PhotoData[]): string => {
+  // Find the photo index in the photos array
+  const photoIndex = photos.findIndex((p) => p.id === photo.id);
+
+  // Build a temporary window object to serialize
+  const tempWindow: WindowType = {
+    type: 'photos',
+    id: 'temp',
+    appName: 'Photos',
+    title: 'Photos',
+    content: '',
+    position: { x: 0, y: 0 },
+    size: { width: 800, height: 600 },
+    zIndex: 0,
+    isMinimized: false,
+    albumPath: photo.albumPath,
+    urlPath: photo.urlPath,
+    selectedPhotoIndex: photoIndex !== -1 ? photoIndex : undefined,
+  };
+
+  const identifier = serializeWindow(tempWindow);
+  if (!identifier) return '/?w=photos';
+
+  return `/?w=${identifier}`;
+};
 
 interface PhotosWindowProps {
   window: WindowType;
@@ -22,17 +46,14 @@ interface PhotosWindowProps {
 }
 
 const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
-  const navigate = useNavigate();
   const { updateWindow } = useWindowStore();
   const selectedPhotoIndex = windowData.selectedPhotoIndex ?? null;
   const isSlideshow = windowData.isSlideshow ?? false;
 
-  const routeStrategy = getRouteStrategy('photos');
   const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
     useWindowLifecycle({
       window: windowData,
       isActive,
-      routeStrategy,
     });
 
   const [slideshowPaused, setSlideshowPaused] = useState(false);
@@ -56,45 +77,88 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
 
   const handlePhotoClick = useCallback(
     (photo: PhotoData) => {
-      const route = buildPhotoRoute(photo);
-      navigate({ to: route });
+      const photoIndex = photos.findIndex((p) => p.id === photo.id);
+      if (photoIndex === -1) return;
+
+      updateWindow(
+        windowData.id,
+        {
+          selectedPhotoIndex: photoIndex,
+          urlPath: photo.urlPath,
+          albumPath: photo.albumPath,
+        },
+        { skipRouteSync: false }
+      );
     },
-    [navigate]
+    [photos, updateWindow, windowData.id]
   );
 
   const handleCloseSingleView = useCallback(() => {
-    const route = buildAlbumRoute(albumPath);
-    navigate({ to: route });
-  }, [albumPath, navigate]);
+    updateWindow(
+      windowData.id,
+      {
+        selectedPhotoIndex: undefined,
+        urlPath: undefined,
+      },
+      { skipRouteSync: false }
+    );
+  }, [updateWindow, windowData.id]);
 
   const handleAlbumChange = useCallback(
     (newAlbumPath?: string) => {
-      const route = buildAlbumRoute(newAlbumPath);
-      navigate({ to: route });
+      // Update the window store directly with the new album path
+      // This ensures the UI updates immediately, then URL sync will handle navigation
+      updateWindow(
+        windowData.id,
+        {
+          albumPath: newAlbumPath,
+          selectedPhotoIndex: undefined,
+          urlPath: undefined,
+        },
+        { skipRouteSync: false }
+      );
     },
-    [navigate]
+    [updateWindow, windowData.id]
   );
 
   const handleViewModeChange = useCallback(
     (mode: 'grid' | 'slideshow') => {
       if (mode === 'slideshow' && photos.length > 0 && selectedPhotoIndex === null) {
         const firstPhoto = photos[0];
-        const route = buildPhotoRoute(firstPhoto);
-        navigate({ to: route });
+        const photoIndex = photos.findIndex((p) => p.id === firstPhoto.id);
+        if (photoIndex !== -1) {
+          updateWindow(
+            windowData.id,
+            {
+              selectedPhotoIndex: photoIndex,
+              urlPath: firstPhoto.urlPath,
+              albumPath: firstPhoto.albumPath,
+              isSlideshow: true,
+            },
+            { skipRouteSync: false }
+          );
+        }
       } else if (mode === 'grid') {
-        updateWindow(windowData.id, { isSlideshow: false }, { skipRouteSync: true });
+        updateWindow(windowData.id, { isSlideshow: false }, { skipRouteSync: false });
       }
     },
-    [photos, selectedPhotoIndex, navigate, updateWindow, windowData.id]
+    [photos, selectedPhotoIndex, updateWindow, windowData.id]
   );
 
   const handleNextPhoto = useCallback(() => {
     if (photos.length === 0) return;
     const nextIndex = selectedPhotoIndex === null ? 0 : (selectedPhotoIndex + 1) % photos.length;
     const nextPhoto = photos[nextIndex];
-    const route = buildPhotoRoute(nextPhoto);
-    navigate({ to: route });
-  }, [photos, selectedPhotoIndex, navigate]);
+    updateWindow(
+      windowData.id,
+      {
+        selectedPhotoIndex: nextIndex,
+        urlPath: nextPhoto.urlPath,
+        albumPath: nextPhoto.albumPath,
+      },
+      { skipRouteSync: false }
+    );
+  }, [photos, selectedPhotoIndex, updateWindow, windowData.id]);
 
   const handlePreviousPhoto = useCallback(() => {
     if (photos.length === 0) return;
@@ -103,14 +167,21 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
         ? photos.length - 1
         : (selectedPhotoIndex - 1 + photos.length) % photos.length;
     const prevPhoto = photos[prevIndex];
-    const route = buildPhotoRoute(prevPhoto);
-    navigate({ to: route });
-  }, [photos, selectedPhotoIndex, navigate]);
+    updateWindow(
+      windowData.id,
+      {
+        selectedPhotoIndex: prevIndex,
+        urlPath: prevPhoto.urlPath,
+        albumPath: prevPhoto.albumPath,
+      },
+      { skipRouteSync: false }
+    );
+  }, [photos, selectedPhotoIndex, updateWindow, windowData.id]);
 
   const handleShare = useCallback(async () => {
     if (!selectedPhoto) return;
 
-    const photoUrl = buildPhotoRoute(selectedPhoto);
+    const photoUrl = buildPhotoRoute(selectedPhoto, photos);
     const fullUrl = `${window.location.origin}${photoUrl}`;
 
     try {
@@ -120,7 +191,7 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
       console.error('Failed to copy URL:', error);
       showCompactNotification('Error', 'Failed to copy URL');
     }
-  }, [selectedPhoto]);
+  }, [selectedPhoto, photos]);
 
   useEffect(() => {
     if (!useContentIndex.getState().isIndexed) {

@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, useLayoutEffect, useMemo, useCallback } fr
 import { Grid } from 'react-window';
 
 import type { PhotoData } from '@/lib/photosContent';
-import { getPhotoImageUrl } from '@/lib/photosRouting';
+import { getPhotoImageUrl } from '@/lib/photosUtils';
 
 interface PhotosGridProps {
   photos: PhotoData[];

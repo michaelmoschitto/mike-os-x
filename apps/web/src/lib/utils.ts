@@ -191,3 +191,18 @@ export const normalizeUrlPath = (urlPath: string): string => {
   const normalized = urlPath.trim().replace(/\/+/g, '/');
   return normalized.startsWith('/') ? normalized : `/${normalized}`;
 };
+
+/**
+ * Normalizes a path for routing by removing the leading slash.
+ * Used when creating window identifiers where paths should not start with /
+ * (e.g., "finder:dock/finder" not "finder:/dock/finder").
+ *
+ * @param path - The path to normalize (e.g., "/dock/finder" or "dock/finder")
+ * @returns Path without leading slash (e.g., "dock/finder")
+ */
+export const normalizePathForRouting = (path: string): string => {
+  if (!path || typeof path !== 'string') {
+    return '';
+  }
+  return path.startsWith('/') ? path.slice(1) : path;
+};

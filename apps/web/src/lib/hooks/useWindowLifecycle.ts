@@ -1,54 +1,58 @@
-import { useNavigate } from '@tanstack/react-router';
-import { useEffect, useRef } from 'react';
-
-import type { WindowRouteStrategy } from '@/lib/routing/windowRouteStrategies';
-import type { Window } from '@/stores/useWindowStore';
+import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
+import { parseWindowIdentifiersFromUrl, serializeWindow } from '@/lib/routing/windowSerialization';
+import { getWindowTypeStrategy } from '@/lib/routing/windowTypeStrategies';
 import { useWindowStore } from '@/stores/useWindowStore';
-
-const areRoutesEqual = (
-  currentPath: string,
-  currentSearch: string,
-  targetPath: string,
-  targetSearch: string
-): boolean => {
-  const normalizedCurrent = currentPath.replace(/\/$/, '');
-  const normalizedTarget = targetPath.replace(/\/$/, '');
-  const normalizedCurrentSearch = currentSearch || '';
-  const normalizedTargetSearch = targetSearch ? `?${targetSearch}` : '';
-
-  return (
-    normalizedCurrent === normalizedTarget && normalizedCurrentSearch === normalizedTargetSearch
-  );
-};
+import type { Window } from '@/stores/useWindowStore';
 
 interface UseWindowLifecycleOptions {
   window: Window;
   isActive: boolean;
-  routeStrategy: WindowRouteStrategy;
 }
 
 export const useWindowLifecycle = ({
   window: windowData,
-  isActive,
-  routeStrategy,
+  isActive: _isActive,
 }: UseWindowLifecycleOptions) => {
-  const navigate = useNavigate();
-  const lastHandledRouteRef = useRef<string | null>(null);
-  const {
-    closeWindow,
-    focusWindow,
-    updateWindowPosition,
-    updateWindowSize,
-    minimizeWindow,
-    clearRouteSyncFlag,
-    getRouteToNavigateOnClose,
-  } = useWindowStore();
+  const { closeWindow, focusWindow, updateWindowPosition, updateWindowSize, minimizeWindow } =
+    useWindowStore();
+  const { removeWindow } = useWindowNavigation();
 
   const handleClose = () => {
-    const routeToNavigate = getRouteToNavigateOnClose(windowData.id);
+    const existingWindows = parseWindowIdentifiersFromUrl();
+    const strategy = getWindowTypeStrategy(windowData.type);
+    let windowIdentifier = serializeWindow(windowData);
+
+    if (!windowIdentifier && strategy.getFallbackIdentifier) {
+      windowIdentifier = strategy.getFallbackIdentifier(windowData);
+    }
+
     closeWindow(windowData.id);
-    if (routeToNavigate) {
-      navigate({ to: routeToNavigate, replace: true });
+
+    if (windowIdentifier) {
+      // For browser windows, URLSearchParams decodes the URL, so we need to match
+      // the decoded version. The serialized identifier has encoded URL, but the
+      // URL parameter has decoded URL after URLSearchParams processing.
+      if (windowIdentifier.startsWith('browser:')) {
+        // Find matching browser window by comparing decoded URLs
+        const serializedUrl = windowIdentifier.substring(8);
+        const matchingIdentifier = existingWindows.find((id) => {
+          if (!id.startsWith('browser:')) return false;
+          const urlFromIdentifier = id.substring(8);
+          // Compare decoded versions
+          try {
+            const decodedSerialized = decodeURIComponent(serializedUrl);
+            return decodedSerialized === urlFromIdentifier;
+          } catch {
+            return serializedUrl === urlFromIdentifier;
+          }
+        });
+
+        if (matchingIdentifier) {
+          removeWindow(existingWindows, matchingIdentifier);
+        }
+      } else if (existingWindows.includes(windowIdentifier)) {
+        removeWindow(existingWindows, windowIdentifier);
+      }
     }
   };
 
@@ -67,45 +71,6 @@ export const useWindowLifecycle = ({
   const handleResize = (size: { width: number; height: number }) => {
     updateWindowSize(windowData.id, size);
   };
-
-  useEffect(() => {
-    if (!isActive) return;
-    if (!routeStrategy.shouldSyncRoute(windowData)) return;
-
-    const route = routeStrategy.getRouteForWindow(windowData);
-    const targetPath = route.split('?')[0];
-    const targetSearch = route.includes('?') ? route.split('?')[1] : '';
-    const targetRoute = `${targetPath}${targetSearch ? `?${targetSearch}` : ''}`;
-
-    const currentSkipFlag = useWindowStore.getState().skipNextRouteSync[windowData.id];
-    const currentPath = window.location.pathname;
-    const currentSearch = window.location.search;
-
-    const routesAreEqual = areRoutesEqual(currentPath, currentSearch, targetPath, targetSearch);
-
-    if (currentSkipFlag) {
-      if (routesAreEqual) {
-        lastHandledRouteRef.current = targetRoute;
-        clearRouteSyncFlag(windowData.id);
-      }
-      return;
-    }
-
-    if (lastHandledRouteRef.current === targetRoute) {
-      return;
-    }
-
-    if (routesAreEqual) {
-      lastHandledRouteRef.current = targetRoute;
-      return;
-    }
-
-    lastHandledRouteRef.current = targetRoute;
-    navigate({
-      to: route,
-      replace: true,
-    });
-  }, [isActive, windowData, routeStrategy, navigate, clearRouteSyncFlag]);
 
   return {
     handleClose,

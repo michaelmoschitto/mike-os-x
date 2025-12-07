@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import type { PhotoData } from '@/lib/photosContent';
-import { getPhotoImageUrl } from '@/lib/photosRouting';
+import { getPhotoImageUrl } from '@/lib/photosUtils';
 import { cn } from '@/lib/utils';
 
 interface PhotosSingleViewProps {

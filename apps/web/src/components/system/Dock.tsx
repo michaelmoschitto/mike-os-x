@@ -8,9 +8,9 @@ import {
 } from 'framer-motion';
 import { Fragment, useRef, useState } from 'react';
 
-import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
+import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
+import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
 import { useUI } from '@/lib/store';
-import { useWindowStore, type Window } from '@/stores/useWindowStore';
 
 type DockIconType =
   | 'browser'
@@ -43,36 +43,12 @@ const BASE_SIZE = 56;
 const MAX_SCALE = 2.3;
 const DISTANCE = 140;
 
-const openFinderWindow = (
-  title: string,
-  path: string,
-  openWindow: (
-    window: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { appName?: string }
-  ) => void
-) => {
-  const { width, height } = WINDOW_DIMENSIONS.finder;
-  const position = getCenteredWindowPosition(width, height);
-
-  openWindow({
-    type: 'finder' as const,
-    title,
-    content: '',
-    position,
-    size: { width, height },
-    currentPath: path,
-    viewMode: 'icon' as const,
-    navigationHistory: [path],
-    navigationIndex: 0,
-    appName: 'Finder',
-  });
-};
-
 const Dock = () => {
   const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
-  const { activeApp, setActiveApp } = useUI();
-  const { openWindow } = useWindowStore();
+  const { activeApp } = useUI();
   const dockRef = useRef<HTMLDivElement>(null);
   const mouseX = useMotionValue(Infinity);
+  const { addWindow } = useWindowNavigation();
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     mouseX.set(e.pageX);
@@ -84,51 +60,23 @@ const Dock = () => {
   };
 
   const handleIconClick = (iconId: DockIconType) => {
-    if (iconId === 'finder') {
-      openFinderWindow('Finder', '/dock/finder', openWindow);
-    } else if (iconId === 'browser') {
-      const { width, height } = WINDOW_DIMENSIONS.browser;
-      openWindow({
-        type: 'browser',
-        title: 'Internet Explorer',
-        content: '',
-        position: { x: 100, y: 80 },
-        size: { width, height },
-        url: '',
-        history: [],
-        historyIndex: -1,
-      });
-      setActiveApp('browser');
-    } else if (iconId === 'terminal') {
-      const { width, height } = WINDOW_DIMENSIONS.terminal;
-      openWindow({
-        type: 'terminal',
-        title: 'Terminal',
-        content: '',
-        position: { x: 150, y: 100 },
-        size: { width, height },
-      });
-      setActiveApp('terminal');
-    } else if (iconId === 'reading') {
-      openFinderWindow('Reading', '/dock/reading', openWindow);
-    } else if (iconId === 'projects') {
-      openFinderWindow('Projects', '/dock/projects', openWindow);
-    } else if (iconId === 'writing') {
-      openFinderWindow('Writing', '/dock/writing', openWindow);
-    } else if (iconId === 'trash') {
-      openFinderWindow('Trash', '/dock/trash', openWindow);
-    } else if (iconId === 'photos') {
-      const { width, height } = WINDOW_DIMENSIONS.photos;
-      const position = getCenteredWindowPosition(width, height);
-      openWindow({
-        type: 'photos',
-        title: 'Photos',
-        content: '',
-        position,
-        size: { width, height },
-      });
-      setActiveApp('photos');
-    }
+    const windowMap: Record<string, string> = {
+      finder: 'finder:dock/finder',
+      browser: 'browser:https://blog.mikemoschitto.com',
+      terminal: 'terminal',
+      reading: 'finder:dock/reading',
+      projects: 'finder:dock/projects',
+      writing: 'finder:dock/writing',
+      trash: 'finder:dock/trash',
+      photos: 'photos',
+    };
+
+    const newWindowId = windowMap[iconId];
+    if (!newWindowId) return;
+
+    const existingWindows = parseWindowIdentifiersFromUrl();
+
+    addWindow(existingWindows, newWindowId);
   };
 
   return (

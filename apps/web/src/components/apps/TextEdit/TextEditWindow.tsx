@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import TextEditRuler from '@/components/apps/TextEdit/TextEditRuler';
 import TextEditToolbar from '@/components/apps/TextEdit/TextEditToolbar';
 import Window from '@/components/window/Window';
+import { useContentIndex } from '@/lib/contentIndex';
+import { loadContentFile } from '@/lib/contentLoader';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
-import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
 interface TextEditWindowProps {
@@ -13,30 +14,68 @@ interface TextEditWindowProps {
 }
 
 const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) => {
-  const { updateWindowContent } = useWindowStore();
+  const { updateWindowContent, updateWindow } = useWindowStore();
 
-  const routeStrategy = getRouteStrategy('textedit');
   const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
     useWindowLifecycle({
       window: windowData,
       isActive,
-      routeStrategy,
     });
 
   const [alignment, setAlignment] = useState<'left' | 'center' | 'right' | 'justify'>('left');
   const [fontSize, setFontSize] = useState(12);
   const [lineHeight, setLineHeight] = useState(1.5);
+  const [isLoading, setIsLoading] = useState(false);
 
   const editorRef = useRef<HTMLDivElement>(null);
+  const hasLoadedRef = useRef(false);
 
-  // Initialize content
+  const isIndexed = useContentIndex((state) => state.isIndexed);
+
+  useEffect(() => {
+    // Skip if already loaded or no urlPath or content exists
+    if (hasLoadedRef.current || !windowData.urlPath || windowData.content) {
+      return;
+    }
+
+    if (!isIndexed) {
+      return;
+    }
+
+    hasLoadedRef.current = true;
+    setIsLoading(true);
+
+    const loadContent = async () => {
+      try {
+        if (!windowData.urlPath) return;
+        const entry = useContentIndex.getState().getEntry(windowData.urlPath);
+        if (entry) {
+          const loaded = await loadContentFile(entry.filePath);
+          updateWindow(windowData.id, { content: loaded.content }, { skipRouteSync: true });
+        }
+      } catch (error) {
+        console.error('[TextEdit] Failed to load content:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadContent();
+  }, [windowData.urlPath, windowData.content, windowData.id, updateWindow, isIndexed]);
+
   useEffect(() => {
     if (editorRef.current && windowData.content) {
-      // Convert line breaks to HTML breaks for proper display
       const htmlContent = windowData.content.replace(/\n/g, '<br>');
       editorRef.current.innerHTML = htmlContent;
     }
   }, [windowData.content]);
+
+  useEffect(() => {
+    if (!isLoading && editorRef.current && windowData.content && !editorRef.current.innerHTML) {
+      const htmlContent = windowData.content.replace(/\n/g, '<br>');
+      editorRef.current.innerHTML = htmlContent;
+    }
+  }, [isLoading, windowData.content]);
 
   const handleContentChange = () => {
     if (editorRef.current) {
@@ -126,7 +165,12 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
       <TextEditRuler />
 
       {/* Text Editor */}
-      <div className="flex-1 overflow-auto bg-white">
+      <div className="relative flex-1 overflow-auto bg-white">
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
+            <span className="font-ui text-sm text-gray-500">Loading...</span>
+          </div>
+        )}
         <div
           ref={editorRef}
           className="font-ui min-h-full p-6 focus:outline-none"

@@ -6,11 +6,11 @@ import FinderListView from '@/components/apps/Finder/FinderListView';
 import FinderToolbar from '@/components/apps/Finder/FinderToolbar';
 import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
-import { loadContentFile } from '@/lib/contentLoader';
 import { getFolderContents, type FinderItemData } from '@/lib/finderContent';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
-import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
-import { validateAndNormalizeUrl } from '@/lib/utils';
+import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
+import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
+import { normalizePathForRouting, validateAndNormalizeUrl } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
 interface FinderWindowProps {
@@ -19,8 +19,8 @@ interface FinderWindowProps {
 }
 
 const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
-  const { updateWindow, openWindowFromUrl, navigateToUrl, getOrCreateBrowserWindow } =
-    useWindowStore();
+  const { updateWindow, navigateToUrl, getOrCreateBrowserWindow } = useWindowStore();
+  const { addWindow } = useWindowNavigation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loadingFile, setLoadingFile] = useState<string | null>(null);
 
@@ -31,12 +31,10 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
   const navigationHistory = windowData.navigationHistory || [currentPath];
   const navigationIndex = windowData.navigationIndex ?? navigationHistory.length - 1;
 
-  const routeStrategy = getRouteStrategy('finder');
   const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
     useWindowLifecycle({
       window: windowData,
       isActive,
-      routeStrategy,
     });
 
   const items = useMemo(() => {
@@ -118,27 +116,38 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
     setLoadingFile(item.path);
 
     try {
-      let content = '';
+      const existingWindows = parseWindowIdentifiersFromUrl();
 
-      if (entry.appType === 'pdfviewer') {
-        content = '';
-      } else if (
-        entry.appType === 'browser' &&
-        ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(
-          entry.fileExtension.toLowerCase()
-        )
-      ) {
-        content = '';
+      const normalizedPath = normalizePathForRouting(item.path);
+      let windowIdentifier: string;
+
+      if (entry.appType === 'photos') {
+        // Photos use format: photos:album:photoName (without extension)
+        const pathParts = normalizedPath.split('/').filter(Boolean);
+        if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
+          const albumName = pathParts[2];
+          const photoName = pathParts[pathParts.length - 1].replace(
+            /\.(jpg|jpeg|png|gif|webp|svg)$/i,
+            ''
+          );
+          windowIdentifier = `photos:${albumName}:${photoName}`;
+        } else {
+          const photoName = pathParts[pathParts.length - 1].replace(
+            /\.(jpg|jpeg|png|gif|webp|svg)$/i,
+            ''
+          );
+          windowIdentifier = `photos:desktop:${photoName}`;
+        }
+      } else if (entry.appType === 'pdfviewer' || entry.appType === 'pdf') {
+        windowIdentifier = `pdfviewer:${normalizedPath}`;
+      } else if (entry.appType === 'browser') {
+        windowIdentifier = `browser:${normalizedPath}`;
       } else {
-        const loaded = await loadContentFile(entry.filePath);
-        content = loaded.content;
+        windowIdentifier = `textedit:${normalizedPath}`;
       }
 
-      openWindowFromUrl(item.path, content, {
-        appType: entry.appType,
-        metadata: entry.metadata,
-        fileExtension: entry.fileExtension,
-      });
+      // Append new window to existing windows and navigate
+      addWindow(existingWindows, windowIdentifier);
     } catch (error) {
       console.error('Failed to open file:', error);
     } finally {

@@ -1,9 +1,10 @@
-import { useNavigate } from '@tanstack/react-router';
 import { motion, useMotionValue } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
+import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
+import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
+import { normalizePathForRouting } from '@/lib/utils';
 import type { DesktopIconData } from '@/stores/useDesktopStore';
-import { useWindowStore } from '@/stores/useWindowStore';
 
 interface DesktopIconProps {
   icon: DesktopIconData;
@@ -26,8 +27,7 @@ const DesktopIcon = ({
   const y = useMotionValue(position.y);
   const isDragging = useRef(false);
   const lastClickTime = useRef(0);
-  const openWindow = useWindowStore((state) => state.openWindow);
-  const navigate = useNavigate();
+  const { addWindow } = useWindowNavigation();
 
   useEffect(() => {
     if (!isDragging.current) {
@@ -52,53 +52,47 @@ const DesktopIcon = ({
   };
 
   const handleDoubleClick = () => {
+    const existingWindows = parseWindowIdentifiersFromUrl();
+
     if (icon.type === 'folder' && icon.urlPath) {
-      const windowWidth = 800;
-      const windowHeight = 600;
-      const centerX = (window.innerWidth - windowWidth) / 2;
-      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
-
-      openWindow({
-        type: 'finder',
-        title: icon.label,
-        content: '',
-        position: { x: centerX, y: centerY + 22 },
-        size: { width: windowWidth, height: windowHeight },
-        currentPath: icon.urlPath,
-        viewMode: 'icon',
-        navigationHistory: [icon.urlPath],
-        navigationIndex: 0,
-      });
+      // Open folder in finder with path
+      const normalizedPath = normalizePathForRouting(icon.urlPath);
+      const newWindowId = `finder:${normalizedPath}`;
+      addWindow(existingWindows, newWindowId);
       return;
     }
 
-    if (icon.urlPath) {
-      navigate({ to: icon.urlPath });
-      return;
-    }
-
-    if (icon.type === 'file' && (icon.fileExtension === 'txt' || icon.fileExtension === 'md')) {
-      const windowWidth = 600;
-      const windowHeight = 500;
-      const centerX = (window.innerWidth - windowWidth) / 2;
-      const centerY = (window.innerHeight - windowHeight - 22 - 60) / 2;
-
-      openWindow({
-        type: 'textedit',
-        title: icon.label,
-        content: icon.content || '',
-        position: { x: centerX, y: centerY + 22 },
-        size: { width: windowWidth, height: windowHeight },
-      });
-      return;
-    }
-
-    if (icon.type === 'file' && icon.urlPath) {
+    if (icon.type === 'file') {
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-      if (imageExtensions.includes(icon.fileExtension?.toLowerCase() || '')) {
-        navigate({ to: `/photos?photo=${encodeURIComponent(icon.urlPath)}` });
+      const isImage = imageExtensions.includes(icon.fileExtension?.toLowerCase() || '');
+
+      if (isImage && icon.urlPath) {
+        // Open image in photos app
+        // TODO: im pretty sure this doesn't work
+        const normalizedPath = normalizePathForRouting(icon.urlPath);
+        const newWindowId = `photos:${normalizedPath}`;
+        addWindow(existingWindows, newWindowId);
         return;
       }
+
+      if (icon.fileExtension === 'pdf' && icon.urlPath) {
+        const normalizedPath = normalizePathForRouting(icon.urlPath);
+        const newWindowId = `pdfviewer:${normalizedPath}`;
+        addWindow(existingWindows, newWindowId);
+        return;
+      }
+
+      if (icon.fileExtension === 'txt' || icon.fileExtension === 'md') {
+        const normalizedPath = icon.urlPath ? normalizePathForRouting(icon.urlPath) : '';
+        const newWindowId = normalizedPath ? `textedit:${normalizedPath}` : 'textedit';
+        addWindow(existingWindows, newWindowId);
+        return;
+      }
+    }
+
+    // Fallback: navigate to the content URL path directly
+    if (icon.urlPath) {
+      window.location.href = icon.urlPath;
     }
   };
 

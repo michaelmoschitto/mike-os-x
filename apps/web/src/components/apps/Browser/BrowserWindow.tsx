@@ -7,7 +7,6 @@ import BrowserContent from '@/components/apps/Browser/BrowserContent';
 import BrowserToolbar from '@/components/apps/Browser/BrowserToolbar';
 import Window from '@/components/window/Window';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
-import { getRouteStrategy } from '@/lib/routing/windowRouteStrategies';
 import { findBookmarkLocation, getHostnameFromUrl, isUrlBookmarked } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
@@ -21,12 +20,10 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   const { navigateToUrl, navigateBack, navigateForward, addBookmark, removeBookmark } =
     useWindowStore();
 
-  const routeStrategy = getRouteStrategy('browser');
   const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
     useWindowLifecycle({
       window: windowData,
       isActive,
-      routeStrategy,
     });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +43,19 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   const canGoBack = historyIndex > 0;
   const canGoForward = historyIndex < history.length - 1;
 
+  const navigateToRoute = useCallback(
+    (url: string) => {
+      if (!url.startsWith('/')) return;
+
+      if (url === '/') {
+        navigate({ to: '/', search: { w: undefined, state: undefined } });
+      } else {
+        navigate({ to: '/$', params: { _splat: url.slice(1) } });
+      }
+    },
+    [navigate]
+  );
+
   const handleNavigate = (
     url: string,
     title?: string,
@@ -53,31 +63,28 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   ) => {
     const fromRoute = syncSource === 'route';
     navigateToUrl(windowData.id, url, title, fromRoute);
-
-    if (url.startsWith('/')) {
-      navigate({ to: url });
-    }
+    navigateToRoute(url);
   };
 
   const handleBack = useCallback(() => {
     if (canGoBack) {
       navigateBack(windowData.id);
       const prevUrl = history[historyIndex - 1];
-      if (prevUrl && prevUrl.startsWith('/')) {
-        navigate({ to: prevUrl });
+      if (prevUrl) {
+        navigateToRoute(prevUrl);
       }
     }
-  }, [canGoBack, navigateBack, windowData.id, history, historyIndex, navigate]);
+  }, [canGoBack, navigateBack, windowData.id, history, historyIndex, navigateToRoute]);
 
   const handleForward = useCallback(() => {
     if (canGoForward) {
       navigateForward(windowData.id);
       const nextUrl = history[historyIndex + 1];
-      if (nextUrl && nextUrl.startsWith('/')) {
-        navigate({ to: nextUrl });
+      if (nextUrl) {
+        navigateToRoute(nextUrl);
       }
     }
-  }, [canGoForward, navigateForward, windowData.id, history, historyIndex, navigate]);
+  }, [canGoForward, navigateForward, windowData.id, history, historyIndex, navigateToRoute]);
 
   const handleRefresh = useCallback(() => {
     if (currentUrl) {
