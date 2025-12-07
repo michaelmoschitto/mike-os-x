@@ -8,8 +8,8 @@ import {
 } from 'framer-motion';
 import { Fragment, useRef, useState } from 'react';
 
-import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
 import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
+import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
 import { useUI } from '@/lib/store';
 
 type DockIconType =

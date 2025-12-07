@@ -1,8 +1,7 @@
-import type { Window } from '@/stores/useWindowStore';
-import { useWindowStore } from '@/stores/useWindowStore';
 import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
-import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
-import { serializeWindow } from '@/lib/routing/windowSerialization';
+import { parseWindowIdentifiersFromUrl, serializeWindow } from '@/lib/routing/windowSerialization';
+import { useWindowStore } from '@/stores/useWindowStore';
+import type { Window } from '@/stores/useWindowStore';
 
 interface UseWindowLifecycleOptions {
   window: Window;

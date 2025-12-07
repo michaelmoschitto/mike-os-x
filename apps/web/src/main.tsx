@@ -18,7 +18,10 @@ const router = createRouter({
     // Defensive: strip '?' if present (router might pass it)
     const cleanStr = searchStr.startsWith('?') ? searchStr.slice(1) : searchStr;
     const params = new URLSearchParams(cleanStr);
-    const result: Record<string, any> = {};
+    const result: {
+      w?: string[];
+      state?: string;
+    } = {};
 
     // Handle 'w' array
     const w = params.getAll('w');
@@ -37,7 +40,7 @@ const router = createRouter({
   stringifySearch: (search) => {
     const parts: string[] = [];
 
-    let windows: any[] = [];
+    let windows: string[] = [];
     let stateValue: string | undefined;
 
     // Robustly determine windows array

@@ -1,8 +1,8 @@
 import { motion, useMotionValue } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
-import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
 import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
+import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
 import type { DesktopIconData } from '@/stores/useDesktopStore';
 
 interface DesktopIconProps {
