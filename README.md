@@ -5,10 +5,10 @@ Mikes portfolio site (themed after OS X 2000, of course)
 ## Project Structure
 
 - `/apps/web` - Mac OS X themed portfolio (React + Vite)
-- `/apps/api` - Python backend for terminal emulation
+- `/apps/api` - Python backend
 - `/blog` - Jekyll blog
 - `/docs` - Documentation and learning notes
-- `/iac` - Pulumi infrastructure-as-code for AWS EC2
+- `/iac` - Pulumi IAC
 
 ## Deployment
 
