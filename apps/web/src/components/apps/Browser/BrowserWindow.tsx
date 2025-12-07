@@ -54,7 +54,11 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
     navigateToUrl(windowData.id, url, title, fromRoute);
 
     if (url.startsWith('/')) {
-      navigate({ to: url as any });
+      if (url === '/') {
+        navigate({ to: '/' });
+      } else {
+        navigate({ to: '/$', params: { _splat: url.slice(1) } });
+      }
     }
   };
 
@@ -63,7 +67,11 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
       navigateBack(windowData.id);
       const prevUrl = history[historyIndex - 1];
       if (prevUrl && prevUrl.startsWith('/')) {
-        navigate({ to: prevUrl as any });
+        if (prevUrl === '/') {
+          navigate({ to: '/' });
+        } else {
+          navigate({ to: '/$', params: { _splat: prevUrl.slice(1) } });
+        }
       }
     }
   }, [canGoBack, navigateBack, windowData.id, history, historyIndex, navigate]);
@@ -73,7 +81,11 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
       navigateForward(windowData.id);
       const nextUrl = history[historyIndex + 1];
       if (nextUrl && nextUrl.startsWith('/')) {
-        navigate({ to: nextUrl as any });
+        if (nextUrl === '/') {
+          navigate({ to: '/' });
+        } else {
+          navigate({ to: '/$', params: { _splat: nextUrl.slice(1) } });
+        }
       }
     }
   }, [canGoForward, navigateForward, windowData.id, history, historyIndex, navigate]);
