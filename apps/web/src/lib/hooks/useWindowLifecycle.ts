@@ -1,5 +1,6 @@
 import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
 import { parseWindowIdentifiersFromUrl, serializeWindow } from '@/lib/routing/windowSerialization';
+import { getWindowTypeStrategy } from '@/lib/routing/windowTypeStrategies';
 import { useWindowStore } from '@/stores/useWindowStore';
 import type { Window } from '@/stores/useWindowStore';
 
@@ -18,12 +19,12 @@ export const useWindowLifecycle = ({
 
   const handleClose = () => {
     const existingWindows = parseWindowIdentifiersFromUrl();
+    const strategy = getWindowTypeStrategy(windowData.type);
     let windowIdentifier = serializeWindow(windowData);
 
-    // Special case: browser windows with about:blank don't serialize,
-    // but we still need to remove them from URL if present
-    if (!windowIdentifier && windowData.type === 'browser' && windowData.url === 'about:blank') {
-      windowIdentifier = 'browser:about:blank';
+    // Use fallback identifier if window doesn't serialize normally
+    if (!windowIdentifier && strategy.getFallbackIdentifier) {
+      windowIdentifier = strategy.getFallbackIdentifier(windowData);
     }
 
     closeWindow(windowData.id);

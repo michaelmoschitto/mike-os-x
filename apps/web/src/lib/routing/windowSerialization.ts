@@ -1,5 +1,9 @@
 import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { getPhotoByPath, getAlbumPhotos } from '@/lib/photosContent';
+import {
+  getWindowTypeStrategy,
+  getStrategyForIdentifier,
+} from '@/lib/routing/windowTypeStrategies';
 import type { Window, TerminalTab } from '@/stores/useWindowStore';
 
 /**
@@ -125,85 +129,8 @@ export const getPhotoImageUrl = (urlPath: string, fileExtension: string): string
  *          Returns null for expected cases (not an error).
  */
 export function serializeWindow(window: Window): string | null {
-  // Skip minimized windows
-  if (window.isMinimized) {
-    return null;
-  }
-
-  switch (window.type) {
-    case 'terminal':
-      return 'terminal';
-
-    case 'browser':
-      // Skip if no URL or blank URL
-      if (!window.url || window.url === 'about:blank' || window.url === '') {
-        return null;
-      }
-      return `browser:${encodeURIComponent(window.url)}`;
-
-    case 'photos': {
-      // Photos with selected photo
-      if (
-        window.urlPath &&
-        window.selectedPhotoIndex !== undefined &&
-        window.selectedPhotoIndex !== null
-      ) {
-        const normalizedPath = normalizePathForRouting(window.urlPath);
-        const pathParts = normalizedPath.split('/').filter(Boolean);
-
-        // Photos in dock/photos/album structure
-        if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
-          const albumName = pathParts[2];
-          const photoName = pathParts[pathParts.length - 1];
-          const photoNameWithoutExt = removeFileExtension(photoName);
-          return `photos:${albumName}:${photoNameWithoutExt}`;
-        }
-
-        // Desktop photos
-        if (pathParts.length > 0 && pathParts[0] !== 'dock') {
-          const photoName = pathParts[pathParts.length - 1];
-          const photoNameWithoutExt = removeFileExtension(photoName);
-          return `photos:desktop:${photoNameWithoutExt}`;
-        }
-      }
-
-      // Photos with album only
-      if (window.albumPath) {
-        const normalizedAlbumPath = normalizePathForRouting(window.albumPath);
-        const pathParts = normalizedAlbumPath.split('/').filter(Boolean);
-
-        if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
-          const albumName = pathParts[2];
-          return `photos:${albumName}`;
-        }
-      }
-
-      // Photos root (no album or photo selected)
-      return 'photos';
-    }
-
-    case 'finder':
-      if (window.currentPath) {
-        const normalizedPath = normalizePathForRouting(window.currentPath);
-        return `finder:${normalizedPath}`;
-      }
-      return null;
-
-    case 'pdfviewer':
-      if (window.urlPath) {
-        return `pdfviewer:${normalizePathForRouting(window.urlPath)}`;
-      }
-      return null;
-
-    case 'textedit':
-      if (window.urlPath) {
-        return `textedit:${normalizePathForRouting(window.urlPath)}`;
-      }
-      return null;
-
-    default:
-      return null;
-  }
+  const strategy = getWindowTypeStrategy(window.type);
+  return strategy.serialize(window);
 }
 
 /**
@@ -217,171 +144,13 @@ export function serializeWindow(window: Window): string | null {
 export function deserializeWindow(identifier: string): WindowOpenConfig | null {
   if (!identifier) return null;
 
-  // Terminal
-  if (identifier === 'terminal') {
-    const { width, height } = WINDOW_DIMENSIONS.terminal;
-    const position = getCenteredWindowPosition(width, height);
-    return {
-      type: 'terminal',
-      title: 'Terminal',
-      content: '',
-      position,
-      size: { width, height },
-    };
+  const strategy = getStrategyForIdentifier(identifier);
+  if (strategy) {
+    return strategy.deserialize(identifier);
   }
 
-  // Browser
-  if (identifier.startsWith('browser:')) {
-    const url = decodeURIComponent(identifier.substring(8));
-    const { width, height } = WINDOW_DIMENSIONS.browser;
-    const position = getCenteredWindowPosition(width, height);
-    return {
-      type: 'browser',
-      title: 'Internet Explorer',
-      content: '',
-      position,
-      size: { width, height },
-      url,
-      history: [url],
-      historyIndex: 0,
-    };
-  }
-
-  // Photos
-  if (identifier.startsWith('photos')) {
-    const { width, height } = WINDOW_DIMENSIONS.photos;
-    const position = getCenteredWindowPosition(width, height);
-
-    const parts = identifier.split(':');
-
-    if (parts.length === 1) {
-      // Just "photos" - root view
-      return {
-        type: 'photos',
-        title: 'Photos',
-        content: '',
-        position,
-        size: { width, height },
-      };
-    }
-
-    if (parts.length === 2) {
-      // "photos:album" - album view
-      const albumName = parts[1];
-      const albumPath = albumName === 'desktop' ? 'desktop' : `dock/photos/${albumName}`;
-      return {
-        type: 'photos',
-        title: 'Photos',
-        content: '',
-        position,
-        size: { width, height },
-        albumPath,
-      };
-    }
-
-    if (parts.length === 3) {
-      // "photos:album:photo" - single photo view
-      const albumName = parts[1];
-      const photoName = parts[2];
-
-      // Construct the urlPath to look up the photo
-      const urlPath = albumName === 'desktop' ? photoName : `dock/photos/${albumName}/${photoName}`;
-
-      // Find the photo to get full data
-      const photo = getPhotoByPath(urlPath);
-
-      if (photo) {
-        const photos = getAlbumPhotos(photo.albumPath);
-        const index = photos.findIndex((p) => p.id === photo.id);
-
-        return {
-          type: 'photos',
-          title: 'Photos',
-          content: '',
-          position,
-          size: { width, height },
-          albumPath: photo.albumPath,
-          selectedPhotoIndex: index !== -1 ? index : 0,
-          urlPath: photo.urlPath,
-        };
-      }
-
-      // Photo not found, fall back to album view
-      const albumPath = albumName === 'desktop' ? 'desktop' : `dock/photos/${albumName}`;
-      return {
-        type: 'photos',
-        title: 'Photos',
-        content: '',
-        position,
-        size: { width, height },
-        albumPath,
-      };
-    }
-  }
-
-  // Finder
-  if (identifier.startsWith('finder:')) {
-    const path = identifier.substring(7);
-    const { width, height } = WINDOW_DIMENSIONS.finder;
-    const position = getCenteredWindowPosition(width, height);
-
-    const pathParts = path.split('/').filter(Boolean);
-    const title = pathParts.length > 1 ? pathParts[pathParts.length - 1] : 'Finder';
-    const capitalizedTitle = title.charAt(0).toUpperCase() + title.slice(1);
-
-    const windowPath = path.startsWith('/') ? path : `/${path}`;
-
-    return {
-      type: 'finder',
-      title: capitalizedTitle,
-      content: '',
-      position,
-      size: { width, height },
-      currentPath: windowPath,
-      viewMode: 'icon' as const,
-      navigationHistory: [windowPath],
-      navigationIndex: 0,
-    };
-  }
-
-  // TextEdit with explicit prefix
-  if (identifier.startsWith('textedit:')) {
-    const path = identifier.substring(9);
-    const { width, height } = WINDOW_DIMENSIONS.textedit;
-    const position = getCenteredWindowPosition(width, height);
-    const urlPath = path.startsWith('/') ? path : `/${path}`;
-
-    return {
-      type: 'textedit',
-      title: path.split('/').pop() || 'Document',
-      content: '',
-      position,
-      size: { width, height },
-      urlPath,
-    };
-  }
-
-  // PDF Viewer with explicit prefix
-  if (identifier.startsWith('pdfviewer:')) {
-    const path = identifier.substring(10);
-    const { width, height } = WINDOW_DIMENSIONS.pdfviewer;
-    const position = getCenteredWindowPosition(width, height);
-    const urlPath = path.startsWith('/') ? path : `/${path}`;
-
-    return {
-      type: 'pdfviewer',
-      title: path.split('/').pop() || 'Document',
-      content: '',
-      position,
-      size: { width, height },
-      urlPath,
-    };
-  }
-
-  // Generic content path (urlPath based) - fallback
+  // Generic content path (urlPath based) - fallback to textedit
   const urlPath = identifier.startsWith('/') ? identifier : '/' + identifier;
-
-  // Default to textedit, will be resolved by content type later
   const { width, height } = WINDOW_DIMENSIONS.textedit;
   const position = getCenteredWindowPosition(width, height);
 

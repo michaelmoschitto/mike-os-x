@@ -1,4 +1,8 @@
 import { serializeWindow, type WindowConfig } from '@/lib/routing/windowSerialization';
+import {
+  getWindowTypeStrategy,
+  getStrategyForIdentifier,
+} from '@/lib/routing/windowTypeStrategies';
 import type { Window } from '@/stores/useWindowStore';
 
 /**
@@ -22,38 +26,11 @@ export interface WindowStoreActions {
  * Check if a window needs updating based on config
  */
 function needsUpdate(currentWindow: Window, newConfig: Partial<Window>): boolean {
-  // Check URL for browser windows
-  if (currentWindow.type === 'browser' && newConfig.url) {
-    return currentWindow.url !== newConfig.url;
-  }
+  const strategy = getWindowTypeStrategy(currentWindow.type);
 
-  // Check album/photo for photos windows
-  if (currentWindow.type === 'photos') {
-    if (newConfig.albumPath && currentWindow.albumPath !== newConfig.albumPath) {
-      return true;
-    }
-    if (
-      newConfig.selectedPhotoIndex !== undefined &&
-      currentWindow.selectedPhotoIndex !== newConfig.selectedPhotoIndex
-    ) {
-      return true;
-    }
-    if (newConfig.urlPath && currentWindow.urlPath !== newConfig.urlPath) {
-      return true;
-    }
-  }
-
-  // Check path for finder windows
-  if (currentWindow.type === 'finder' && newConfig.currentPath) {
-    return currentWindow.currentPath !== newConfig.currentPath;
-  }
-
-  // Check urlPath for content windows
-  if (
-    (currentWindow.type === 'pdfviewer' || currentWindow.type === 'textedit') &&
-    newConfig.urlPath
-  ) {
-    return currentWindow.urlPath !== newConfig.urlPath;
+  // Check type-specific updates using strategy
+  if (strategy.needsUpdate(currentWindow, newConfig)) {
+    return true;
   }
 
   // Check position/size if provided (extended state)
@@ -102,47 +79,59 @@ export function reconcileWindowsWithUrl(
     }
   }
 
-  // Special handling for photos - only allow one photos window
-  const photosConfigs = urlWindowConfigs.filter((c) => c.identifier.startsWith('photos'));
-  const currentPhotosWindow = visibleWindows.find((w) => w.type === 'photos');
+  // Special handling for windows that require special reconciliation
+  // (e.g., photos - only one instance allowed)
+  const windowsRequiringSpecialReconciliation = visibleWindows.filter((w) => {
+    const strategy = getWindowTypeStrategy(w.type);
+    return strategy.requiresSpecialReconciliation === true;
+  });
 
-  if (photosConfigs.length > 0) {
-    // Use the last photos config (most recent in URL)
-    const photosConfig = photosConfigs[photosConfigs.length - 1];
+  for (const specialWindow of windowsRequiringSpecialReconciliation) {
+    const strategy = getWindowTypeStrategy(specialWindow.type);
+    const specialConfigs = urlWindowConfigs.filter((c) => {
+      const configStrategy = getStrategyForIdentifier(c.identifier);
+      return configStrategy === strategy;
+    });
 
-    if (currentPhotosWindow) {
-      // Update existing photos window if needed
-      if (needsUpdate(currentPhotosWindow, photosConfig.config)) {
-        windowStore.updateWindow(currentPhotosWindow.id, photosConfig.config, {
+    if (specialConfigs.length > 0) {
+      // Use the last config (most recent in URL)
+      const specialConfig = specialConfigs[specialConfigs.length - 1];
+
+      // Update existing window if needed
+      if (needsUpdate(specialWindow, specialConfig.config)) {
+        windowStore.updateWindow(specialWindow.id, specialConfig.config, {
           skipRouteSync: true,
         });
       }
       // Focus if it's the last window in URL
-      if (urlWindowConfigs[urlWindowConfigs.length - 1].identifier.startsWith('photos')) {
-        windowStore.focusWindow(currentPhotosWindow.id);
+      if (urlWindowConfigs[urlWindowConfigs.length - 1].identifier === specialConfig.identifier) {
+        windowStore.focusWindow(specialWindow.id);
+      }
+
+      // Remove special configs from processing (already handled)
+      urlWindowConfigs = urlWindowConfigs.filter((c) => c.identifier !== specialConfig.identifier);
+      const specialIdentifier = serializeWindow(specialWindow);
+      if (specialIdentifier) {
+        currentMap.delete(specialIdentifier);
       }
     } else {
-      // Open new photos window
-      windowStore.openWindow(photosConfig.config);
-    }
-
-    // Remove photos configs from processing (already handled)
-    urlWindowConfigs = urlWindowConfigs.filter((c) => !c.identifier.startsWith('photos'));
-    if (currentPhotosWindow) {
-      const photosIdentifier = serializeWindow(currentPhotosWindow);
-      if (photosIdentifier) {
-        currentMap.delete(photosIdentifier);
+      // Special window exists but not in URL - close it
+      windowStore.closeWindow(specialWindow.id);
+      const specialIdentifier = serializeWindow(specialWindow);
+      if (specialIdentifier) {
+        currentMap.delete(specialIdentifier);
       }
     }
-  } else if (currentPhotosWindow) {
-    // Photos window exists but not in URL - close it
-    windowStore.closeWindow(currentPhotosWindow.id);
   }
 
   // Find windows to close (in current but not in URL)
   const toClose: Window[] = [];
   for (const window of visibleWindows) {
-    if (window.type === 'photos') continue; // Already handled above
+    // Skip windows that require special reconciliation (already handled above)
+    const strategy = getWindowTypeStrategy(window.type);
+    if (strategy.requiresSpecialReconciliation === true) {
+      continue;
+    }
 
     const identifier = serializeWindow(window);
     if (identifier && !urlMap.has(identifier)) {
@@ -186,11 +175,19 @@ export function reconcileWindowsWithUrl(
   if (urlWindowConfigs.length > 0) {
     // Find the actual window instance for the last identifier
     const lastIdentifier = urlWindowConfigs[urlWindowConfigs.length - 1].identifier;
+    const lastConfigStrategy = getStrategyForIdentifier(lastIdentifier);
 
-    // Special case for photos
-    if (lastIdentifier.startsWith('photos') && currentPhotosWindow) {
-      windowStore.focusWindow(currentPhotosWindow.id);
-      return;
+    // Special case: if last window requires special reconciliation, find it by type
+    if (lastConfigStrategy?.requiresSpecialReconciliation) {
+      const allCurrentWindows = windowStore.windows.filter((w) => !w.isMinimized);
+      const specialWindow = allCurrentWindows.find((w) => {
+        const strategy = getWindowTypeStrategy(w.type);
+        return strategy === lastConfigStrategy;
+      });
+      if (specialWindow) {
+        windowStore.focusWindow(specialWindow.id);
+        return;
+      }
     }
 
     // Find matching window
