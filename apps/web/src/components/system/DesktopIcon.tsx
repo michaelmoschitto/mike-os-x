@@ -1,6 +1,7 @@
 import { motion, useMotionValue } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
+import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
 import type { DesktopIconData } from '@/stores/useDesktopStore';
 
 interface DesktopIconProps {
@@ -48,28 +49,7 @@ const DesktopIcon = ({
   };
 
   const handleDoubleClick = () => {
-    // Get existing windows from URL, handling TanStack Router's JSON serialization
-    const currentParams = new URLSearchParams(window.location.search);
-    const rawWindows = currentParams.getAll('w');
-    
-    // TanStack Router may serialize arrays as JSON strings like '["terminal"]'
-    const existingWindows: string[] = [];
-    for (const w of rawWindows) {
-      if (w.startsWith('[') && w.endsWith(']')) {
-        try {
-          const parsed = JSON.parse(w);
-          if (Array.isArray(parsed)) {
-            existingWindows.push(...parsed);
-          } else {
-            existingWindows.push(w);
-          }
-        } catch {
-          existingWindows.push(w);
-        }
-      } else {
-        existingWindows.push(w);
-      }
-    }
+    const existingWindows = parseWindowIdentifiersFromUrl();
 
     if (icon.type === 'folder' && icon.urlPath) {
       // Open folder in finder with path

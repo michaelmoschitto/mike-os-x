@@ -7,10 +7,6 @@ import { showCompactNotification } from '@/stores/notificationHelpers';
 export const Route = createFileRoute('/$')({
   loader: async ({ params }) => {
     const path = params._splat || '';
-
-    console.log('[Splat Loader] Path:', path);
-
-    // Empty path should be handled by index route
     if (path === '') {
       throw redirect({ to: '/', search: { w: undefined, state: undefined } });
     }
@@ -55,11 +51,6 @@ export const Route = createFileRoute('/$')({
         windowIdentifier = `textedit:${normalizedPath}`;
       }
 
-      console.log(
-        '[Splat Loader] Found content, redirecting to multi-window URL:',
-        windowIdentifier
-      );
-
       // Preserve existing windows from URL and add new one
       const currentParams = new URLSearchParams(window.location.search);
       const existingWindows = currentParams.getAll('w');
@@ -76,7 +67,6 @@ export const Route = createFileRoute('/$')({
       }
 
       // File not found - show notification and redirect to home
-      console.log('[Splat Loader] Content not found:', path);
       setTimeout(() => {
         showCompactNotification('File Not Found', `The path "/${path}" does not exist.`, {
           autoDismiss: 4000,

@@ -84,14 +84,7 @@ export function reconcileWindowsWithUrl(
   urlWindowConfigs: WindowConfig[],
   windowStore: WindowStoreActions
 ): void {
-  console.log('[reconcileWindowsWithUrl] Starting reconciliation', {
-    urlWindowConfigs,
-    currentWindowsCount: windowStore.windows.length
-  });
-  
-  // Get only visible windows (non-minimized)
   const visibleWindows = windowStore.windows.filter((w) => !w.isMinimized);
-  console.log('[reconcileWindowsWithUrl] Visible windows:', visibleWindows.length);
 
   // Create maps for efficient lookup
   const urlMap = new Map<string, WindowConfig>();
@@ -128,7 +121,7 @@ export function reconcileWindowsWithUrl(
       }
     } else {
       // Open new photos window
-      windowStore.openWindow(photosConfig.config as any);
+      windowStore.openWindow(photosConfig.config);
     }
 
     // Remove photos configs from processing (already handled)
@@ -172,29 +165,19 @@ export function reconcileWindowsWithUrl(
     }
   }
 
-  // Execute operations
-  console.log('[reconcileWindowsWithUrl] Operations:', {
-    toClose: toClose.length,
-    toUpdate: toUpdate.length,
-    toOpen: toOpen.length
-  });
-  
   // 1. Close windows not in URL
   for (const window of toClose) {
-    console.log('[reconcileWindowsWithUrl] Closing window:', window.id);
     windowStore.closeWindow(window.id);
   }
 
   // 2. Update existing windows
   for (const { window, config } of toUpdate) {
-    console.log('[reconcileWindowsWithUrl] Updating window:', window.id, config);
     windowStore.updateWindow(window.id, config, { skipRouteSync: true });
   }
 
   // 3. Open new windows
   for (const config of toOpen) {
-    console.log('[reconcileWindowsWithUrl] Opening window:', config);
-    windowStore.openWindow(config.config as any);
+    windowStore.openWindow(config.config);
   }
 
   // 4. Focus the last window (if any windows exist)

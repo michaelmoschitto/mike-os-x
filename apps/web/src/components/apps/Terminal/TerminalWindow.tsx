@@ -267,8 +267,6 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
   }, [windowData.size, activeTabId, connectionState, sendMessage, tabs]);
 
   const handleClose = () => {
-    console.log('[TerminalWindow] handleClose called');
-    // Terminal-specific cleanup
     tabs.forEach((tab) => {
       unregisterSession(tab.sessionId);
     });
@@ -277,9 +275,6 @@ const TerminalWindow = ({ window: windowData, isActive }: TerminalWindowProps) =
       instance.terminal.dispose();
     });
     terminalsRef.current.clear();
-
-    console.log('[TerminalWindow] Calling baseHandleClose');
-    // Use base handler for routing and window management
     baseHandleClose();
   };
 

@@ -40,9 +40,7 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
       return;
     }
     
-    // Wait for content index to be ready
     if (!isIndexed) {
-      console.log('[TextEdit] Waiting for content index...');
       return;
     }
     
@@ -52,16 +50,9 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
     const loadContent = async () => {
       try {
         const entry = useContentIndex.getState().getEntry(windowData.urlPath);
-        console.log('[TextEdit] Looking up entry for:', windowData.urlPath, 'found:', entry);
         if (entry) {
           const loaded = await loadContentFile(entry.filePath);
-          console.log('[TextEdit] Loaded content:', loaded.content.substring(0, 100));
           updateWindow(windowData.id, { content: loaded.content }, { skipRouteSync: true });
-        } else {
-          console.warn('[TextEdit] No entry found for:', windowData.urlPath);
-          // List all entries for debugging
-          const allEntries = useContentIndex.getState().getAllEntries();
-          console.log('[TextEdit] All entries:', allEntries.map(e => e.urlPath));
         }
       } catch (error) {
         console.error('[TextEdit] Failed to load content:', error);
@@ -73,21 +64,16 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
     loadContent();
   }, [windowData.urlPath, windowData.content, windowData.id, updateWindow, isIndexed]);
 
-  // Initialize content in editor
   useEffect(() => {
     if (editorRef.current && windowData.content) {
-      // Convert line breaks to HTML breaks for proper display
       const htmlContent = windowData.content.replace(/\n/g, '<br>');
-      console.log('[TextEdit] Setting editor innerHTML, length:', htmlContent.length);
       editorRef.current.innerHTML = htmlContent;
     }
   }, [windowData.content]);
   
-  // Also set content after loading completes (in case effect ran before ref was ready)
   useEffect(() => {
     if (!isLoading && editorRef.current && windowData.content && !editorRef.current.innerHTML) {
       const htmlContent = windowData.content.replace(/\n/g, '<br>');
-      console.log('[TextEdit] Setting editor innerHTML after loading, length:', htmlContent.length);
       editorRef.current.innerHTML = htmlContent;
     }
   }, [isLoading, windowData.content]);

@@ -9,6 +9,7 @@ import { useContentIndex } from '@/lib/contentIndex';
 import { loadContentFile } from '@/lib/contentLoader';
 import { getFolderContents, type FinderItemData } from '@/lib/finderContent';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
+import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
 import { validateAndNormalizeUrl } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
@@ -115,27 +116,7 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
     setLoadingFile(item.path);
 
     try {
-      // Get existing windows from URL, handling TanStack Router's JSON serialization
-      const currentParams = new URLSearchParams(window.location.search);
-      const rawWindows = currentParams.getAll('w');
-
-      const existingWindows: string[] = [];
-      for (const w of rawWindows) {
-        if (w.startsWith('[') && w.endsWith(']')) {
-          try {
-            const parsed = JSON.parse(w);
-            if (Array.isArray(parsed)) {
-              existingWindows.push(...parsed);
-            } else {
-              existingWindows.push(w);
-            }
-          } catch {
-            existingWindows.push(w);
-          }
-        } else {
-          existingWindows.push(w);
-        }
-      }
+      const existingWindows = parseWindowIdentifiersFromUrl();
 
       // Build window identifier based on appType
       const normalizedPath = item.path.startsWith('/') ? item.path.slice(1) : item.path;

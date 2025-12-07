@@ -4,42 +4,56 @@ import type { Window, TerminalTab } from '@/stores/useWindowStore';
 
 /**
  * Validate if a window identifier is valid
- * Filters out empty strings, whitespace, and JavaScript/JSON literals
- * that could be incorrectly serialized
+ * Filters out empty strings, whitespace, JavaScript/JSON literals,
+ * and checks for security issues like path traversal
  */
 function isValidWindowIdentifier(identifier: string | null | undefined): identifier is string {
-  // Filter out falsy values and non-strings
   if (!identifier || typeof identifier !== 'string') {
     return false;
   }
   
-  // Filter out empty/whitespace-only strings
   if (identifier.trim() === '') {
     return false;
   }
   
-  // Filter out JavaScript/JSON literals that could be serialized incorrectly
   const invalidLiterals = [
-    '[]',           // Empty array
-    '{}',           // Empty object
-    'null',         // null literal
-    'undefined',    // undefined literal
-    'NaN',          // NaN literal
-    '[object Object]', // Object toString
-    'true',         // Could be confused with boolean
-    'false',        // Could be confused with boolean
+    '[]',
+    '{}',
+    'null',
+    'undefined',
+    'NaN',
+    '[object Object]',
+    'true',
+    'false',
   ];
   
   if (invalidLiterals.includes(identifier)) {
     return false;
   }
   
-  return true;
+  if (identifier.includes('../') || identifier.includes('..\\')) {
+    return false;
+  }
+  
+  const validPatterns = [
+    /^terminal$/,
+    /^photos(:[a-zA-Z0-9_-]+)?(:[a-zA-Z0-9_-]+)?$/,
+    /^browser:[a-zA-Z0-9/:._%-]+$/,
+    /^finder:[a-zA-Z0-9/._-]+$/,
+    /^pdfviewer:[a-zA-Z0-9/._-]+$/,
+    /^textedit:[a-zA-Z0-9/._-]+$/,
+  ];
+  
+  return validPatterns.some(pattern => pattern.test(identifier));
 }
+
+export type WindowOpenConfig = Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { 
+  appName?: string 
+};
 
 export interface WindowConfig {
   identifier: string;
-  config: Partial<Window>;
+  config: WindowOpenConfig;
 }
 
 export interface ExtendedWindowState {
@@ -163,7 +177,7 @@ export function serializeWindow(window: Window): string | null {
 /**
  * Deserialize a URL identifier string to a window configuration
  */
-export function deserializeWindow(identifier: string): Partial<Window> | null {
+export function deserializeWindow(identifier: string): WindowOpenConfig | null {
   if (!identifier) return null;
 
   // Terminal
@@ -485,15 +499,43 @@ export function serializeWindowsToUrl(windows: Window[]): string {
 }
 
 /**
+ * Parse window identifiers from URL, handling TanStack Router's JSON serialization
+ * TanStack Router may serialize arrays as JSON strings like '["terminal"]'
+ * This function flattens them back to individual window IDs
+ */
+export function parseWindowIdentifiersFromUrl(): string[] {
+  const searchParams = new URLSearchParams(window.location.search);
+  const rawWindows = searchParams.getAll('w');
+  const windowIdentifiers: string[] = [];
+  
+  for (const w of rawWindows) {
+    if (w.startsWith('[') && w.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(w);
+        if (Array.isArray(parsed)) {
+          windowIdentifiers.push(...parsed);
+        } else {
+          windowIdentifiers.push(w);
+        }
+      } catch {
+        windowIdentifiers.push(w);
+      }
+    } else {
+      windowIdentifiers.push(w);
+    }
+  }
+  
+  return windowIdentifiers.filter(isValidWindowIdentifier);
+}
+
+/**
  * Deserialize URL search params to window configurations
  */
 export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowConfig[] {
-  console.log('[deserializeUrlToWindows] Called with searchParams:', searchParams.toString());
   const configs: WindowConfig[] = [];
 
   // Check for extended state format
   const stateParam = searchParams.get('state');
-  console.log('[deserializeUrlToWindows] State param:', stateParam);
   if (stateParam) {
     const state = deserializeExtendedState(stateParam);
     if (state) {
@@ -564,12 +606,9 @@ export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowCo
 
   // Simple format
   const allIdentifiers = searchParams.getAll('w');
-  console.log('[deserializeUrlToWindows] All identifiers from URL:', allIdentifiers);
   
   const windowIdentifiers = allIdentifiers.filter(isValidWindowIdentifier);
-  console.log('[deserializeUrlToWindows] Valid identifiers after filtering:', windowIdentifiers);
   
-  // Log warning for debugging if invalid identifiers are found
   const invalidIdentifiers = allIdentifiers.filter(id => !isValidWindowIdentifier(id));
   if (invalidIdentifiers.length > 0) {
     console.warn('[windowSerialization] Filtered out invalid window identifiers:', invalidIdentifiers);
@@ -577,12 +616,10 @@ export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowCo
   
   for (const identifier of windowIdentifiers) {
     const config = deserializeWindow(identifier);
-    console.log('[deserializeUrlToWindows] Deserialized identifier:', identifier, '-> config:', config);
     if (config) {
       configs.push({ identifier, config });
     }
   }
 
-  console.log('[deserializeUrlToWindows] Final configs:', configs.length, 'windows');
   return configs;
 }

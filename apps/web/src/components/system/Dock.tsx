@@ -9,6 +9,7 @@ import {
 import { Fragment, useRef, useState } from 'react';
 
 import { useUI } from '@/lib/store';
+import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
 
 type DockIconType =
   | 'browser'
@@ -71,31 +72,8 @@ const Dock = () => {
     const newWindowId = windowMap[iconId];
     if (!newWindowId) return;
 
-    // Get existing windows from URL, handling TanStack Router's JSON serialization
-    const currentParams = new URLSearchParams(window.location.search);
-    const rawWindows = currentParams.getAll('w');
+    const existingWindows = parseWindowIdentifiersFromUrl();
 
-    // TanStack Router may serialize arrays as JSON strings like '["terminal"]'
-    // We need to flatten these back to individual window IDs
-    const existingWindows: string[] = [];
-    for (const w of rawWindows) {
-      if (w.startsWith('[') && w.endsWith(']')) {
-        try {
-          const parsed = JSON.parse(w);
-          if (Array.isArray(parsed)) {
-            existingWindows.push(...parsed);
-          } else {
-            existingWindows.push(w);
-          }
-        } catch {
-          existingWindows.push(w);
-        }
-      } else {
-        existingWindows.push(w);
-      }
-    }
-
-    // Check if this exact window is already open
     const alreadyOpen = existingWindows.includes(newWindowId);
 
     if (alreadyOpen) {
