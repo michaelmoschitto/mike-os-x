@@ -24,9 +24,9 @@ I'm excited to do a bit more writing about how this is built and some of the tec
 
 ## Connect
 
-- [LinkedIn](https://linkedin.com/in/michaelmoschitto)
-- [Contact](me@mikemoschitto.com)
-- [Resume](https://os.mikemoschitto.com/resume)
+- https://linkedin.com/in/michaelmoschitto
+- me@mikemoschitto.com
+- https://os.mikemoschitto.com/resume
 
 ---
 
