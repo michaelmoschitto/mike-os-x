@@ -91,6 +91,17 @@ const DesktopIcon = ({
         return;
       }
       
+      if (icon.fileExtension === 'pdf' && icon.urlPath) {
+        // Open PDF in PDF viewer
+        const urlPathWithoutLeadingSlash = icon.urlPath.startsWith('/')
+          ? icon.urlPath.substring(1)
+          : icon.urlPath;
+        const newWindowId = `pdfviewer:${urlPathWithoutLeadingSlash}`;
+        const allWindows = [...existingWindows, newWindowId];
+        window.location.href = '/?w=' + allWindows.join('&w=');
+        return;
+      }
+      
       if (icon.fileExtension === 'txt' || icon.fileExtension === 'md') {
         // Open text file in textedit
         const newWindowId = icon.urlPath ? `textedit:${icon.urlPath}` : 'textedit';

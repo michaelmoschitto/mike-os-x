@@ -1,11 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useEffect } from 'react';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
-import Desktop from '@/components/system/Desktop';
 import { initializeContentIndex, useContentIndex } from '@/lib/contentIndex';
-import type { ContentIndexEntry } from '@/lib/contentIndex';
 import { resolveUrlToContent } from '@/lib/urlResolver';
-import { useWindowStore } from '@/stores/useWindowStore';
+import { showCompactNotification } from '@/stores/notificationHelpers';
 
 export const Route = createFileRoute('/$')({
   loader: async ({ params }) => {
@@ -13,66 +10,86 @@ export const Route = createFileRoute('/$')({
 
     console.log('[Splat Loader] Path:', path);
 
-    // Empty path should be handled by index route, but just in case
+    // Empty path should be handled by index route
     if (path === '') {
-      return { mode: 'empty' as const, path };
+      throw redirect({ to: '/', search: { w: undefined, state: undefined } });
     }
 
-    // Try to resolve the path to content (e.g., /dock/photos/fam/photo.jpeg)
+    // Initialize content index if needed
     const indexState = useContentIndex.getState();
     if (!indexState.isIndexed) {
       await initializeContentIndex();
     }
 
     try {
+      // Try to resolve the path to content
       const resolved = await resolveUrlToContent(path);
-      return {
-        mode: 'content' as const,
-        resolved,
-        path,
-      };
+
+      // Build the appropriate window identifier based on app type
+      const appType = resolved.entry.appType;
+      const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
+
+      let windowIdentifier: string;
+
+      if (appType === 'photo') {
+        // Photos use format: photos:album:photoName (without extension)
+        const pathParts = normalizedPath.split('/').filter(Boolean);
+        if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
+          const albumName = pathParts[2];
+          const photoName = pathParts[pathParts.length - 1].replace(
+            /\.(jpg|jpeg|png|gif|webp|svg)$/i,
+            ''
+          );
+          windowIdentifier = `photos:${albumName}:${photoName}`;
+        } else {
+          const photoName = pathParts[pathParts.length - 1].replace(
+            /\.(jpg|jpeg|png|gif|webp|svg)$/i,
+            ''
+          );
+          windowIdentifier = `photos:desktop:${photoName}`;
+        }
+      } else if (appType === 'pdf') {
+        windowIdentifier = `pdfviewer:${normalizedPath}`;
+      } else {
+        // markdown, text, and other content
+        windowIdentifier = `textedit:${normalizedPath}`;
+      }
+
+      console.log(
+        '[Splat Loader] Found content, redirecting to multi-window URL:',
+        windowIdentifier
+      );
+
+      // Preserve existing windows from URL and add new one
+      const currentParams = new URLSearchParams(window.location.search);
+      const existingWindows = currentParams.getAll('w');
+      const allWindows = [...existingWindows, windowIdentifier];
+
+      throw redirect({
+        to: '/',
+        search: { w: allWindows, state: undefined },
+      });
     } catch (error) {
-      return {
-        mode: 'error' as const,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        path,
-      };
+      // If it's a redirect, re-throw it
+      if (error && typeof error === 'object' && 'to' in error) {
+        throw error;
+      }
+
+      // File not found - show notification and redirect to home
+      console.log('[Splat Loader] Content not found:', path);
+      setTimeout(() => {
+        showCompactNotification('File Not Found', `The path "/${path}" does not exist.`, {
+          autoDismiss: 4000,
+        });
+      }, 100);
+
+      throw redirect({ to: '/', search: { w: undefined, state: undefined } });
     }
   },
   component: PathComponent,
 });
 
 function PathComponent() {
-  const loaderData = Route.useLoaderData();
-  const { openWindowFromUrl } = useWindowStore();
-
-  useEffect(() => {
-    console.log('[Splat PathComponent] loaderData:', loaderData);
-
-    // Content mode - open content in appropriate window
-    if (loaderData.mode === 'content' && loaderData.resolved) {
-      const entry: ContentIndexEntry = loaderData.resolved.entry;
-      openWindowFromUrl(entry.urlPath, loaderData.resolved.content, {
-        appType: entry.appType,
-        metadata: entry.metadata,
-        fileExtension: entry.fileExtension,
-      });
-    }
-  }, [loaderData, openWindowFromUrl]);
-
-  const error = loaderData.mode === 'error' ? loaderData.error : null;
-
-  return (
-    <>
-      <Desktop />
-      {error && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
-          <div className="aqua-window max-w-md p-6">
-            <h2 className="font-ui mb-4 text-lg font-semibold">File Not Found</h2>
-            <p className="font-ui text-sm">{error}</p>
-          </div>
-        </div>
-      )}
-    </>
-  );
+  // This component should never render since we always redirect
+  return null;
 }

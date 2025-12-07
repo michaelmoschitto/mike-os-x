@@ -95,11 +95,8 @@ const Dock = () => {
       }
     }
 
-    // Check if this window is already open (by type, not exact match)
-    const windowType = newWindowId.split(':')[0];
-    const alreadyOpen = existingWindows.some(
-      (w) => w.startsWith(windowType + ':') || w === windowType
-    );
+    // Check if this exact window is already open
+    const alreadyOpen = existingWindows.includes(newWindowId);
 
     if (alreadyOpen) {
       return;

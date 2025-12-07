@@ -115,27 +115,62 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
     setLoadingFile(item.path);
 
     try {
-      let content = '';
+      // Get existing windows from URL, handling TanStack Router's JSON serialization
+      const currentParams = new URLSearchParams(window.location.search);
+      const rawWindows = currentParams.getAll('w');
 
-      if (entry.appType === 'pdfviewer') {
-        content = '';
-      } else if (
-        entry.appType === 'browser' &&
-        ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(
-          entry.fileExtension.toLowerCase()
-        )
-      ) {
-        content = '';
-      } else {
-        const loaded = await loadContentFile(entry.filePath);
-        content = loaded.content;
+      const existingWindows: string[] = [];
+      for (const w of rawWindows) {
+        if (w.startsWith('[') && w.endsWith(']')) {
+          try {
+            const parsed = JSON.parse(w);
+            if (Array.isArray(parsed)) {
+              existingWindows.push(...parsed);
+            } else {
+              existingWindows.push(w);
+            }
+          } catch {
+            existingWindows.push(w);
+          }
+        } else {
+          existingWindows.push(w);
+        }
       }
 
-      openWindowFromUrl(item.path, content, {
-        appType: entry.appType,
-        metadata: entry.metadata,
-        fileExtension: entry.fileExtension,
-      });
+      // Build window identifier based on appType
+      const normalizedPath = item.path.startsWith('/') ? item.path.slice(1) : item.path;
+      let windowIdentifier: string;
+
+      if (entry.appType === 'photos') {
+        // Photos use format: photos:album:photoName (without extension)
+        const pathParts = normalizedPath.split('/').filter(Boolean);
+        if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
+          const albumName = pathParts[2];
+          const photoName = pathParts[pathParts.length - 1].replace(
+            /\.(jpg|jpeg|png|gif|webp|svg)$/i,
+            ''
+          );
+          windowIdentifier = `photos:${albumName}:${photoName}`;
+        } else {
+          const photoName = pathParts[pathParts.length - 1].replace(
+            /\.(jpg|jpeg|png|gif|webp|svg)$/i,
+            ''
+          );
+          windowIdentifier = `photos:desktop:${photoName}`;
+        }
+      } else if (entry.appType === 'pdfviewer' || entry.appType === 'pdf') {
+        windowIdentifier = `pdfviewer:${normalizedPath}`;
+      } else if (entry.appType === 'browser') {
+        // For browser type (images), use browser window
+        windowIdentifier = `browser:${normalizedPath}`;
+      } else {
+        // Text files and other content
+        windowIdentifier = `textedit:${normalizedPath}`;
+      }
+
+      // Append new window to existing windows and navigate
+      const allWindows = [...existingWindows, windowIdentifier];
+      window.location.href = '/?w=' + allWindows.join('&w=');
     } catch (error) {
       console.error('Failed to open file:', error);
     } finally {
