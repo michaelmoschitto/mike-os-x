@@ -119,7 +119,10 @@ export const getPhotoImageUrl = (urlPath: string, fileExtension: string): string
 
 /**
  * Serialize a single window to a URL identifier string
- * Returns null if window should not be serialized
+ *
+ * @returns Identifier string if window should be serialized, null if window
+ *          shouldn't be serialized (e.g., minimized windows, empty browser URLs).
+ *          Returns null for expected cases (not an error).
  */
 export function serializeWindow(window: Window): string | null {
   // Skip minimized windows
@@ -205,6 +208,11 @@ export function serializeWindow(window: Window): string | null {
 
 /**
  * Deserialize a URL identifier string to a window configuration
+ *
+ * @returns WindowOpenConfig if identifier is valid and can be deserialized,
+ *          null if identifier is invalid or unsupported.
+ *          Invalid identifiers are expected (user input), so null is returned silently.
+ *          Unexpected errors are logged to console.
  */
 export function deserializeWindow(identifier: string): WindowOpenConfig | null {
   if (!identifier) return null;
@@ -588,105 +596,119 @@ export function parseWindowParams(w: string | string[] | undefined): string[] {
 
 /**
  * Deserialize URL search params to window configurations
+ *
+ * This function is defensive and will never throw. If deserialization fails,
+ * it returns an empty array to allow graceful degradation (empty desktop).
+ *
+ * @returns Array of window configurations. Returns empty array on any error.
  */
 export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowConfig[] {
   const configs: WindowConfig[] = [];
 
-  // Check for extended state format
-  const stateParam = searchParams.get('state');
-  if (stateParam) {
-    const state = deserializeExtendedState(stateParam);
-    if (state) {
-      for (let i = 0; i < state.windows.length; i++) {
-        const windowState = state.windows[i];
+  try {
+    // Check for extended state format
+    const stateParam = searchParams.get('state');
+    if (stateParam) {
+      const state = deserializeExtendedState(stateParam);
+      if (state) {
+        for (let i = 0; i < state.windows.length; i++) {
+          const windowState = state.windows[i];
 
-        // Build identifier from type and args
-        let identifier: string;
-        if (windowState.type === 'terminal') {
-          identifier = 'terminal';
-        } else if (windowState.type === 'browser' && windowState.args.length > 0) {
-          identifier = `browser:${encodeURIComponent(windowState.args[0])}`;
-        } else if (windowState.type === 'photos') {
-          if (windowState.args.length === 2) {
-            identifier = `photos:${windowState.args[0]}:${windowState.args[1]}`;
-          } else if (windowState.args.length === 1) {
-            identifier = `photos:${windowState.args[0]}`;
+          // Build identifier from type and args
+          let identifier: string;
+          if (windowState.type === 'terminal') {
+            identifier = 'terminal';
+          } else if (windowState.type === 'browser' && windowState.args.length > 0) {
+            identifier = `browser:${encodeURIComponent(windowState.args[0])}`;
+          } else if (windowState.type === 'photos') {
+            if (windowState.args.length === 2) {
+              identifier = `photos:${windowState.args[0]}:${windowState.args[1]}`;
+            } else if (windowState.args.length === 1) {
+              identifier = `photos:${windowState.args[0]}`;
+            } else {
+              identifier = 'photos';
+            }
+          } else if (windowState.type === 'finder' && windowState.args.length > 0) {
+            identifier = `finder:${windowState.args[0]}`;
+          } else if (windowState.type === 'pdfviewer' && windowState.args.length > 0) {
+            identifier = `pdfviewer:${windowState.args[0]}`;
+          } else if (windowState.type === 'textedit' && windowState.args.length > 0) {
+            identifier = `textedit:${windowState.args[0]}`;
           } else {
-            identifier = 'photos';
-          }
-        } else if (windowState.type === 'finder' && windowState.args.length > 0) {
-          identifier = `finder:${windowState.args[0]}`;
-        } else if (windowState.type === 'pdfviewer' && windowState.args.length > 0) {
-          identifier = `pdfviewer:${windowState.args[0]}`;
-        } else if (windowState.type === 'textedit' && windowState.args.length > 0) {
-          identifier = `textedit:${windowState.args[0]}`;
-        } else {
-          continue;
-        }
-
-        // Normalize identifier before validation and deserialization
-        const normalizedIdentifier = normalizeIdentifier(identifier);
-
-        // Validate identifier before deserializing
-        if (!isValidWindowIdentifier(normalizedIdentifier)) {
-          console.warn(
-            '[windowSerialization] Skipping invalid identifier in extended state:',
-            normalizedIdentifier
-          );
-          continue;
-        }
-
-        // Deserialize base config
-        const baseConfig = deserializeWindow(normalizedIdentifier);
-        if (baseConfig) {
-          // Override with extended state
-          const config: WindowOpenConfig = {
-            ...baseConfig,
-            position: windowState.position,
-            size: windowState.size,
-          };
-
-          // Add terminal tabs
-          if (windowState.type === 'terminal' && windowState.tabs) {
-            const tabId = `tab-${Date.now()}-${i}`;
-            const tabs: TerminalTab[] = windowState.tabs.map((tab, idx) => ({
-              id: `${tabId}-${idx}`,
-              title: tab.title,
-              sessionId: `session-${tabId}-${idx}`,
-            }));
-            config.tabs = tabs;
-            config.activeTabId =
-              windowState.activeTabIndex !== undefined
-                ? tabs[windowState.activeTabIndex]?.id
-                : tabs[0]?.id;
+            continue;
           }
 
-          configs.push({ identifier: normalizedIdentifier, config });
+          // Normalize identifier before validation and deserialization
+          const normalizedIdentifier = normalizeIdentifier(identifier);
+
+          // Validate identifier before deserializing
+          if (!isValidWindowIdentifier(normalizedIdentifier)) {
+            console.warn(
+              '[windowSerialization] Skipping invalid identifier in extended state:',
+              normalizedIdentifier
+            );
+            continue;
+          }
+
+          // Deserialize base config
+          const baseConfig = deserializeWindow(normalizedIdentifier);
+          if (baseConfig) {
+            // Override with extended state
+            const config: WindowOpenConfig = {
+              ...baseConfig,
+              position: windowState.position,
+              size: windowState.size,
+            };
+
+            // Add terminal tabs
+            if (windowState.type === 'terminal' && windowState.tabs) {
+              const tabId = `tab-${Date.now()}-${i}`;
+              const tabs: TerminalTab[] = windowState.tabs.map((tab, idx) => ({
+                id: `${tabId}-${idx}`,
+                title: tab.title,
+                sessionId: `session-${tabId}-${idx}`,
+              }));
+              config.tabs = tabs;
+              config.activeTabId =
+                windowState.activeTabIndex !== undefined
+                  ? tabs[windowState.activeTabIndex]?.id
+                  : tabs[0]?.id;
+            }
+
+            configs.push({ identifier: normalizedIdentifier, config });
+          }
         }
       }
+      return configs;
     }
+
+    // Simple format
+    const allIdentifiers = searchParams.getAll('w');
+
+    const windowIdentifiers = allIdentifiers
+      .filter(isValidWindowIdentifier)
+      .map(normalizeIdentifier);
+
+    const invalidIdentifiers = allIdentifiers.filter((id) => !isValidWindowIdentifier(id));
+    if (invalidIdentifiers.length > 0) {
+      console.warn(
+        '[windowSerialization] Filtered out invalid window identifiers:',
+        invalidIdentifiers
+      );
+    }
+
+    for (const identifier of windowIdentifiers) {
+      const config = deserializeWindow(identifier);
+      if (config) {
+        configs.push({ identifier, config });
+      }
+    }
+
     return configs;
+  } catch (error) {
+    console.error('[windowSerialization] Failed to deserialize URL to windows:', error);
+    // Return empty array for graceful degradation - user sees desktop without windows
+    // This is better than crashing the entire app
+    return [];
   }
-
-  // Simple format
-  const allIdentifiers = searchParams.getAll('w');
-
-  const windowIdentifiers = allIdentifiers.filter(isValidWindowIdentifier).map(normalizeIdentifier);
-
-  const invalidIdentifiers = allIdentifiers.filter((id) => !isValidWindowIdentifier(id));
-  if (invalidIdentifiers.length > 0) {
-    console.warn(
-      '[windowSerialization] Filtered out invalid window identifiers:',
-      invalidIdentifiers
-    );
-  }
-
-  for (const identifier of windowIdentifiers) {
-    const config = deserializeWindow(identifier);
-    if (config) {
-      configs.push({ identifier, config });
-    }
-  }
-
-  return configs;
 }

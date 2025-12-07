@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import BookmarkDialog from '@/components/apps/Browser/BookmarkDialog';
@@ -6,7 +7,7 @@ import BrowserContent from '@/components/apps/Browser/BrowserContent';
 import BrowserToolbar from '@/components/apps/Browser/BrowserToolbar';
 import Window from '@/components/window/Window';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
-import { serializeWindowsToUrl } from '@/lib/routing/windowSerialization';
+import { useWindowUrlSync } from '@/lib/hooks/useWindowUrlSync';
 import { findBookmarkLocation, getHostnameFromUrl, isUrlBookmarked } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
@@ -16,8 +17,10 @@ interface BrowserWindowProps {
 }
 
 const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => {
+  const navigate = useNavigate();
   const { navigateToUrl, navigateBack, navigateForward, addBookmark, removeBookmark } =
     useWindowStore();
+  const { syncWindowsToUrl } = useWindowUrlSync();
 
   const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
     useWindowLifecycle({
@@ -51,7 +54,7 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
     navigateToUrl(windowData.id, url, title, fromRoute);
 
     if (url.startsWith('/')) {
-      window.location.href = url;
+      navigate({ to: url as any });
     }
   };
 
@@ -60,20 +63,20 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
       navigateBack(windowData.id);
       const prevUrl = history[historyIndex - 1];
       if (prevUrl && prevUrl.startsWith('/')) {
-        window.location.href = prevUrl;
+        navigate({ to: prevUrl as any });
       }
     }
-  }, [canGoBack, navigateBack, windowData.id, history, historyIndex]);
+  }, [canGoBack, navigateBack, windowData.id, history, historyIndex, navigate]);
 
   const handleForward = useCallback(() => {
     if (canGoForward) {
       navigateForward(windowData.id);
       const nextUrl = history[historyIndex + 1];
       if (nextUrl && nextUrl.startsWith('/')) {
-        window.location.href = nextUrl;
+        navigate({ to: nextUrl as any });
       }
     }
-  }, [canGoForward, navigateForward, windowData.id, history, historyIndex]);
+  }, [canGoForward, navigateForward, windowData.id, history, historyIndex, navigate]);
 
   const handleRefresh = useCallback(() => {
     if (currentUrl) {
@@ -200,15 +203,10 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
       return;
     }
 
-    // Serialize all windows to update the application URL
+    // Serialize all windows and sync to URL using SPA navigation (no page reload)
     const allWindows = useWindowStore.getState().windows;
-    const newUrl = serializeWindowsToUrl(allWindows);
-
-    // Only navigate if URL actually changed
-    if (window.location.pathname + window.location.search !== newUrl) {
-      window.location.href = newUrl;
-    }
-  }, [currentUrl, windowData.id]);
+    syncWindowsToUrl(allWindows);
+  }, [currentUrl, windowData.id, syncWindowsToUrl]);
 
   const getWindowTitle = () => {
     return 'Internet Explorer';
