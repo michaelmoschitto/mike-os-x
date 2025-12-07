@@ -19,12 +19,41 @@ export const useWindowLifecycle = ({
 
   const handleClose = () => {
     const existingWindows = parseWindowIdentifiersFromUrl();
-    const windowIdentifier = serializeWindow(windowData);
+    let windowIdentifier = serializeWindow(windowData);
+
+    // Special case: browser windows with about:blank don't serialize,
+    // but we still need to remove them from URL if present
+    if (!windowIdentifier && windowData.type === 'browser' && windowData.url === 'about:blank') {
+      windowIdentifier = 'browser:about:blank';
+    }
 
     closeWindow(windowData.id);
 
-    if (windowIdentifier && existingWindows.includes(windowIdentifier)) {
-      removeWindow(existingWindows, windowIdentifier);
+    if (windowIdentifier) {
+      // For browser windows, URLSearchParams decodes the URL, so we need to match
+      // the decoded version. The serialized identifier has encoded URL, but the
+      // URL parameter has decoded URL after URLSearchParams processing.
+      if (windowIdentifier.startsWith('browser:')) {
+        // Find matching browser window by comparing decoded URLs
+        const serializedUrl = windowIdentifier.substring(8);
+        const matchingIdentifier = existingWindows.find((id) => {
+          if (!id.startsWith('browser:')) return false;
+          const urlFromIdentifier = id.substring(8);
+          // Compare decoded versions
+          try {
+            const decodedSerialized = decodeURIComponent(serializedUrl);
+            return decodedSerialized === urlFromIdentifier;
+          } catch {
+            return serializedUrl === urlFromIdentifier;
+          }
+        });
+
+        if (matchingIdentifier) {
+          removeWindow(existingWindows, matchingIdentifier);
+        }
+      } else if (existingWindows.includes(windowIdentifier)) {
+        removeWindow(existingWindows, windowIdentifier);
+      }
     }
   };
 

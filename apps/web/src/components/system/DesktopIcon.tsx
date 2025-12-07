@@ -53,9 +53,12 @@ const DesktopIcon = ({
   const handleDoubleClick = () => {
     const existingWindows = parseWindowIdentifiersFromUrl();
 
+    const normalizePath = (path: string) => (path.startsWith('/') ? path.slice(1) : path);
+
     if (icon.type === 'folder' && icon.urlPath) {
       // Open folder in finder with path
-      const newWindowId = `finder:${icon.urlPath}`;
+      const normalizedPath = normalizePath(icon.urlPath);
+      const newWindowId = `finder:${normalizedPath}`;
       addWindow(existingWindows, newWindowId);
       return;
     }
@@ -66,24 +69,24 @@ const DesktopIcon = ({
 
       if (isImage && icon.urlPath) {
         // Open image in photos app
-        const newWindowId = `photos:${icon.urlPath}`;
+        const normalizedPath = normalizePath(icon.urlPath);
+        const newWindowId = `photos:${normalizedPath}`;
         addWindow(existingWindows, newWindowId);
         return;
       }
 
       if (icon.fileExtension === 'pdf' && icon.urlPath) {
         // Open PDF in PDF viewer
-        const urlPathWithoutLeadingSlash = icon.urlPath.startsWith('/')
-          ? icon.urlPath.substring(1)
-          : icon.urlPath;
-        const newWindowId = `pdfviewer:${urlPathWithoutLeadingSlash}`;
+        const normalizedPath = normalizePath(icon.urlPath);
+        const newWindowId = `pdfviewer:${normalizedPath}`;
         addWindow(existingWindows, newWindowId);
         return;
       }
 
       if (icon.fileExtension === 'txt' || icon.fileExtension === 'md') {
         // Open text file in textedit
-        const newWindowId = icon.urlPath ? `textedit:${icon.urlPath}` : 'textedit';
+        const normalizedPath = icon.urlPath ? normalizePath(icon.urlPath) : '';
+        const newWindowId = normalizedPath ? `textedit:${normalizedPath}` : 'textedit';
         addWindow(existingWindows, newWindowId);
         return;
       }

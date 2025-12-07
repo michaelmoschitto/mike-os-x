@@ -39,9 +39,9 @@ function isValidWindowIdentifier(identifier: string | null | undefined): identif
     /^terminal$/,
     /^photos(:[a-zA-Z0-9_-]+)?(:[a-zA-Z0-9_-]+)?$/,
     /^browser:[a-zA-Z0-9/:._%-]+$/,
-    /^finder:[a-zA-Z0-9/._-]+$/,
-    /^pdfviewer:[a-zA-Z0-9/._-]+$/,
-    /^textedit:[a-zA-Z0-9/._-]+$/,
+    /^finder:\/?[a-zA-Z0-9/._-]+$/,
+    /^pdfviewer:\/?[a-zA-Z0-9/._-]+$/,
+    /^textedit:\/?[a-zA-Z0-9/._-]+$/,
   ];
 
   return validPatterns.some((pattern) => pattern.test(identifier));
@@ -83,6 +83,31 @@ const removeFileExtension = (filename: string): string => {
 const normalizePathForRouting = (path: string): string => {
   return path.startsWith('/') ? path.slice(1) : path;
 };
+
+/**
+ * Normalize window identifier by removing leading slash after type prefix
+ * Example: "textedit:/README" → "textedit:README"
+ *
+ * For browser windows, URLs are already encoded/decoded by URLSearchParams,
+ * so we preserve them as-is (they may contain slashes which are valid).
+ */
+export function normalizeIdentifier(identifier: string): string {
+  const colonIndex = identifier.indexOf(':');
+  if (colonIndex === -1) return identifier;
+
+  const type = identifier.substring(0, colonIndex);
+  const path = identifier.substring(colonIndex + 1);
+
+  // Browser windows contain URLs which may have slashes - don't normalize them
+  if (type === 'browser') {
+    return identifier;
+  }
+
+  // For other window types, strip leading slash from path
+  const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
+
+  return `${type}:${normalizedPath}`;
+}
 
 /**
  * Get photo image URL from photo data
@@ -520,7 +545,8 @@ export function serializeWindowsToUrl(windows: Window[]): string {
 export function parseWindowIdentifiersFromUrl(): string[] {
   const searchParams = new URLSearchParams(window.location.search);
   const rawWindows = searchParams.getAll('w');
-  return parseWindowParams(rawWindows);
+  const parsed = parseWindowParams(rawWindows);
+  return parsed.map(normalizeIdentifier);
 }
 
 /**
@@ -598,17 +624,20 @@ export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowCo
           continue;
         }
 
+        // Normalize identifier before validation and deserialization
+        const normalizedIdentifier = normalizeIdentifier(identifier);
+
         // Validate identifier before deserializing
-        if (!isValidWindowIdentifier(identifier)) {
+        if (!isValidWindowIdentifier(normalizedIdentifier)) {
           console.warn(
             '[windowSerialization] Skipping invalid identifier in extended state:',
-            identifier
+            normalizedIdentifier
           );
           continue;
         }
 
         // Deserialize base config
-        const baseConfig = deserializeWindow(identifier);
+        const baseConfig = deserializeWindow(normalizedIdentifier);
         if (baseConfig) {
           // Override with extended state
           const config: Partial<Window> = {
@@ -633,7 +662,7 @@ export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowCo
                 : tabs[0]?.id;
           }
 
-          configs.push({ identifier, config });
+          configs.push({ identifier: normalizedIdentifier, config });
         }
       }
     }
@@ -643,7 +672,7 @@ export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowCo
   // Simple format
   const allIdentifiers = searchParams.getAll('w');
 
-  const windowIdentifiers = allIdentifiers.filter(isValidWindowIdentifier);
+  const windowIdentifiers = allIdentifiers.filter(isValidWindowIdentifier).map(normalizeIdentifier);
 
   const invalidIdentifiers = allIdentifiers.filter((id) => !isValidWindowIdentifier(id));
   if (invalidIdentifiers.length > 0) {

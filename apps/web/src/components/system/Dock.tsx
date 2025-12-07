@@ -62,7 +62,7 @@ const Dock = () => {
   const handleIconClick = (iconId: DockIconType) => {
     const windowMap: Record<string, string> = {
       finder: 'finder:dock/finder',
-      browser: 'browser:about:blank',
+      browser: 'browser:https://blog.mikemoschitto.com',
       terminal: 'terminal',
       reading: 'finder:dock/reading',
       projects: 'finder:dock/projects',

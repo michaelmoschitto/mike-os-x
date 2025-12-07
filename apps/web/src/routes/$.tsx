@@ -4,11 +4,27 @@ import { initializeContentIndex, useContentIndex } from '@/lib/contentIndex';
 import { resolveUrlToContent } from '@/lib/urlResolver';
 import { showCompactNotification } from '@/stores/notificationHelpers';
 
+const PATH_REDIRECTS: Record<string, string> = {
+  resume: 'pdfviewer:resume',
+};
+
 export const Route = createFileRoute('/$')({
   loader: async ({ params }) => {
     const path = params._splat || '';
     if (path === '') {
       throw redirect({ to: '/', search: { w: undefined, state: undefined } });
+    }
+
+    // Check for path-based redirects first
+    if (PATH_REDIRECTS[path]) {
+      const currentParams = new URLSearchParams(window.location.search);
+      const existingWindows = currentParams.getAll('w');
+      const allWindows = [...existingWindows, PATH_REDIRECTS[path]];
+
+      throw redirect({
+        to: '/',
+        search: { w: allWindows, state: undefined },
+      });
     }
 
     // Initialize content index if needed
