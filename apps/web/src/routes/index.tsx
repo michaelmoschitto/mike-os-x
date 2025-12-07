@@ -51,6 +51,7 @@ function IndexComponent() {
   const { w: windowParams, state: stateParam } = Route.useSearch();
   const { openWindow, closeWindow, updateWindow, focusWindow, windows } = useWindowStore();
   const prevIdentifiers = useRef<string>('');
+  const isIndexed = useContentIndex((state) => state.isIndexed);
 
   // Centralized URL sync - watches window store and syncs to URL
   useUrlSync();
@@ -79,16 +80,15 @@ function IndexComponent() {
     const identifiersKey = JSON.stringify(windowIdentifiers) + (stateParam || '');
     const identifiersChanged = prevIdentifiers.current !== identifiersKey;
 
+    if (!isIndexed) {
+      return;
+    }
+
     if (!identifiersChanged) {
       return;
     }
 
     prevIdentifiers.current = identifiersKey;
-
-    const indexState = useContentIndex.getState();
-    if (!indexState.isIndexed) {
-      return;
-    }
 
     reconcileWindowsWithUrl(windowConfigs, {
       openWindow,
@@ -101,6 +101,7 @@ function IndexComponent() {
     windowConfigs,
     windowIdentifiers,
     stateParam,
+    isIndexed,
     openWindow,
     closeWindow,
     updateWindow,
