@@ -19,6 +19,7 @@ If you're asking yourself that you've probably found yourself here: https://os.m
 ## What I'm Working On
 
 Currently I'm building AI platform and products, this site, and learning as much as I can.
+I'm excited to do a bit more writing about how this is built and some of the tech behind it once I've shipped all the "mvp" features.
 
 ## Connect
 
