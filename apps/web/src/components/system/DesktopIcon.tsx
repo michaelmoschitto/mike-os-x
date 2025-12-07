@@ -26,7 +26,7 @@ const DesktopIcon = ({
   const y = useMotionValue(position.y);
   const isDragging = useRef(false);
   const lastClickTime = useRef(0);
-  const { addWindow, navigateToWindows } = useWindowNavigation();
+  const { addWindow } = useWindowNavigation();
 
   useEffect(() => {
     if (!isDragging.current) {

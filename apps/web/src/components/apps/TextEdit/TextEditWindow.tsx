@@ -49,6 +49,7 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
 
     const loadContent = async () => {
       try {
+        if (!windowData.urlPath) return;
         const entry = useContentIndex.getState().getEntry(windowData.urlPath);
         if (entry) {
           const loaded = await loadContentFile(entry.filePath);

@@ -640,11 +640,10 @@ export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowCo
         const baseConfig = deserializeWindow(normalizedIdentifier);
         if (baseConfig) {
           // Override with extended state
-          const config: Partial<Window> = {
+          const config: WindowOpenConfig = {
             ...baseConfig,
             position: windowState.position,
             size: windowState.size,
-            zIndex: windowState.zIndex,
           };
 
           // Add terminal tabs

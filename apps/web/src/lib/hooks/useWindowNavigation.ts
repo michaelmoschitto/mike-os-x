@@ -6,7 +6,10 @@ export const useWindowNavigation = () => {
   const navigateToWindows = (windowIdentifiers: string[]) => {
     navigate({
       to: '/',
-      search: { w: windowIdentifiers.length > 0 ? windowIdentifiers : undefined },
+      search: {
+        w: windowIdentifiers.length > 0 ? windowIdentifiers : undefined,
+        state: undefined,
+      },
       replace: false,
     });
   };
