@@ -6,7 +6,6 @@ import FinderListView from '@/components/apps/Finder/FinderListView';
 import FinderToolbar from '@/components/apps/Finder/FinderToolbar';
 import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
-import { loadContentFile } from '@/lib/contentLoader';
 import { getFolderContents, type FinderItemData } from '@/lib/finderContent';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
 import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
@@ -19,8 +18,7 @@ interface FinderWindowProps {
 }
 
 const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
-  const { updateWindow, openWindowFromUrl, navigateToUrl, getOrCreateBrowserWindow } =
-    useWindowStore();
+  const { updateWindow, navigateToUrl, getOrCreateBrowserWindow } = useWindowStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loadingFile, setLoadingFile] = useState<string | null>(null);
 

@@ -11,11 +11,11 @@ function isValidWindowIdentifier(identifier: string | null | undefined): identif
   if (!identifier || typeof identifier !== 'string') {
     return false;
   }
-  
+
   if (identifier.trim() === '') {
     return false;
   }
-  
+
   const invalidLiterals = [
     '[]',
     '{}',
@@ -26,15 +26,15 @@ function isValidWindowIdentifier(identifier: string | null | undefined): identif
     'true',
     'false',
   ];
-  
+
   if (invalidLiterals.includes(identifier)) {
     return false;
   }
-  
+
   if (identifier.includes('../') || identifier.includes('..\\')) {
     return false;
   }
-  
+
   const validPatterns = [
     /^terminal$/,
     /^photos(:[a-zA-Z0-9_-]+)?(:[a-zA-Z0-9_-]+)?$/,
@@ -43,12 +43,12 @@ function isValidWindowIdentifier(identifier: string | null | undefined): identif
     /^pdfviewer:[a-zA-Z0-9/._-]+$/,
     /^textedit:[a-zA-Z0-9/._-]+$/,
   ];
-  
-  return validPatterns.some(pattern => pattern.test(identifier));
+
+  return validPatterns.some((pattern) => pattern.test(identifier));
 }
 
-export type WindowOpenConfig = Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { 
-  appName?: string 
+export type WindowOpenConfig = Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & {
+  appName?: string;
 };
 
 export interface WindowConfig {
@@ -115,7 +115,11 @@ export function serializeWindow(window: Window): string | null {
 
     case 'photos': {
       // Photos with selected photo
-      if (window.urlPath && window.selectedPhotoIndex !== undefined && window.selectedPhotoIndex !== null) {
+      if (
+        window.urlPath &&
+        window.selectedPhotoIndex !== undefined &&
+        window.selectedPhotoIndex !== null
+      ) {
         const normalizedPath = normalizePathForRouting(window.urlPath);
         const pathParts = normalizedPath.split('/').filter(Boolean);
 
@@ -248,10 +252,7 @@ export function deserializeWindow(identifier: string): WindowOpenConfig | null {
       const photoName = parts[2];
 
       // Construct the urlPath to look up the photo
-      const urlPath =
-        albumName === 'desktop'
-          ? photoName
-          : `dock/photos/${albumName}/${photoName}`;
+      const urlPath = albumName === 'desktop' ? photoName : `dock/photos/${albumName}/${photoName}`;
 
       // Find the photo to get full data
       const photo = getPhotoByPath(urlPath);
@@ -487,14 +488,14 @@ export function serializeWindowsToUrl(windows: Window[]): string {
   }
 
   const queryString = params.toString();
-  
+
   // Defensive check: ensure no nested query strings (should never happen)
   if (queryString.includes('?')) {
     console.error('[windowSerialization] Detected nested query string in params:', queryString);
     // Safety fallback: return home
     return '/';
   }
-  
+
   return queryString ? `/?${queryString}` : '/';
 }
 
@@ -507,7 +508,7 @@ export function parseWindowIdentifiersFromUrl(): string[] {
   const searchParams = new URLSearchParams(window.location.search);
   const rawWindows = searchParams.getAll('w');
   const windowIdentifiers: string[] = [];
-  
+
   for (const w of rawWindows) {
     if (w.startsWith('[') && w.endsWith(']')) {
       try {
@@ -524,7 +525,7 @@ export function parseWindowIdentifiersFromUrl(): string[] {
       windowIdentifiers.push(w);
     }
   }
-  
+
   return windowIdentifiers.filter(isValidWindowIdentifier);
 }
 
@@ -568,7 +569,10 @@ export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowCo
 
         // Validate identifier before deserializing
         if (!isValidWindowIdentifier(identifier)) {
-          console.warn('[windowSerialization] Skipping invalid identifier in extended state:', identifier);
+          console.warn(
+            '[windowSerialization] Skipping invalid identifier in extended state:',
+            identifier
+          );
           continue;
         }
 
@@ -592,9 +596,10 @@ export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowCo
               sessionId: `session-${tabId}-${idx}`,
             }));
             config.tabs = tabs;
-            config.activeTabId = windowState.activeTabIndex !== undefined 
-              ? tabs[windowState.activeTabIndex]?.id 
-              : tabs[0]?.id;
+            config.activeTabId =
+              windowState.activeTabIndex !== undefined
+                ? tabs[windowState.activeTabIndex]?.id
+                : tabs[0]?.id;
           }
 
           configs.push({ identifier, config });
@@ -606,14 +611,17 @@ export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowCo
 
   // Simple format
   const allIdentifiers = searchParams.getAll('w');
-  
+
   const windowIdentifiers = allIdentifiers.filter(isValidWindowIdentifier);
-  
-  const invalidIdentifiers = allIdentifiers.filter(id => !isValidWindowIdentifier(id));
+
+  const invalidIdentifiers = allIdentifiers.filter((id) => !isValidWindowIdentifier(id));
   if (invalidIdentifiers.length > 0) {
-    console.warn('[windowSerialization] Filtered out invalid window identifiers:', invalidIdentifiers);
+    console.warn(
+      '[windowSerialization] Filtered out invalid window identifiers:',
+      invalidIdentifiers
+    );
   }
-  
+
   for (const identifier of windowIdentifiers) {
     const config = deserializeWindow(identifier);
     if (config) {

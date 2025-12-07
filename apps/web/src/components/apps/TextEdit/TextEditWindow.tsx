@@ -29,7 +29,7 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
 
   const editorRef = useRef<HTMLDivElement>(null);
   const hasLoadedRef = useRef(false);
-  
+
   // Subscribe to content index state
   const isIndexed = useContentIndex((state) => state.isIndexed);
 
@@ -39,14 +39,14 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
     if (hasLoadedRef.current || !windowData.urlPath || windowData.content) {
       return;
     }
-    
+
     if (!isIndexed) {
       return;
     }
-    
+
     hasLoadedRef.current = true;
     setIsLoading(true);
-    
+
     const loadContent = async () => {
       try {
         const entry = useContentIndex.getState().getEntry(windowData.urlPath);
@@ -60,7 +60,7 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
         setIsLoading(false);
       }
     };
-    
+
     loadContent();
   }, [windowData.urlPath, windowData.content, windowData.id, updateWindow, isIndexed]);
 
@@ -70,7 +70,7 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
       editorRef.current.innerHTML = htmlContent;
     }
   }, [windowData.content]);
-  
+
   useEffect(() => {
     if (!isLoading && editorRef.current && windowData.content && !editorRef.current.innerHTML) {
       const htmlContent = windowData.content.replace(/\n/g, '<br>');

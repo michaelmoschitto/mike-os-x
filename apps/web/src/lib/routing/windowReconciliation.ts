@@ -1,11 +1,13 @@
+import { serializeWindow, type WindowConfig } from '@/lib/routing/windowSerialization';
 import type { Window } from '@/stores/useWindowStore';
-import { serializeWindow, type WindowConfig } from './windowSerialization';
 
 /**
  * Window store interface for reconciliation operations
  */
 export interface WindowStoreActions {
-  openWindow: (w: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { appName?: string }) => void;
+  openWindow: (
+    w: Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & { appName?: string }
+  ) => void;
   closeWindow: (id: string) => void;
   updateWindow: (
     id: string,

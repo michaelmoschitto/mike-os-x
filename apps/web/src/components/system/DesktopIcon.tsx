@@ -62,7 +62,7 @@ const DesktopIcon = ({
     if (icon.type === 'file') {
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
       const isImage = imageExtensions.includes(icon.fileExtension?.toLowerCase() || '');
-      
+
       if (isImage && icon.urlPath) {
         // Open image in photos app
         const newWindowId = `photos:${icon.urlPath}`;
@@ -70,7 +70,7 @@ const DesktopIcon = ({
         window.location.href = '/?w=' + allWindows.join('&w=');
         return;
       }
-      
+
       if (icon.fileExtension === 'pdf' && icon.urlPath) {
         // Open PDF in PDF viewer
         const urlPathWithoutLeadingSlash = icon.urlPath.startsWith('/')
@@ -81,7 +81,7 @@ const DesktopIcon = ({
         window.location.href = '/?w=' + allWindows.join('&w=');
         return;
       }
-      
+
       if (icon.fileExtension === 'txt' || icon.fileExtension === 'md') {
         // Open text file in textedit
         const newWindowId = icon.urlPath ? `textedit:${icon.urlPath}` : 'textedit';
