@@ -14,10 +14,6 @@ import { cn } from '@/lib/utils';
 import { showCompactNotification } from '@/stores/notificationHelpers';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
-const removeFileExtension = (filename: string): string => {
-  return filename.replace(/\.(jpg|jpeg|png|gif|webp|svg)$/i, '');
-};
-
 const buildPhotoRoute = (photo: PhotoData, photos: PhotoData[]): string => {
   // Find the photo index in the photos array
   const photoIndex = photos.findIndex((p) => p.id === photo.id);

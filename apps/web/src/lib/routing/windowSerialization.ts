@@ -1,5 +1,4 @@
 import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
-import { getPhotoByPath, getAlbumPhotos } from '@/lib/photosContent';
 import {
   getWindowTypeStrategy,
   getStrategyForIdentifier,

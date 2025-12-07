@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
-import { serializeWindowsToUrl } from '@/lib/routing/windowSerialization';
 import { useWindowUrlSync } from '@/lib/hooks/useWindowUrlSync';
+import { serializeWindowsToUrl } from '@/lib/routing/windowSerialization';
 import { useWindowStore } from '@/stores/useWindowStore';
 
 /**

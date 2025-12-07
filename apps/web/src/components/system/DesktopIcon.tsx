@@ -131,7 +131,7 @@ const DesktopIcon = ({
           draggable={false}
         />
         <span
-          className={`desktop-icon-label font-ui max-w-full break-words px-1 text-center leading-tight ${
+          className={`desktop-icon-label font-ui max-w-full px-1 text-center leading-tight break-words ${
             isSelected ? 'desktop-icon-selected' : ''
           }`}
         >

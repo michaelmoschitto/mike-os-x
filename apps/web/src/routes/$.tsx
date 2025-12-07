@@ -1,8 +1,8 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
 import { initializeContentIndex, useContentIndex } from '@/lib/contentIndex';
-import { normalizePathForRouting } from '@/lib/utils';
 import { resolveUrlToContent } from '@/lib/urlResolver';
+import { normalizePathForRouting } from '@/lib/utils';
 import { showCompactNotification } from '@/stores/notificationHelpers';
 
 const PATH_REDIRECTS: Record<string, string> = {
