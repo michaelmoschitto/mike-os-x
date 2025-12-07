@@ -6,7 +6,7 @@ layout: default
 
 I'm **Mike**, a software developer based in Incline Village, NV, passionate about AI/ML, databases, products, and scaleable systems. Outside of programming I'm doing a lot of cycling, running, skiing and am avid baseball fan... go Dodgers.
 
-## Wtf is this view?
+## tf is this?
 
 If you're asking yourself that you've probably found yourself here: https://os.mikemoschitto.com/?w=browser:https://blog.mikemoschitto.com. Thats my current passion project and portfolio site where I'm building out an "os x desktop" complete with a browser, some info about me, and of course a working terminal bc how could I not want to use vim in a linux terminal in the desktop in the browser.
 
