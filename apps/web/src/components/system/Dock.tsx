@@ -9,6 +9,7 @@ import {
 import { Fragment, useRef, useState } from 'react';
 
 import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
+import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
 import { useUI } from '@/lib/store';
 
 type DockIconType =
@@ -47,6 +48,7 @@ const Dock = () => {
   const { activeApp } = useUI();
   const dockRef = useRef<HTMLDivElement>(null);
   const mouseX = useMotionValue(Infinity);
+  const { addWindow } = useWindowNavigation();
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     mouseX.set(e.pageX);
@@ -74,16 +76,7 @@ const Dock = () => {
 
     const existingWindows = parseWindowIdentifiersFromUrl();
 
-    const alreadyOpen = existingWindows.includes(newWindowId);
-
-    if (alreadyOpen) {
-      return;
-    }
-
-    // Add new window to existing windows
-    const allWindows = [...existingWindows, newWindowId];
-    const newUrl = '/?w=' + allWindows.join('&w=');
-    window.location.href = newUrl;
+    addWindow(existingWindows, newWindowId);
   };
 
   return (

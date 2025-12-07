@@ -8,6 +8,7 @@ import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
 import { getFolderContents, type FinderItemData } from '@/lib/finderContent';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
+import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
 import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
 import { validateAndNormalizeUrl } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
@@ -19,6 +20,7 @@ interface FinderWindowProps {
 
 const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
   const { updateWindow, navigateToUrl, getOrCreateBrowserWindow } = useWindowStore();
+  const { addWindow } = useWindowNavigation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loadingFile, setLoadingFile] = useState<string | null>(null);
 
@@ -148,8 +150,7 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
       }
 
       // Append new window to existing windows and navigate
-      const allWindows = [...existingWindows, windowIdentifier];
-      window.location.href = '/?w=' + allWindows.join('&w=');
+      addWindow(existingWindows, windowIdentifier);
     } catch (error) {
       console.error('Failed to open file:', error);
     } finally {

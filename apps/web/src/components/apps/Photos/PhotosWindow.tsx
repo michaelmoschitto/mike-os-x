@@ -8,6 +8,8 @@ import PhotosToolbar from '@/components/apps/Photos/PhotosToolbar';
 import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
+import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
+import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
 import { getPhotoAlbums, getAlbumPhotos, type PhotoData } from '@/lib/photosContent';
 import { cn } from '@/lib/utils';
 import { showCompactNotification } from '@/stores/notificationHelpers';
@@ -63,6 +65,7 @@ interface PhotosWindowProps {
 
 const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
   const { updateWindow } = useWindowStore();
+  const { addWindow } = useWindowNavigation();
   const selectedPhotoIndex = windowData.selectedPhotoIndex ?? null;
   const isSlideshow = windowData.isSlideshow ?? false;
 
@@ -91,32 +94,46 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     return photos[selectedPhotoIndex] || null;
   }, [selectedPhotoIndex, photos]);
 
-  const handlePhotoClick = useCallback((photo: PhotoData) => {
-    const route = buildPhotoRoute(photo);
-    window.location.href = route;
-  }, []);
+  const handlePhotoClick = useCallback(
+    (photo: PhotoData) => {
+      const route = buildPhotoRoute(photo);
+      const windowIdentifier = route.replace('/?w=', '').split('&')[0];
+      const existingWindows = parseWindowIdentifiersFromUrl();
+      addWindow(existingWindows, windowIdentifier);
+    },
+    [addWindow]
+  );
 
   const handleCloseSingleView = useCallback(() => {
     const route = buildAlbumRoute(albumPath);
-    window.location.href = route;
-  }, [albumPath]);
+    const windowIdentifier = route.replace('/?w=', '').split('&')[0];
+    const existingWindows = parseWindowIdentifiersFromUrl();
+    addWindow(existingWindows, windowIdentifier);
+  }, [albumPath, addWindow]);
 
-  const handleAlbumChange = useCallback((newAlbumPath?: string) => {
-    const route = buildAlbumRoute(newAlbumPath);
-    window.location.href = route;
-  }, []);
+  const handleAlbumChange = useCallback(
+    (newAlbumPath?: string) => {
+      const route = buildAlbumRoute(newAlbumPath);
+      const windowIdentifier = route.replace('/?w=', '').split('&')[0];
+      const existingWindows = parseWindowIdentifiersFromUrl();
+      addWindow(existingWindows, windowIdentifier);
+    },
+    [addWindow]
+  );
 
   const handleViewModeChange = useCallback(
     (mode: 'grid' | 'slideshow') => {
       if (mode === 'slideshow' && photos.length > 0 && selectedPhotoIndex === null) {
         const firstPhoto = photos[0];
         const route = buildPhotoRoute(firstPhoto);
-        window.location.href = route;
+        const windowIdentifier = route.replace('/?w=', '').split('&')[0];
+        const existingWindows = parseWindowIdentifiersFromUrl();
+        addWindow(existingWindows, windowIdentifier);
       } else if (mode === 'grid') {
         updateWindow(windowData.id, { isSlideshow: false }, { skipRouteSync: true });
       }
     },
-    [photos, selectedPhotoIndex, updateWindow, windowData.id]
+    [photos, selectedPhotoIndex, updateWindow, windowData.id, addWindow]
   );
 
   const handleNextPhoto = useCallback(() => {
@@ -124,8 +141,10 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     const nextIndex = selectedPhotoIndex === null ? 0 : (selectedPhotoIndex + 1) % photos.length;
     const nextPhoto = photos[nextIndex];
     const route = buildPhotoRoute(nextPhoto);
-    window.location.href = route;
-  }, [photos, selectedPhotoIndex]);
+    const windowIdentifier = route.replace('/?w=', '').split('&')[0];
+    const existingWindows = parseWindowIdentifiersFromUrl();
+    addWindow(existingWindows, windowIdentifier);
+  }, [photos, selectedPhotoIndex, addWindow]);
 
   const handlePreviousPhoto = useCallback(() => {
     if (photos.length === 0) return;
@@ -135,8 +154,10 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
         : (selectedPhotoIndex - 1 + photos.length) % photos.length;
     const prevPhoto = photos[prevIndex];
     const route = buildPhotoRoute(prevPhoto);
-    window.location.href = route;
-  }, [photos, selectedPhotoIndex]);
+    const windowIdentifier = route.replace('/?w=', '').split('&')[0];
+    const existingWindows = parseWindowIdentifiersFromUrl();
+    addWindow(existingWindows, windowIdentifier);
+  }, [photos, selectedPhotoIndex, addWindow]);
 
   const handleShare = useCallback(async () => {
     if (!selectedPhoto) return;

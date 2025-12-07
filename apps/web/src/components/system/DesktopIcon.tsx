@@ -2,6 +2,7 @@ import { motion, useMotionValue } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
 import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
+import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
 import type { DesktopIconData } from '@/stores/useDesktopStore';
 
 interface DesktopIconProps {
@@ -25,6 +26,7 @@ const DesktopIcon = ({
   const y = useMotionValue(position.y);
   const isDragging = useRef(false);
   const lastClickTime = useRef(0);
+  const { addWindow, navigateToWindows } = useWindowNavigation();
 
   useEffect(() => {
     if (!isDragging.current) {
@@ -54,8 +56,7 @@ const DesktopIcon = ({
     if (icon.type === 'folder' && icon.urlPath) {
       // Open folder in finder with path
       const newWindowId = `finder:${icon.urlPath}`;
-      const allWindows = [...existingWindows, newWindowId];
-      window.location.href = '/?w=' + allWindows.join('&w=');
+      addWindow(existingWindows, newWindowId);
       return;
     }
 
@@ -66,8 +67,7 @@ const DesktopIcon = ({
       if (isImage && icon.urlPath) {
         // Open image in photos app
         const newWindowId = `photos:${icon.urlPath}`;
-        const allWindows = [...existingWindows, newWindowId];
-        window.location.href = '/?w=' + allWindows.join('&w=');
+        addWindow(existingWindows, newWindowId);
         return;
       }
 
@@ -77,16 +77,14 @@ const DesktopIcon = ({
           ? icon.urlPath.substring(1)
           : icon.urlPath;
         const newWindowId = `pdfviewer:${urlPathWithoutLeadingSlash}`;
-        const allWindows = [...existingWindows, newWindowId];
-        window.location.href = '/?w=' + allWindows.join('&w=');
+        addWindow(existingWindows, newWindowId);
         return;
       }
 
       if (icon.fileExtension === 'txt' || icon.fileExtension === 'md') {
         // Open text file in textedit
         const newWindowId = icon.urlPath ? `textedit:${icon.urlPath}` : 'textedit';
-        const allWindows = [...existingWindows, newWindowId];
-        window.location.href = '/?w=' + allWindows.join('&w=');
+        addWindow(existingWindows, newWindowId);
         return;
       }
     }

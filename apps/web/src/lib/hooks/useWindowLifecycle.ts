@@ -1,5 +1,8 @@
 import type { Window } from '@/stores/useWindowStore';
 import { useWindowStore } from '@/stores/useWindowStore';
+import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
+import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
+import { serializeWindow } from '@/lib/routing/windowSerialization';
 
 interface UseWindowLifecycleOptions {
   window: Window;
@@ -10,19 +13,19 @@ export const useWindowLifecycle = ({
   window: windowData,
   isActive: _isActive,
 }: UseWindowLifecycleOptions) => {
-  const {
-    closeWindow,
-    focusWindow,
-    updateWindowPosition,
-    updateWindowSize,
-    minimizeWindow,
-    getMultiWindowUrlOnClose,
-  } = useWindowStore();
+  const { closeWindow, focusWindow, updateWindowPosition, updateWindowSize, minimizeWindow } =
+    useWindowStore();
+  const { removeWindow } = useWindowNavigation();
 
   const handleClose = () => {
-    const newUrl = getMultiWindowUrlOnClose(windowData.id);
+    const existingWindows = parseWindowIdentifiersFromUrl();
+    const windowIdentifier = serializeWindow(windowData);
+
     closeWindow(windowData.id);
-    window.location.href = newUrl;
+
+    if (windowIdentifier && existingWindows.includes(windowIdentifier)) {
+      removeWindow(existingWindows, windowIdentifier);
+    }
   };
 
   const handleFocus = () => {

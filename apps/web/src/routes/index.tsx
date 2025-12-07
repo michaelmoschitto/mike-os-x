@@ -1,13 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import Desktop from '@/components/system/Desktop';
 import { initializeContentIndex, useContentIndex } from '@/lib/contentIndex';
 import { reconcileWindowsWithUrl } from '@/lib/routing/windowReconciliation';
-import {
-  deserializeUrlToWindows,
-  parseWindowIdentifiersFromUrl,
-} from '@/lib/routing/windowSerialization';
+import { deserializeUrlToWindows, parseWindowParams } from '@/lib/routing/windowSerialization';
 import { useWindowStore } from '@/stores/useWindowStore';
 
 export const Route = createFileRoute('/')({
@@ -22,7 +19,9 @@ export const Route = createFileRoute('/')({
   },
   loader: async () => {
     const stateParam = new URLSearchParams(window.location.search).get('state');
-    const windowIdentifiers = parseWindowIdentifiersFromUrl();
+    const windowIdentifiers = parseWindowParams(
+      new URLSearchParams(window.location.search).getAll('w')
+    );
 
     if (windowIdentifiers.length > 0 || stateParam) {
       const mightNeedContentIndex = windowIdentifiers.some(
@@ -40,70 +39,70 @@ export const Route = createFileRoute('/')({
           await initializeContentIndex();
         }
       }
-
-      // Build clean URLSearchParams for deserialization
-      const cleanParams = new URLSearchParams();
-      for (const id of windowIdentifiers) {
-        cleanParams.append('w', id);
-      }
-      if (stateParam) {
-        cleanParams.set('state', stateParam);
-      }
-
-      const windowConfigs = deserializeUrlToWindows(cleanParams);
-
-      return {
-        mode: 'multi-window' as const,
-        windowConfigs,
-      };
     }
 
-    return { mode: 'empty' as const };
+    return { initialized: true };
   },
   component: IndexComponent,
 });
 
 function IndexComponent() {
-  const loaderData = Route.useLoaderData();
+  const { w: windowParams, state: stateParam } = Route.useSearch();
   const { openWindow, closeWindow, updateWindow, focusWindow, windows } = useWindowStore();
-  const lastReconciledUrl = useRef<string>('');
+  const prevIdentifiers = useRef<string>('');
+
+  const windowIdentifiers = useMemo(() => {
+    return parseWindowParams(windowParams);
+  }, [windowParams]);
+
+  const windowConfigs = useMemo(() => {
+    if (windowIdentifiers.length === 0 && !stateParam) {
+      return [];
+    }
+
+    const cleanParams = new URLSearchParams();
+    for (const id of windowIdentifiers) {
+      cleanParams.append('w', id);
+    }
+    if (stateParam) {
+      cleanParams.set('state', stateParam);
+    }
+
+    return deserializeUrlToWindows(cleanParams);
+  }, [windowIdentifiers, stateParam]);
 
   useEffect(() => {
-    const currentUrl = window.location.href;
+    const identifiersKey = JSON.stringify(windowIdentifiers) + (stateParam || '');
+    const identifiersChanged = prevIdentifiers.current !== identifiersKey;
 
-    if (loaderData.mode === 'multi-window') {
-      if (lastReconciledUrl.current === currentUrl) {
-        return;
-      }
-
-      lastReconciledUrl.current = currentUrl;
-
-      reconcileWindowsWithUrl(loaderData.windowConfigs, {
-        openWindow,
-        closeWindow,
-        updateWindow,
-        focusWindow,
-        windows,
-      });
+    if (!identifiersChanged) {
       return;
     }
 
-    if (loaderData.mode === 'empty') {
-      if (lastReconciledUrl.current === currentUrl) {
-        return;
-      }
+    prevIdentifiers.current = identifiersKey;
 
-      lastReconciledUrl.current = currentUrl;
-
-      reconcileWindowsWithUrl([], {
-        openWindow,
-        closeWindow,
-        updateWindow,
-        focusWindow,
-        windows,
-      });
+    const indexState = useContentIndex.getState();
+    if (!indexState.isIndexed) {
+      return;
     }
-  }, [loaderData, openWindow, closeWindow, updateWindow, focusWindow, windows]);
+
+    reconcileWindowsWithUrl(windowConfigs, {
+      openWindow,
+      closeWindow,
+      updateWindow,
+      focusWindow,
+      windows,
+    });
+  }, [
+    windowConfigs,
+    windowIdentifiers,
+    stateParam,
+    openWindow,
+    closeWindow,
+    updateWindow,
+    focusWindow,
+    windows,
+  ]);
 
   return <Desktop />;
 }

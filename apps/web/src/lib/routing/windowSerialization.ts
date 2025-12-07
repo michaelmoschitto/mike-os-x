@@ -363,6 +363,14 @@ export function deserializeWindow(identifier: string): WindowOpenConfig | null {
 }
 
 /**
+ * Encode identifier with minimal escaping for pretty URLs
+ * Only encode characters that would break URL parsing: &, =, and spaces
+ */
+export const encodeWindowIdentifier = (id: string): string => {
+  return id.replace(/&/g, '%26').replace(/=/g, '%3D').replace(/ /g, '%20');
+};
+
+/**
  * Determine if we should use extended state format (base64)
  * Returns true if 5 or more visible windows
  */
@@ -491,14 +499,7 @@ export function serializeWindowsToUrl(windows: Window[]): string {
     return '/';
   }
 
-  // Build clean, readable query string manually
-  // We control the identifiers, so we can safely build without aggressive encoding
-  // Only encode characters that would break URL parsing: &, =, and spaces
-  const encodeIdentifier = (id: string): string => {
-    return id.replace(/&/g, '%26').replace(/=/g, '%3D').replace(/ /g, '%20');
-  };
-
-  const queryParts = identifiers.map((id) => `w=${encodeIdentifier(id)}`);
+  const queryParts = identifiers.map((id) => `w=${encodeWindowIdentifier(id)}`);
   const queryString = queryParts.join('&');
 
   // Defensive check: ensure no nested query strings (should never happen)
@@ -519,22 +520,40 @@ export function serializeWindowsToUrl(windows: Window[]): string {
 export function parseWindowIdentifiersFromUrl(): string[] {
   const searchParams = new URLSearchParams(window.location.search);
   const rawWindows = searchParams.getAll('w');
+  return parseWindowParams(rawWindows);
+}
+
+/**
+ * Parse window params from TanStack Router search params
+ * Handles both string, string[], and undefined values
+ * Reuses the same flattening logic for TanStack Router's JSON serialization
+ */
+export function parseWindowParams(w: string | string[] | undefined): string[] {
+  if (!w) {
+    return [];
+  }
+
+  const rawWindows = Array.isArray(w) ? w : [w];
   const windowIdentifiers: string[] = [];
 
-  for (const w of rawWindows) {
-    if (w.startsWith('[') && w.endsWith(']')) {
+  for (const windowParam of rawWindows) {
+    if (typeof windowParam !== 'string') {
+      continue;
+    }
+
+    if (windowParam.startsWith('[') && windowParam.endsWith(']')) {
       try {
-        const parsed = JSON.parse(w);
+        const parsed = JSON.parse(windowParam);
         if (Array.isArray(parsed)) {
           windowIdentifiers.push(...parsed);
         } else {
-          windowIdentifiers.push(w);
+          windowIdentifiers.push(windowParam);
         }
       } catch {
-        windowIdentifiers.push(w);
+        windowIdentifiers.push(windowParam);
       }
     } else {
-      windowIdentifiers.push(w);
+      windowIdentifiers.push(windowParam);
     }
   }
 
