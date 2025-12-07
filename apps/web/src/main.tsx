@@ -12,6 +12,29 @@ if (typeof window !== 'undefined') {
 import '@/styles/index.css';
 import { routeTree } from '@/routeTree.gen';
 
+const VISITED_COOKIE_NAME = 'has_visited';
+const REDIRECT_URL = 'https://os.mikemoschitto.com/?w=browser:https://blog.mikemoschitto.com';
+
+const checkAndSetVisitedCookie = () => {
+  if (typeof document === 'undefined') return;
+
+  const hasVisited = document.cookie
+    .split('; ')
+    .some((cookie) => cookie.startsWith(`${VISITED_COOKIE_NAME}=`));
+
+  if (!hasVisited) {
+    const expiryDate = new Date();
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+    document.cookie = `${VISITED_COOKIE_NAME}=true; expires=${expiryDate.toUTCString()}; path=/`;
+
+    if (window.location.href !== REDIRECT_URL) {
+      window.location.href = REDIRECT_URL;
+    }
+  }
+};
+
+checkAndSetVisitedCookie();
+
 const router = createRouter({
   routeTree,
   parseSearch: (searchStr) => {
