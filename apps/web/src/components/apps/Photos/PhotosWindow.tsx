@@ -99,7 +99,8 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
       const route = buildPhotoRoute(photo);
       const windowIdentifier = route.replace('/?w=', '').split('&')[0];
       const existingWindows = parseWindowIdentifiersFromUrl();
-      addWindow(existingWindows, windowIdentifier);
+      const nonPhotosWindows = existingWindows.filter((id) => !id.startsWith('photos'));
+      addWindow(nonPhotosWindows, windowIdentifier);
     },
     [addWindow]
   );
@@ -108,7 +109,8 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     const route = buildAlbumRoute(albumPath);
     const windowIdentifier = route.replace('/?w=', '').split('&')[0];
     const existingWindows = parseWindowIdentifiersFromUrl();
-    addWindow(existingWindows, windowIdentifier);
+    const nonPhotosWindows = existingWindows.filter((id) => !id.startsWith('photos'));
+    addWindow(nonPhotosWindows, windowIdentifier);
   }, [albumPath, addWindow]);
 
   const handleAlbumChange = useCallback(
@@ -116,7 +118,8 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
       const route = buildAlbumRoute(newAlbumPath);
       const windowIdentifier = route.replace('/?w=', '').split('&')[0];
       const existingWindows = parseWindowIdentifiersFromUrl();
-      addWindow(existingWindows, windowIdentifier);
+      const nonPhotosWindows = existingWindows.filter((id) => !id.startsWith('photos'));
+      addWindow(nonPhotosWindows, windowIdentifier);
     },
     [addWindow]
   );
@@ -128,7 +131,8 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
         const route = buildPhotoRoute(firstPhoto);
         const windowIdentifier = route.replace('/?w=', '').split('&')[0];
         const existingWindows = parseWindowIdentifiersFromUrl();
-        addWindow(existingWindows, windowIdentifier);
+        const nonPhotosWindows = existingWindows.filter((id) => !id.startsWith('photos'));
+        addWindow(nonPhotosWindows, windowIdentifier);
       } else if (mode === 'grid') {
         updateWindow(windowData.id, { isSlideshow: false }, { skipRouteSync: true });
       }
@@ -143,7 +147,8 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     const route = buildPhotoRoute(nextPhoto);
     const windowIdentifier = route.replace('/?w=', '').split('&')[0];
     const existingWindows = parseWindowIdentifiersFromUrl();
-    addWindow(existingWindows, windowIdentifier);
+    const nonPhotosWindows = existingWindows.filter((id) => !id.startsWith('photos'));
+    addWindow(nonPhotosWindows, windowIdentifier);
   }, [photos, selectedPhotoIndex, addWindow]);
 
   const handlePreviousPhoto = useCallback(() => {
@@ -156,7 +161,8 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
     const route = buildPhotoRoute(prevPhoto);
     const windowIdentifier = route.replace('/?w=', '').split('&')[0];
     const existingWindows = parseWindowIdentifiersFromUrl();
-    addWindow(existingWindows, windowIdentifier);
+    const nonPhotosWindows = existingWindows.filter((id) => !id.startsWith('photos'));
+    addWindow(nonPhotosWindows, windowIdentifier);
   }, [photos, selectedPhotoIndex, addWindow]);
 
   const handleShare = useCallback(async () => {
