@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 
 import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
 import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
+import { normalizePathForRouting } from '@/lib/utils';
 import type { DesktopIconData } from '@/stores/useDesktopStore';
 
 interface DesktopIconProps {
@@ -53,11 +54,9 @@ const DesktopIcon = ({
   const handleDoubleClick = () => {
     const existingWindows = parseWindowIdentifiersFromUrl();
 
-    const normalizePath = (path: string) => (path.startsWith('/') ? path.slice(1) : path);
-
     if (icon.type === 'folder' && icon.urlPath) {
       // Open folder in finder with path
-      const normalizedPath = normalizePath(icon.urlPath);
+      const normalizedPath = normalizePathForRouting(icon.urlPath);
       const newWindowId = `finder:${normalizedPath}`;
       addWindow(existingWindows, newWindowId);
       return;
@@ -69,7 +68,7 @@ const DesktopIcon = ({
 
       if (isImage && icon.urlPath) {
         // Open image in photos app
-        const normalizedPath = normalizePath(icon.urlPath);
+        const normalizedPath = normalizePathForRouting(icon.urlPath);
         const newWindowId = `photos:${normalizedPath}`;
         addWindow(existingWindows, newWindowId);
         return;
@@ -77,7 +76,7 @@ const DesktopIcon = ({
 
       if (icon.fileExtension === 'pdf' && icon.urlPath) {
         // Open PDF in PDF viewer
-        const normalizedPath = normalizePath(icon.urlPath);
+        const normalizedPath = normalizePathForRouting(icon.urlPath);
         const newWindowId = `pdfviewer:${normalizedPath}`;
         addWindow(existingWindows, newWindowId);
         return;
@@ -85,7 +84,7 @@ const DesktopIcon = ({
 
       if (icon.fileExtension === 'txt' || icon.fileExtension === 'md') {
         // Open text file in textedit
-        const normalizedPath = icon.urlPath ? normalizePath(icon.urlPath) : '';
+        const normalizedPath = icon.urlPath ? normalizePathForRouting(icon.urlPath) : '';
         const newWindowId = normalizedPath ? `textedit:${normalizedPath}` : 'textedit';
         addWindow(existingWindows, newWindowId);
         return;
@@ -132,7 +131,7 @@ const DesktopIcon = ({
           draggable={false}
         />
         <span
-          className={`desktop-icon-label font-ui max-w-full px-1 text-center leading-tight break-words ${
+          className={`desktop-icon-label font-ui max-w-full break-words px-1 text-center leading-tight ${
             isSelected ? 'desktop-icon-selected' : ''
           }`}
         >

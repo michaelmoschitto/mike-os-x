@@ -10,7 +10,7 @@ import { getFolderContents, type FinderItemData } from '@/lib/finderContent';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
 import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
 import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
-import { validateAndNormalizeUrl } from '@/lib/utils';
+import { normalizePathForRouting, validateAndNormalizeUrl } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
 interface FinderWindowProps {
@@ -119,7 +119,7 @@ const FinderWindow = ({ window: windowData, isActive }: FinderWindowProps) => {
       const existingWindows = parseWindowIdentifiersFromUrl();
 
       // Build window identifier based on appType
-      const normalizedPath = item.path.startsWith('/') ? item.path.slice(1) : item.path;
+      const normalizedPath = normalizePathForRouting(item.path);
       let windowIdentifier: string;
 
       if (entry.appType === 'photos') {

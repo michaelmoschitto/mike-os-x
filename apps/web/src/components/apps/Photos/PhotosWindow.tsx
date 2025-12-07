@@ -8,54 +8,40 @@ import PhotosToolbar from '@/components/apps/Photos/PhotosToolbar';
 import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
-import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
 import { getPhotoAlbums, getAlbumPhotos, type PhotoData } from '@/lib/photosContent';
-import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
+import { serializeWindow } from '@/lib/routing/windowSerialization';
 import { cn } from '@/lib/utils';
 import { showCompactNotification } from '@/stores/notificationHelpers';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
-// Helper functions to build photo routes (inline replacements for deleted photosRouting.ts)
 const removeFileExtension = (filename: string): string => {
   return filename.replace(/\.(jpg|jpeg|png|gif|webp|svg)$/i, '');
 };
 
-const buildPhotoRoute = (photo: PhotoData): string => {
-  const normalizedPath = photo.urlPath.startsWith('/') ? photo.urlPath.slice(1) : photo.urlPath;
-  const pathParts = normalizedPath.split('/').filter(Boolean);
+const buildPhotoRoute = (photo: PhotoData, photos: PhotoData[]): string => {
+  // Find the photo index in the photos array
+  const photoIndex = photos.findIndex((p) => p.id === photo.id);
 
-  // Photos in dock/photos/album structure
-  if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
-    const albumName = pathParts[2];
-    const photoName = pathParts[pathParts.length - 1];
-    const photoNameWithoutExt = removeFileExtension(photoName);
-    return `/?w=photos:${albumName}:${photoNameWithoutExt}`;
-  }
+  // Build a temporary window object to serialize
+  const tempWindow: WindowType = {
+    type: 'photos',
+    id: 'temp',
+    appName: 'Photos',
+    title: 'Photos',
+    content: '',
+    position: { x: 0, y: 0 },
+    size: { width: 800, height: 600 },
+    zIndex: 0,
+    isMinimized: false,
+    albumPath: photo.albumPath,
+    urlPath: photo.urlPath,
+    selectedPhotoIndex: photoIndex !== -1 ? photoIndex : undefined,
+  };
 
-  // Desktop photos
-  if (pathParts.length > 0 && pathParts[0] !== 'dock') {
-    const photoName = pathParts[pathParts.length - 1];
-    const photoNameWithoutExt = removeFileExtension(photoName);
-    return `/?w=photos:desktop:${photoNameWithoutExt}`;
-  }
+  const identifier = serializeWindow(tempWindow);
+  if (!identifier) return '/?w=photos';
 
-  return `/?w=photos`;
-};
-
-const buildAlbumRoute = (albumPath?: string): string => {
-  if (!albumPath) {
-    return '/?w=photos';
-  }
-
-  const normalizedAlbumPath = albumPath.startsWith('/') ? albumPath.slice(1) : albumPath;
-  const pathParts = normalizedAlbumPath.split('/').filter(Boolean);
-
-  if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
-    const albumName = pathParts[2];
-    return `/?w=photos:${albumName}`;
-  }
-
-  return '/?w=photos';
+  return `/?w=${identifier}`;
 };
 
 interface PhotosWindowProps {
@@ -65,7 +51,6 @@ interface PhotosWindowProps {
 
 const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
   const { updateWindow } = useWindowStore();
-  const { addWindow } = useWindowNavigation();
   const selectedPhotoIndex = windowData.selectedPhotoIndex ?? null;
   const isSlideshow = windowData.isSlideshow ?? false;
 
@@ -96,60 +81,92 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
 
   const handlePhotoClick = useCallback(
     (photo: PhotoData) => {
-      const route = buildPhotoRoute(photo);
-      const windowIdentifier = route.replace('/?w=', '').split('&')[0];
-      const existingWindows = parseWindowIdentifiersFromUrl();
-      const nonPhotosWindows = existingWindows.filter((id) => !id.startsWith('photos'));
-      addWindow(nonPhotosWindows, windowIdentifier);
+      // Find the photo's index in the current album
+      const photoIndex = photos.findIndex((p) => p.id === photo.id);
+      if (photoIndex === -1) return;
+
+      // Update the window store directly
+      updateWindow(
+        windowData.id,
+        {
+          selectedPhotoIndex: photoIndex,
+          urlPath: photo.urlPath,
+          albumPath: photo.albumPath,
+        },
+        { skipRouteSync: false }
+      );
     },
-    [addWindow]
+    [photos, updateWindow, windowData.id]
   );
 
   const handleCloseSingleView = useCallback(() => {
-    const route = buildAlbumRoute(albumPath);
-    const windowIdentifier = route.replace('/?w=', '').split('&')[0];
-    const existingWindows = parseWindowIdentifiersFromUrl();
-    const nonPhotosWindows = existingWindows.filter((id) => !id.startsWith('photos'));
-    addWindow(nonPhotosWindows, windowIdentifier);
-  }, [albumPath, addWindow]);
+    // Update window to close single view (clear selected photo)
+    updateWindow(
+      windowData.id,
+      {
+        selectedPhotoIndex: undefined,
+        urlPath: undefined,
+      },
+      { skipRouteSync: false }
+    );
+  }, [updateWindow, windowData.id]);
 
   const handleAlbumChange = useCallback(
     (newAlbumPath?: string) => {
-      const route = buildAlbumRoute(newAlbumPath);
-      const windowIdentifier = route.replace('/?w=', '').split('&')[0];
-      const existingWindows = parseWindowIdentifiersFromUrl();
-      const nonPhotosWindows = existingWindows.filter((id) => !id.startsWith('photos'));
-      addWindow(nonPhotosWindows, windowIdentifier);
+      // Update the window store directly with the new album path
+      // This ensures the UI updates immediately, then URL sync will handle navigation
+      updateWindow(
+        windowData.id,
+        {
+          albumPath: newAlbumPath,
+          selectedPhotoIndex: undefined,
+          urlPath: undefined,
+        },
+        { skipRouteSync: false }
+      );
     },
-    [addWindow]
+    [updateWindow, windowData.id]
   );
 
   const handleViewModeChange = useCallback(
     (mode: 'grid' | 'slideshow') => {
       if (mode === 'slideshow' && photos.length > 0 && selectedPhotoIndex === null) {
+        // Start slideshow with first photo
         const firstPhoto = photos[0];
-        const route = buildPhotoRoute(firstPhoto);
-        const windowIdentifier = route.replace('/?w=', '').split('&')[0];
-        const existingWindows = parseWindowIdentifiersFromUrl();
-        const nonPhotosWindows = existingWindows.filter((id) => !id.startsWith('photos'));
-        addWindow(nonPhotosWindows, windowIdentifier);
+        const photoIndex = photos.findIndex((p) => p.id === firstPhoto.id);
+        if (photoIndex !== -1) {
+          updateWindow(
+            windowData.id,
+            {
+              selectedPhotoIndex: photoIndex,
+              urlPath: firstPhoto.urlPath,
+              albumPath: firstPhoto.albumPath,
+              isSlideshow: true,
+            },
+            { skipRouteSync: false }
+          );
+        }
       } else if (mode === 'grid') {
-        updateWindow(windowData.id, { isSlideshow: false }, { skipRouteSync: true });
+        updateWindow(windowData.id, { isSlideshow: false }, { skipRouteSync: false });
       }
     },
-    [photos, selectedPhotoIndex, updateWindow, windowData.id, addWindow]
+    [photos, selectedPhotoIndex, updateWindow, windowData.id]
   );
 
   const handleNextPhoto = useCallback(() => {
     if (photos.length === 0) return;
     const nextIndex = selectedPhotoIndex === null ? 0 : (selectedPhotoIndex + 1) % photos.length;
     const nextPhoto = photos[nextIndex];
-    const route = buildPhotoRoute(nextPhoto);
-    const windowIdentifier = route.replace('/?w=', '').split('&')[0];
-    const existingWindows = parseWindowIdentifiersFromUrl();
-    const nonPhotosWindows = existingWindows.filter((id) => !id.startsWith('photos'));
-    addWindow(nonPhotosWindows, windowIdentifier);
-  }, [photos, selectedPhotoIndex, addWindow]);
+    updateWindow(
+      windowData.id,
+      {
+        selectedPhotoIndex: nextIndex,
+        urlPath: nextPhoto.urlPath,
+        albumPath: nextPhoto.albumPath,
+      },
+      { skipRouteSync: false }
+    );
+  }, [photos, selectedPhotoIndex, updateWindow, windowData.id]);
 
   const handlePreviousPhoto = useCallback(() => {
     if (photos.length === 0) return;
@@ -158,17 +175,21 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
         ? photos.length - 1
         : (selectedPhotoIndex - 1 + photos.length) % photos.length;
     const prevPhoto = photos[prevIndex];
-    const route = buildPhotoRoute(prevPhoto);
-    const windowIdentifier = route.replace('/?w=', '').split('&')[0];
-    const existingWindows = parseWindowIdentifiersFromUrl();
-    const nonPhotosWindows = existingWindows.filter((id) => !id.startsWith('photos'));
-    addWindow(nonPhotosWindows, windowIdentifier);
-  }, [photos, selectedPhotoIndex, addWindow]);
+    updateWindow(
+      windowData.id,
+      {
+        selectedPhotoIndex: prevIndex,
+        urlPath: prevPhoto.urlPath,
+        albumPath: prevPhoto.albumPath,
+      },
+      { skipRouteSync: false }
+    );
+  }, [photos, selectedPhotoIndex, updateWindow, windowData.id]);
 
   const handleShare = useCallback(async () => {
     if (!selectedPhoto) return;
 
-    const photoUrl = buildPhotoRoute(selectedPhoto);
+    const photoUrl = buildPhotoRoute(selectedPhoto, photos);
     const fullUrl = `${window.location.origin}${photoUrl}`;
 
     try {
@@ -178,7 +199,7 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
       console.error('Failed to copy URL:', error);
       showCompactNotification('Error', 'Failed to copy URL');
     }
-  }, [selectedPhoto]);
+  }, [selectedPhoto, photos]);
 
   useEffect(() => {
     if (!useContentIndex.getState().isIndexed) {

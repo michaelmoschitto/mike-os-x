@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
 import { initializeContentIndex, useContentIndex } from '@/lib/contentIndex';
+import { normalizePathForRouting } from '@/lib/utils';
 import { resolveUrlToContent } from '@/lib/urlResolver';
 import { showCompactNotification } from '@/stores/notificationHelpers';
 
@@ -39,7 +40,7 @@ export const Route = createFileRoute('/$')({
 
       // Build the appropriate window identifier based on app type
       const appType = resolved.entry.appType;
-      const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
+      const normalizedPath = normalizePathForRouting(path);
 
       let windowIdentifier: string;
 

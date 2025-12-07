@@ -1,5 +1,6 @@
 import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { getPhotoByPath, getAlbumPhotos } from '@/lib/photosContent';
+import { normalizePathForRouting } from '@/lib/utils';
 import type { Window, WindowOpenConfig } from '@/stores/useWindowStore';
 
 /**
@@ -45,13 +46,6 @@ export interface WindowTypeStrategy {
  */
 const removeFileExtension = (filename: string): string => {
   return filename.replace(/\.(jpg|jpeg|png|gif|webp|svg)$/i, '');
-};
-
-/**
- * Normalize path for routing (remove leading slash)
- */
-const normalizePathForRouting = (path: string): string => {
-  return path.startsWith('/') ? path.slice(1) : path;
 };
 
 const terminalStrategy: WindowTypeStrategy = {

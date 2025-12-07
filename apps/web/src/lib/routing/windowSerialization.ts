@@ -4,6 +4,7 @@ import {
   getWindowTypeStrategy,
   getStrategyForIdentifier,
 } from '@/lib/routing/windowTypeStrategies';
+import { normalizePathForRouting } from '@/lib/utils';
 import type { Window, TerminalTab } from '@/stores/useWindowStore';
 
 /**
@@ -82,13 +83,6 @@ const removeFileExtension = (filename: string): string => {
 };
 
 /**
- * Normalize path for routing (remove leading slash)
- */
-const normalizePathForRouting = (path: string): string => {
-  return path.startsWith('/') ? path.slice(1) : path;
-};
-
-/**
  * Normalize window identifier by removing leading slash after type prefix
  * Example: "textedit:/README" → "textedit:README"
  *
@@ -108,7 +102,7 @@ export function normalizeIdentifier(identifier: string): string {
   }
 
   // For other window types, strip leading slash from path
-  const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
+  const normalizedPath = normalizePathForRouting(path);
 
   return `${type}:${normalizedPath}`;
 }
