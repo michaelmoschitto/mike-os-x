@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 
 import Desktop from '@/components/system/Desktop';
 import { initializeContentIndex, useContentIndex } from '@/lib/contentIndex';
+import { useUrlSync } from '@/lib/hooks/useUrlSync';
 import { reconcileWindowsWithUrl } from '@/lib/routing/windowReconciliation';
 import { deserializeUrlToWindows, parseWindowParams } from '@/lib/routing/windowSerialization';
 import { useWindowStore } from '@/stores/useWindowStore';
@@ -50,6 +51,9 @@ function IndexComponent() {
   const { w: windowParams, state: stateParam } = Route.useSearch();
   const { openWindow, closeWindow, updateWindow, focusWindow, windows } = useWindowStore();
   const prevIdentifiers = useRef<string>('');
+
+  // Centralized URL sync - watches window store and syncs to URL
+  useUrlSync();
 
   const windowIdentifiers = useMemo(() => {
     return parseWindowParams(windowParams);

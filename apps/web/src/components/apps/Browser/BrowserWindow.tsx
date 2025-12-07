@@ -7,7 +7,6 @@ import BrowserContent from '@/components/apps/Browser/BrowserContent';
 import BrowserToolbar from '@/components/apps/Browser/BrowserToolbar';
 import Window from '@/components/window/Window';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
-import { useWindowUrlSync } from '@/lib/hooks/useWindowUrlSync';
 import { findBookmarkLocation, getHostnameFromUrl, isUrlBookmarked } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
@@ -20,7 +19,6 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
   const navigate = useNavigate();
   const { navigateToUrl, navigateBack, navigateForward, addBookmark, removeBookmark } =
     useWindowStore();
-  const { syncWindowsToUrl } = useWindowUrlSync();
 
   const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
     useWindowLifecycle({
@@ -199,26 +197,9 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
     handleRefresh,
   ]);
 
-  // Sync browser URL changes back to application URL
-  useEffect(() => {
-    // Check if we should skip this sync (prevents loops when URL comes from route)
-    const skipSync = useWindowStore.getState().skipNextRouteSync[windowData.id];
-
-    if (skipSync) {
-      // Clear the flag and skip this sync
-      useWindowStore.getState().clearRouteSyncFlag(windowData.id);
-      return;
-    }
-
-    // Don't sync empty URLs or about:blank
-    if (!currentUrl || currentUrl === 'about:blank') {
-      return;
-    }
-
-    // Serialize all windows and sync to URL using SPA navigation (no page reload)
-    const allWindows = useWindowStore.getState().windows;
-    syncWindowsToUrl(allWindows);
-  }, [currentUrl, windowData.id, syncWindowsToUrl]);
+  // Note: URL synchronization is now handled centrally by useUrlSync hook
+  // in routes/index.tsx. This ensures all window changes are synced to URL
+  // in a single place, preventing sync loops and missed updates.
 
   const getWindowTitle = () => {
     return 'Internet Explorer';
