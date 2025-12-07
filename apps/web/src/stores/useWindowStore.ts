@@ -66,6 +66,10 @@ export interface Window {
   isSlideshow?: boolean;
 }
 
+export type WindowOpenConfig = Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & {
+  appName?: string;
+};
+
 const getAppTypeForDock = (
   windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder' | 'photos'
 ): 'browser' | 'textedit' | 'terminal' | 'pdfviewer' | 'photos' | null => {

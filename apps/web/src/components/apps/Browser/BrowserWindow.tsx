@@ -53,7 +53,7 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
 
     if (url.startsWith('/')) {
       if (url === '/') {
-        navigate({ to: '/' });
+        navigate({ to: '/', search: { w: undefined, state: undefined } });
       } else {
         navigate({ to: '/$', params: { _splat: url.slice(1) } });
       }
@@ -66,7 +66,7 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
       const prevUrl = history[historyIndex - 1];
       if (prevUrl && prevUrl.startsWith('/')) {
         if (prevUrl === '/') {
-          navigate({ to: '/' });
+          navigate({ to: '/', search: { w: undefined, state: undefined } });
         } else {
           navigate({ to: '/$', params: { _splat: prevUrl.slice(1) } });
         }
@@ -80,7 +80,7 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
       const nextUrl = history[historyIndex + 1];
       if (nextUrl && nextUrl.startsWith('/')) {
         if (nextUrl === '/') {
-          navigate({ to: '/' });
+          navigate({ to: '/', search: { w: undefined, state: undefined } });
         } else {
           navigate({ to: '/$', params: { _splat: nextUrl.slice(1) } });
         }
