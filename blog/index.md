@@ -14,7 +14,6 @@ I'm building "Mike OS X", complete with a browser, some info about me, and of co
 
 ## Quick Links
 
-- [Resume](https://os.mikemoschitto.com/resume) -
 - [Reading List](/reading.html) - Curated collection of books, articles, and resources
 - [Blog Archive](/archive.html) - All blog posts
 
@@ -27,6 +26,7 @@ I'm excited to do a bit more writing about how this is built and some of the tec
 
 - [LinkedIn](https://linkedin.com/in/michaelmoschitto)
 - [Contact](me@mikemoschitto.com)
+- [Resume](https://os.mikemoschitto.com/resume)
 
 ---
 
