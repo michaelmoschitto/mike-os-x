@@ -1,6 +1,6 @@
 import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { getPhotoByPath, getAlbumPhotos } from '@/lib/photosContent';
-import { normalizePathForRouting } from '@/lib/utils';
+import { normalizePathForRouting, normalizeUrlPath } from '@/lib/utils';
 import type { Window, WindowOpenConfig } from '@/stores/useWindowStore';
 
 /**
@@ -264,7 +264,7 @@ const finderStrategy: WindowTypeStrategy = {
     const title = pathParts.length > 1 ? pathParts[pathParts.length - 1] : 'Finder';
     const capitalizedTitle = title.charAt(0).toUpperCase() + title.slice(1);
 
-    const windowPath = path.startsWith('/') ? path : `/${path}`;
+    const windowPath = normalizeUrlPath(path);
 
     return {
       type: 'finder',
@@ -300,7 +300,7 @@ const pdfViewerStrategy: WindowTypeStrategy = {
     const path = identifier.substring(10);
     const { width, height } = WINDOW_DIMENSIONS.pdfviewer;
     const position = getCenteredWindowPosition(width, height);
-    const urlPath = path.startsWith('/') ? path : `/${path}`;
+    const urlPath = normalizeUrlPath(path);
 
     return {
       type: 'pdfviewer',
@@ -333,7 +333,7 @@ const textEditStrategy: WindowTypeStrategy = {
     const path = identifier.substring(9);
     const { width, height } = WINDOW_DIMENSIONS.textedit;
     const position = getCenteredWindowPosition(width, height);
-    const urlPath = path.startsWith('/') ? path : `/${path}`;
+    const urlPath = normalizeUrlPath(path);
 
     return {
       type: 'textedit',
