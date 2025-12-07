@@ -20,7 +20,7 @@ I'm building "Mike OS X", complete with a browser, some info about me, and of co
 ## What I'm Working On
 
 Currently I'm building AI platform and products, this site, and learning as much as I can.
-I'm excited to do a bit more writing about how this is built and some of the tech behind it once I've shipped all the "mvp" features.
+I'm excited to do a bit more writing about how this is built and some of the tech behind it once I've shipped the mvp.
 
 ## Connect
 
