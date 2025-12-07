@@ -4,7 +4,7 @@ layout: default
 
 # Welcome to My Blog
 
-I'm **Mike**, a software developer based in Incline Village, NV, passionate about AI/ML, databases, products, and scalability. Outside of programming I'm doing a lot of cycling, running, and hiking and am avid baseball fan... go Dodgers.
+I'm **Mike**, a software developer based in Incline Village, NV, passionate about AI/ML, databases, products, and scalability. Outside of programming I'm doing a lot of cycling, running, skiing and am avid baseball fan... go Dodgers.
 
 ## Wtf is this view?
 
@@ -27,4 +27,4 @@ Currently I'm building AI platform and products, this site, and learning as much
 
 ---
 
-Built with ❤️ in SB, CA
+Built with ❤️ in Incline Village, NV
