@@ -8,7 +8,9 @@ I'm **Mike**, a software developer based in Incline Village, NV, passionate abou
 
 ## tf is this?
 
-If you're asking yourself that, you've probably found yourself here: <a href="https://os.mikemoschitto.com/?w=browser:https://blog.mikemoschitto.com" style="color: #3b9cff; text-decoration: underline;">https://os.mikemoschitto.com/?w=browser:https://blog.mikemoschitto.com</a>. It's my current passion project and portfolio site where I'm building out an "os x desktop" complete with a browser, some info about me, and of course a working terminal—because how could I not want to use vim in a linux terminal in the desktop in the browser.
+If you're asking yourself that, you've probably found yourself here: <a href="https://os.mikemoschitto.com/?w=browser:https://blog.mikemoschitto.com" style="color: #3b9cff; text-decoration: underline;">https://os.mikemoschitto.com/?w=browser:https://blog.mikemoschitto.com</a>. It's my current passion project, portfolio site, and blog.
+
+I'm building "Mike OS X", complete with a browser, some info about me, and of course a working terminal. Wow could I not **want to vim in a linux terminal in a mac desktop in the browser??**
 
 ## Quick Links
 
