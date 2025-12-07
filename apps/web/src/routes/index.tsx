@@ -13,11 +13,11 @@ import { useWindowStore } from '@/stores/useWindowStore';
 export const Route = createFileRoute('/')({
   validateSearch: (search: Record<string, unknown>) => {
     const w = search.w;
-    const wArray = w === undefined ? undefined : Array.isArray(w) ? w : [w];
+    const state = search.state;
 
     return {
-      w: wArray as string[] | undefined,
-      state: (search.state as string) || undefined,
+      w: w as string | string[] | undefined,
+      state: typeof state === 'string' ? state : undefined,
     };
   },
   loader: async () => {

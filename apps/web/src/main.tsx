@@ -1,6 +1,12 @@
 import { Buffer } from 'buffer';
 
-import { RouterProvider, createRouter } from '@tanstack/react-router';
+import {
+  RouterProvider,
+  createRouter,
+  parseSearchWith,
+  stringifySearchWith,
+} from '@tanstack/react-router';
+import qs from 'query-string';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
@@ -12,7 +18,23 @@ if (typeof window !== 'undefined') {
 import '@/styles/index.css';
 import { routeTree } from '@/routeTree.gen';
 
-const router = createRouter({ routeTree });
+const router = createRouter({
+  routeTree,
+  parseSearch: parseSearchWith((value) =>
+    qs.parse(value, {
+      arrayFormat: 'none',
+      parseBooleans: false,
+      parseNumbers: false,
+    })
+  ),
+  stringifySearch: stringifySearchWith((value) =>
+    qs.stringify(value, {
+      arrayFormat: 'none',
+      skipNull: true,
+      skipEmptyString: true,
+    })
+  ),
+});
 
 declare module '@tanstack/react-router' {
   interface Register {
