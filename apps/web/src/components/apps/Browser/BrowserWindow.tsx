@@ -6,6 +6,7 @@ import BrowserContent from '@/components/apps/Browser/BrowserContent';
 import BrowserToolbar from '@/components/apps/Browser/BrowserToolbar';
 import Window from '@/components/window/Window';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
+import { serializeWindowsToUrl } from '@/lib/routing/windowSerialization';
 import { findBookmarkLocation, getHostnameFromUrl, isUrlBookmarked } from '@/lib/utils';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
 
@@ -182,6 +183,32 @@ const BrowserWindow = ({ window: windowData, isActive }: BrowserWindowProps) => 
     handleForward,
     handleRefresh,
   ]);
+
+  // Sync browser URL changes back to application URL
+  useEffect(() => {
+    // Check if we should skip this sync (prevents loops when URL comes from route)
+    const skipSync = useWindowStore.getState().skipNextRouteSync[windowData.id];
+
+    if (skipSync) {
+      // Clear the flag and skip this sync
+      useWindowStore.getState().clearRouteSyncFlag(windowData.id);
+      return;
+    }
+
+    // Don't sync empty URLs or about:blank
+    if (!currentUrl || currentUrl === 'about:blank') {
+      return;
+    }
+
+    // Serialize all windows to update the application URL
+    const allWindows = useWindowStore.getState().windows;
+    const newUrl = serializeWindowsToUrl(allWindows);
+
+    // Only navigate if URL actually changed
+    if (window.location.pathname + window.location.search !== newUrl) {
+      window.location.href = newUrl;
+    }
+  }, [currentUrl, windowData.id]);
 
   const getWindowTitle = () => {
     return 'Internet Explorer';
