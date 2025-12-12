@@ -94,28 +94,36 @@ function reassignWindowZIndices(
 /**
  * Check if a window needs updating based on config
  */
-function needsUpdate(currentWindow: Window, newConfig: Partial<Window>): boolean {
+function needsUpdate(
+  currentWindow: Window,
+  newConfig: Partial<Window>,
+  hasExplicitPosition: boolean = false
+): boolean {
   const strategy = getWindowTypeStrategy(currentWindow.type);
 
   if (strategy.needsUpdate(currentWindow, newConfig)) {
     return true;
   }
 
-  if (newConfig.position) {
-    if (
-      currentWindow.position.x !== newConfig.position.x ||
-      currentWindow.position.y !== newConfig.position.y
-    ) {
-      return true;
+  // Only check position/size if they were explicitly provided in the URL (extended state format)
+  // Simple format uses default positions which shouldn't override user-dragged positions
+  if (hasExplicitPosition) {
+    if (newConfig.position) {
+      if (
+        currentWindow.position.x !== newConfig.position.x ||
+        currentWindow.position.y !== newConfig.position.y
+      ) {
+        return true;
+      }
     }
-  }
 
-  if (newConfig.size) {
-    if (
-      currentWindow.size.width !== newConfig.size.width ||
-      currentWindow.size.height !== newConfig.size.height
-    ) {
-      return true;
+    if (newConfig.size) {
+      if (
+        currentWindow.size.width !== newConfig.size.width ||
+        currentWindow.size.height !== newConfig.size.height
+      ) {
+        return true;
+      }
     }
   }
 
@@ -171,7 +179,7 @@ export function reconcileWindowsWithUrl(
     if (specialConfigs.length > 0) {
       const specialConfig = specialConfigs[specialConfigs.length - 1];
 
-      if (needsUpdate(specialWindow, specialConfig.config)) {
+      if (needsUpdate(specialWindow, specialConfig.config, specialConfig.hasExplicitPosition)) {
         windowStore.updateWindow(specialWindow.id, specialConfig.config, {
           skipRouteSync: true,
         });
@@ -217,7 +225,7 @@ export function reconcileWindowsWithUrl(
   const toUpdate: Array<{ window: Window; config: Partial<Window> }> = [];
   for (const config of urlWindowConfigs) {
     const currentWindow = currentMap.get(config.identifier);
-    if (currentWindow && needsUpdate(currentWindow, config.config)) {
+    if (currentWindow && needsUpdate(currentWindow, config.config, config.hasExplicitPosition)) {
       toUpdate.push({ window: currentWindow, config: config.config });
     }
   }
