@@ -817,3 +817,6 @@ This architecture proves you can have both: the UX of a native desktop OS and th
 
 The system creates significant leverage: new window types require minimal code, future features can be added once to benefit all windows, and the URL becomes a powerful state container that enables features we didn't originally plan for.
 
+
+
+
