@@ -88,19 +88,7 @@ const getDockIconForFinderPath = (path: string | undefined): App | null => {
   return null;
 };
 
-const getAppTypeForDock = (
-  window: Window
-):
-  | 'browser'
-  | 'textedit'
-  | 'terminal'
-  | 'pdfviewer'
-  | 'photos'
-  | 'writing'
-  | 'reading'
-  | 'trash'
-  | 'finder'
-  | null => {
+const getAppTypeForDock = (window: Window): App | null => {
   if (window.type === 'finder') {
     return getDockIconForFinderPath(window.currentPath);
   }
@@ -812,7 +800,10 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
    */
   updateMaxZIndex: () => {
     set((state) => {
-      const maxZ = state.windows.reduce((max, w) => Math.max(max, w.zIndex), WINDOW_Z_INDEX.BASE);
+      const maxZ = state.windows.reduce(
+        (max: number, w) => Math.max(max, w.zIndex),
+        WINDOW_Z_INDEX.BASE
+      );
       return { maxZIndex: maxZ };
     });
   },
