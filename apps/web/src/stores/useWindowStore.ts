@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { DEFAULT_BOOKMARKS } from '@/config/defaultBookmarks';
 import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
+import { WINDOW_Z_INDEX } from '@/lib/constants/windowZIndex';
 import { serializeWindowsToUrl } from '@/lib/routing/windowSerialization';
 import { useUI, type App } from '@/lib/store';
 import { getHostnameFromUrl, sanitizeUrlPath } from '@/lib/utils';
@@ -73,12 +74,17 @@ export type WindowOpenConfig = Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'a
 const getDockIconForFinderPath = (path: string | undefined): App | null => {
   if (!path) return null;
 
-  const normalizedPath = path.toLowerCase();
+  const pathSegments = path.toLowerCase().split('/').filter(Boolean);
 
-  if (normalizedPath.includes('dock/writing')) return 'writing';
-  if (normalizedPath.includes('dock/reading')) return 'reading';
-  if (normalizedPath.includes('dock/trash')) return 'trash';
-  if (normalizedPath.includes('dock/finder')) return 'finder';
+  if (pathSegments.includes('dock')) {
+    const dockIndex = pathSegments.indexOf('dock');
+    const nextSegment = pathSegments[dockIndex + 1];
+
+    if (nextSegment === 'writing') return 'writing';
+    if (nextSegment === 'reading') return 'reading';
+    if (nextSegment === 'trash') return 'trash';
+    if (nextSegment === 'finder') return 'finder';
+  }
 
   return null;
 };
@@ -155,9 +161,13 @@ interface WindowStore {
 export const useWindowStore = create<WindowStore>((set, get) => ({
   windows: [],
   activeWindowId: null,
-  maxZIndex: 100,
+  maxZIndex: WINDOW_Z_INDEX.BASE,
   skipNextRouteSync: {},
 
+  /**
+   * Opens a new window and assigns it the highest z-index (maxZIndex + 1).
+   * New windows are automatically focused and appear on top.
+   */
   openWindow: (window) => {
     const state = get();
     const id = `window-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -244,6 +254,10 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     return get().windows.filter((w) => !w.isMinimized);
   },
 
+  /**
+   * Focuses a window by assigning it the highest z-index (maxZIndex + 1).
+   * This ensures the focused window appears on top of all other windows.
+   */
   focusWindow: (id) => {
     const state = get();
     const window = state.windows.find((w) => w.id === id);
@@ -792,13 +806,23 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     });
   },
 
+  /**
+   * Recalculates maxZIndex based on all windows in the store.
+   * Includes minimized windows to prevent z-index conflicts when they're restored (future feature).
+   * Should be called after batch z-index updates during window reconciliation.
+   */
   updateMaxZIndex: () => {
     set((state) => {
-      const maxZ = state.windows.reduce((max, w) => Math.max(max, w.zIndex), 100);
+      const maxZ = state.windows.reduce((max, w) => Math.max(max, w.zIndex), WINDOW_Z_INDEX.BASE);
       return { maxZIndex: maxZ };
     });
   },
 
+  /**
+   * Gets the current windows array from the store.
+   * This always returns fresh state, not a snapshot, which is critical for
+   * window reconciliation after opening/closing windows.
+   */
   getWindows: () => {
     return get().windows;
   },
