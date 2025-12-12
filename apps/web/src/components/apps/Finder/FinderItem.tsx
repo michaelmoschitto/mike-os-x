@@ -27,7 +27,7 @@ const FinderItem = ({ name, icon, isSelected, onClick, onDoubleClick }: FinderIt
       <img src={icon} alt={name} className="h-12 w-12" />
       <span
         className={cn(
-          'max-w-[80px] truncate text-center text-[11px]',
+          'max-w-[150px] text-center text-[11px] leading-tight break-words',
           isSelected ? 'text-white' : 'text-[var(--color-text-primary)]'
         )}
       >

@@ -11,7 +11,7 @@ interface FinderIconViewProps {
 const FinderIconView = ({ items, selectedId, onSelect, onOpen }: FinderIconViewProps) => {
   return (
     <div className="flex-1 overflow-auto p-4">
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
         {items.map((item) => (
           <FinderItem
             key={item.id}
