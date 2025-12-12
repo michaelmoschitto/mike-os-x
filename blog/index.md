@@ -30,4 +30,4 @@ I'm excited to do a bit more writing about how this is built and some of the tec
 
 ---
 
-Built with ❤️ in Incline Village, NV
+Built with ❤️ in Incline Village, NV.
