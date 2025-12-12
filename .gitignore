@@ -53,3 +53,6 @@ next-env.d.ts
 __pycache__/
 
 .github/certs
+
+# Temporary/empty image files (often created by IDEs or tools)
+assets/image-*.png
