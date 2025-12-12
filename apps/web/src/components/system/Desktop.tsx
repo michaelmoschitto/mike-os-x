@@ -18,10 +18,28 @@ const Desktop = () => {
   const windows = useWindowStore((state) => state.windows);
   const activeWindowId = useWindowStore((state) => state.activeWindowId);
   const initializeIcons = useDesktopStore((state) => state.initializeIcons);
+  const refreshIcons = useDesktopStore((state) => state.refreshIcons);
 
   useEffect(() => {
     initializeIcons();
   }, [initializeIcons]);
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+        if (modifier && e.shiftKey && e.key === 'R') {
+          e.preventDefault();
+          refreshIcons();
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [refreshIcons]);
 
   return (
     <div className="relative h-screen w-screen overflow-hidden">

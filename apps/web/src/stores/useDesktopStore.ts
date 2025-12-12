@@ -21,6 +21,7 @@ interface DesktopStore {
   setSelectedIcon: (id: string | null) => void;
   updateIconPosition: (id: string, position: { x: number; y: number }) => void;
   initializeIcons: () => Promise<void>;
+  refreshIcons: () => Promise<void>;
 }
 
 const getIconForFile = (fileExtension: string): string => {
@@ -116,5 +117,27 @@ export const useDesktopStore = create<DesktopStore>((set, get) => ({
 
     const icons = await buildIconsFromContent();
     set({ icons, isInitialized: true });
+  },
+  refreshIcons: async () => {
+    await initializeContentIndex();
+
+    const existingIcons = get().icons;
+    const positionMap = new Map<string, { x: number; y: number }>();
+    for (const icon of existingIcons) {
+      if (icon.position) {
+        positionMap.set(icon.id, icon.position);
+      }
+    }
+
+    const newIcons = await buildIconsFromContent();
+    const iconsWithPositions = newIcons.map((icon) => {
+      const existingPosition = positionMap.get(icon.id);
+      if (existingPosition) {
+        return { ...icon, position: existingPosition, gridIndex: undefined };
+      }
+      return icon;
+    });
+
+    set({ icons: iconsWithPositions });
   },
 }));
