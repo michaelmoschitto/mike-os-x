@@ -49,7 +49,8 @@ export const Route = createFileRoute('/')({
 
 function IndexComponent() {
   const { w: windowParams, state: stateParam } = Route.useSearch();
-  const { openWindow, closeWindow, updateWindow, focusWindow, windows } = useWindowStore();
+  const { openWindow, closeWindow, updateWindow, focusWindow, updateMaxZIndex, getWindows } =
+    useWindowStore();
   const prevIdentifiers = useRef<string>('');
   const isIndexed = useContentIndex((state) => state.isIndexed);
 
@@ -95,7 +96,8 @@ function IndexComponent() {
       closeWindow,
       updateWindow,
       focusWindow,
-      windows,
+      getWindows,
+      updateMaxZIndex,
     });
   }, [
     windowConfigs,
@@ -106,7 +108,8 @@ function IndexComponent() {
     closeWindow,
     updateWindow,
     focusWindow,
-    windows,
+    getWindows,
+    updateMaxZIndex,
   ]);
 
   return <Desktop />;

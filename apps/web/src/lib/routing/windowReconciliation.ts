@@ -1,3 +1,4 @@
+import { WINDOW_Z_INDEX } from '@/lib/constants';
 import { serializeWindow, type WindowConfig } from '@/lib/routing/windowSerialization';
 import {
   getWindowTypeStrategy,
@@ -19,34 +20,110 @@ export interface WindowStoreActions {
     options?: { skipRouteSync?: boolean }
   ) => void;
   focusWindow: (id: string) => void;
-  windows: Window[];
+  getWindows: () => Window[];
+  updateMaxZIndex: () => void;
+}
+
+/**
+ * Reassigns z-index values to windows based on URL order.
+ *
+ * This function ensures proper window stacking after reconciliation:
+ * 1. Windows earlier in the URL get lower z-indices (BASE, BASE+1, BASE+2, ...)
+ * 2. All but the last window get sequential z-indices
+ * 3. The last window gets focused, which assigns it maxZIndex + 1 (top of stack)
+ *
+ * Special cases:
+ * - Singleton windows (like Photos) use requiresSpecialReconciliation pattern
+ * - Must use getWindows() to fetch fresh state after opening new windows
+ *
+ * @param urlWindowConfigs - Window configurations from URL, in order
+ * @param windowStore - Window store actions for state access and updates
+ */
+function reassignWindowZIndices(
+  urlWindowConfigs: WindowConfig[],
+  windowStore: WindowStoreActions
+): void {
+  const allCurrentWindows = windowStore.getWindows().filter((w) => !w.isMinimized);
+  const windowByIdentifier = new Map<string, Window>();
+
+  for (const window of allCurrentWindows) {
+    const identifier = serializeWindow(window);
+    if (identifier) {
+      windowByIdentifier.set(identifier, window);
+    }
+  }
+
+  const lastIdentifier = urlWindowConfigs[urlWindowConfigs.length - 1].identifier;
+
+  for (let i = 0; i < urlWindowConfigs.length - 1; i++) {
+    const config = urlWindowConfigs[i];
+    const window = windowByIdentifier.get(config.identifier);
+    if (window) {
+      const newZIndex = WINDOW_Z_INDEX.BASE + i;
+      if (window.zIndex !== newZIndex) {
+        windowStore.updateWindow(window.id, { zIndex: newZIndex }, { skipRouteSync: true });
+      }
+    }
+  }
+
+  windowStore.updateMaxZIndex();
+
+  const lastConfigStrategy = getStrategyForIdentifier(lastIdentifier);
+  if (lastConfigStrategy?.requiresSpecialReconciliation) {
+    const specialWindow = allCurrentWindows.find((w) => {
+      const strategy = getWindowTypeStrategy(w.type);
+      return strategy === lastConfigStrategy;
+    });
+    if (specialWindow) {
+      windowStore.focusWindow(specialWindow.id);
+      return;
+    }
+  }
+
+  const lastWindow = windowByIdentifier.get(lastIdentifier);
+  if (lastWindow) {
+    windowStore.focusWindow(lastWindow.id);
+    return;
+  }
+
+  if (allCurrentWindows.length > 0) {
+    windowStore.focusWindow(allCurrentWindows[allCurrentWindows.length - 1].id);
+  }
 }
 
 /**
  * Check if a window needs updating based on config
  */
-function needsUpdate(currentWindow: Window, newConfig: Partial<Window>): boolean {
+function needsUpdate(
+  currentWindow: Window,
+  newConfig: Partial<Window>,
+  hasExplicitPosition: boolean = false
+): boolean {
   const strategy = getWindowTypeStrategy(currentWindow.type);
 
   if (strategy.needsUpdate(currentWindow, newConfig)) {
     return true;
   }
 
-  if (newConfig.position) {
-    if (
-      currentWindow.position.x !== newConfig.position.x ||
-      currentWindow.position.y !== newConfig.position.y
-    ) {
-      return true;
+  // Only check position/size if they were explicitly provided in the URL (extended state format)
+  // Simple format uses default positions which shouldn't override user-dragged positions
+  if (hasExplicitPosition) {
+    if (newConfig.position) {
+      if (
+        currentWindow.position.x !== newConfig.position.x ||
+        currentWindow.position.y !== newConfig.position.y
+      ) {
+        return true;
+      }
     }
-  }
 
-  if (newConfig.size) {
-    if (
-      currentWindow.size.width !== newConfig.size.width ||
-      currentWindow.size.height !== newConfig.size.height
-    ) {
-      return true;
+    if (newConfig.size) {
+      if (
+        currentWindow.size.width !== newConfig.size.width ||
+        currentWindow.size.height !== newConfig.size.height
+      ) {
+        return true;
+      }
     }
   }
 
@@ -54,14 +131,24 @@ function needsUpdate(currentWindow: Window, newConfig: Partial<Window>): boolean
 }
 
 /**
- * Reconcile current windows with URL window configurations
- * This function syncs the actual window state with what the URL says should be open
+ * Reconcile current windows with URL window configurations.
+ * This function syncs the actual window state with what the URL says should be open.
+ *
+ * Reconciliation flow:
+ * 1. Handle special windows (photos) that follow singleton pattern
+ * 2. Close windows not in URL
+ * 3. Update existing windows with new config
+ * 4. Open new windows from URL
+ * 5. Reassign z-indices based on URL order (last window on top)
+ *
+ * @param urlWindowConfigs - Window configurations parsed from URL
+ * @param windowStore - Window store actions for state access and updates
  */
 export function reconcileWindowsWithUrl(
   urlWindowConfigs: WindowConfig[],
   windowStore: WindowStoreActions
 ): void {
-  const visibleWindows = windowStore.windows.filter((w) => !w.isMinimized);
+  const visibleWindows = windowStore.getWindows().filter((w) => !w.isMinimized);
 
   const urlMap = new Map<string, WindowConfig>();
   for (const config of urlWindowConfigs) {
@@ -92,7 +179,7 @@ export function reconcileWindowsWithUrl(
     if (specialConfigs.length > 0) {
       const specialConfig = specialConfigs[specialConfigs.length - 1];
 
-      if (needsUpdate(specialWindow, specialConfig.config)) {
+      if (needsUpdate(specialWindow, specialConfig.config, specialConfig.hasExplicitPosition)) {
         windowStore.updateWindow(specialWindow.id, specialConfig.config, {
           skipRouteSync: true,
         });
@@ -138,7 +225,7 @@ export function reconcileWindowsWithUrl(
   const toUpdate: Array<{ window: Window; config: Partial<Window> }> = [];
   for (const config of urlWindowConfigs) {
     const currentWindow = currentMap.get(config.identifier);
-    if (currentWindow && needsUpdate(currentWindow, config.config)) {
+    if (currentWindow && needsUpdate(currentWindow, config.config, config.hasExplicitPosition)) {
       toUpdate.push({ window: currentWindow, config: config.config });
     }
   }
@@ -156,33 +243,6 @@ export function reconcileWindowsWithUrl(
   }
 
   if (urlWindowConfigs.length > 0) {
-    const lastIdentifier = urlWindowConfigs[urlWindowConfigs.length - 1].identifier;
-    const lastConfigStrategy = getStrategyForIdentifier(lastIdentifier);
-
-    if (lastConfigStrategy?.requiresSpecialReconciliation) {
-      const allCurrentWindows = windowStore.windows.filter((w) => !w.isMinimized);
-      const specialWindow = allCurrentWindows.find((w) => {
-        const strategy = getWindowTypeStrategy(w.type);
-        return strategy === lastConfigStrategy;
-      });
-      if (specialWindow) {
-        windowStore.focusWindow(specialWindow.id);
-        return;
-      }
-    }
-
-    const allCurrentWindows = windowStore.windows.filter((w) => !w.isMinimized);
-    for (const window of allCurrentWindows) {
-      const identifier = serializeWindow(window);
-      if (identifier === lastIdentifier) {
-        windowStore.focusWindow(window.id);
-        return;
-      }
-    }
-
-    // Fallback: focus last visible window
-    if (allCurrentWindows.length > 0) {
-      windowStore.focusWindow(allCurrentWindows[allCurrentWindows.length - 1].id);
-    }
+    reassignWindowZIndices(urlWindowConfigs, windowStore);
   }
 }

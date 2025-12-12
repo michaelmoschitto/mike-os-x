@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 
 import { DEFAULT_BOOKMARKS } from '@/config/defaultBookmarks';
-import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
+import { WINDOW_DIMENSIONS, WINDOW_Z_INDEX, getCenteredWindowPosition } from '@/lib/constants';
 import { serializeWindowsToUrl } from '@/lib/routing/windowSerialization';
-import { useUI } from '@/lib/store';
+import { useUI, type App } from '@/lib/store';
 import { getHostnameFromUrl, sanitizeUrlPath } from '@/lib/utils';
 
 export type BookmarkItem =
@@ -70,11 +70,34 @@ export type WindowOpenConfig = Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'a
   appName?: string;
 };
 
-const getAppTypeForDock = (
-  windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder' | 'photos'
-): 'browser' | 'textedit' | 'terminal' | 'pdfviewer' | 'photos' | null => {
-  if (windowType === 'finder') return null;
-  return windowType;
+const getDockIconForFinderPath = (path: string | undefined): App | null => {
+  if (!path) return null;
+
+  const pathSegments = path.toLowerCase().split('/').filter(Boolean);
+
+  if (pathSegments.includes('dock')) {
+    const dockIndex = pathSegments.indexOf('dock');
+    const nextSegment = pathSegments[dockIndex + 1];
+
+    if (nextSegment === 'writing') return 'writing';
+    if (nextSegment === 'reading') return 'reading';
+    if (nextSegment === 'trash') return 'trash';
+    if (nextSegment === 'finder') return 'finder';
+  }
+
+  return null;
+};
+
+const getAppTypeForDock = (window: Window): App | null => {
+  if (window.type === 'finder') {
+    return getDockIconForFinderPath(window.currentPath);
+  }
+
+  if (window.type === 'textedit' || window.type === 'pdfviewer') {
+    return null;
+  }
+
+  return window.type;
 };
 
 interface WindowStore {
@@ -118,14 +141,20 @@ interface WindowStore {
   setActiveTab: (windowId: string, tabId: string) => void;
   getActiveTerminalTab: (windowId: string) => TerminalTab | null;
   reorderTabs: (windowId: string, fromIndex: number, toIndex: number) => void;
+  updateMaxZIndex: () => void;
+  getWindows: () => Window[];
 }
 
 export const useWindowStore = create<WindowStore>((set, get) => ({
   windows: [],
   activeWindowId: null,
-  maxZIndex: 100,
+  maxZIndex: WINDOW_Z_INDEX.BASE,
   skipNextRouteSync: {},
 
+  /**
+   * Opens a new window and assigns it the highest z-index (maxZIndex + 1).
+   * New windows are automatically focused and appear on top.
+   */
   openWindow: (window) => {
     const state = get();
     const id = `window-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -171,7 +200,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       newWindow.activeTabId = newWindow.tabs[0].id;
     }
 
-    const appType = getAppTypeForDock(window.type);
+    const appType = getAppTypeForDock(newWindow);
 
     set({
       windows: [...state.windows, newWindow],
@@ -195,7 +224,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
         : state.activeWindowId;
 
     const nextActiveWindow = activeWindowId ? windows.find((w) => w.id === activeWindowId) : null;
-    const nextAppType = nextActiveWindow ? getAppTypeForDock(nextActiveWindow.type) : null;
+    const nextAppType = nextActiveWindow ? getAppTypeForDock(nextActiveWindow) : null;
 
     set({ windows, activeWindowId });
 
@@ -212,6 +241,10 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     return get().windows.filter((w) => !w.isMinimized);
   },
 
+  /**
+   * Focuses a window by assigning it the highest z-index (maxZIndex + 1).
+   * This ensures the focused window appears on top of all other windows.
+   */
   focusWindow: (id) => {
     const state = get();
     const window = state.windows.find((w) => w.id === id);
@@ -220,7 +253,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     const zIndex = state.maxZIndex + 1;
     const windows = state.windows.map((w) => (w.id === id ? { ...w, zIndex } : w));
 
-    const appType = getAppTypeForDock(window.type);
+    const appType = getAppTypeForDock(window);
 
     set({
       windows,
@@ -758,5 +791,39 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
         ),
       };
     });
+  },
+
+  /**
+   * Recalculates maxZIndex based on all windows in the store.
+   * Includes minimized windows to prevent z-index conflicts when they're restored (future feature).
+   * Should be called after batch z-index updates during window reconciliation.
+   */
+  updateMaxZIndex: () => {
+    set((state) => {
+      const maxZ = state.windows.reduce(
+        (max: number, w) => Math.max(max, w.zIndex),
+        WINDOW_Z_INDEX.BASE
+      );
+      return { maxZIndex: maxZ };
+    });
+  },
+
+  /**
+   * Gets the current windows array from the store.
+   *
+   * CRITICAL: This always returns fresh state, not a snapshot.
+   * During window reconciliation, we open/close/update windows, and then need to
+   * immediately access the updated window list to reassign z-indices.
+   *
+   * If we used a snapshot (like passing `windows` prop), we'd see stale data:
+   * - useEffect captures `windows` snapshot
+   * - reconcileWindowsWithUrl() opens new windows
+   * - Tries to access windows → still sees old snapshot!
+   * - Newly opened windows don't get z-index assigned → appear behind
+   *
+   * This getter ensures we always get the current state from Zustand.
+   */
+  getWindows: () => {
+    return get().windows;
   },
 }));

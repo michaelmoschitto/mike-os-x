@@ -39,6 +39,7 @@ const Desktop = () => {
         {/* Windows */}
         {windows
           .filter((w) => !w.isMinimized)
+          .sort((a, b) => a.zIndex - b.zIndex)
           .map((window) => {
             if (window.type === 'browser') {
               return (

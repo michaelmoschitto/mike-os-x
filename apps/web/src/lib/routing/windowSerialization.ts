@@ -58,6 +58,7 @@ export type WindowOpenConfig = Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'a
 export interface WindowConfig {
   identifier: string;
   config: WindowOpenConfig;
+  hasExplicitPosition?: boolean;
 }
 
 export interface ExtendedWindowState {
@@ -437,7 +438,11 @@ export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowCo
                   : tabs[0]?.id;
             }
 
-            configs.push({ identifier: normalizedIdentifier, config });
+            configs.push({
+              identifier: normalizedIdentifier,
+              config,
+              hasExplicitPosition: true,
+            });
           }
         }
       }
