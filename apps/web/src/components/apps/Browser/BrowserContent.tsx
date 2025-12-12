@@ -11,7 +11,7 @@ const LOADING_TIMEOUT_MS = 2000;
 
 const BrowserContent = ({ url, onLoadStart, onLoadEnd, onUrlChange }: BrowserContentProps) => {
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(url && url !== 'about:blank');
   const timeoutRef = useRef<number | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const lastKnownUrlRef = useRef<string>(url);

@@ -20,6 +20,8 @@ export interface WindowStoreActions {
   ) => void;
   focusWindow: (id: string) => void;
   windows: Window[];
+  updateMaxZIndex: () => void;
+  getWindows: () => Window[];
 }
 
 /**
@@ -155,29 +157,61 @@ export function reconcileWindowsWithUrl(
     windowStore.openWindow(config.config);
   }
 
+  // Reassign z-index values based on URL order
+  // The last window in the URL should have the highest z-index
   if (urlWindowConfigs.length > 0) {
+    // Use getWindows() to get fresh window data after opening new windows
+    const allCurrentWindows = windowStore.getWindows().filter((w) => !w.isMinimized);
+    const windowByIdentifier = new Map<string, Window>();
+
+    for (const window of allCurrentWindows) {
+      const identifier = serializeWindow(window);
+      if (identifier) {
+        windowByIdentifier.set(identifier, window);
+      }
+    }
+
+    // Assign z-index values based on URL order starting from a fresh base
+    // This ensures proper sequential ordering without conflicts
+    const baseZIndex = 100;
     const lastIdentifier = urlWindowConfigs[urlWindowConfigs.length - 1].identifier;
+
+    // Assign all windows except the last sequential z-index values
+    for (let i = 0; i < urlWindowConfigs.length - 1; i++) {
+      const config = urlWindowConfigs[i];
+      const window = windowByIdentifier.get(config.identifier);
+      if (window) {
+        const newZIndex = baseZIndex + i;
+        if (window.zIndex !== newZIndex) {
+          windowStore.updateWindow(window.id, { zIndex: newZIndex }, { skipRouteSync: true });
+        }
+      }
+    }
+
+    // Update the store's maxZIndex to reflect the reassigned values
+    // This ensures focusWindow uses the correct base
+    windowStore.updateMaxZIndex();
+
+    // Handle special reconciliation windows (like photos)
     const lastConfigStrategy = getStrategyForIdentifier(lastIdentifier);
 
     if (lastConfigStrategy?.requiresSpecialReconciliation) {
-      const allCurrentWindows = windowStore.windows.filter((w) => !w.isMinimized);
       const specialWindow = allCurrentWindows.find((w) => {
         const strategy = getWindowTypeStrategy(w.type);
         return strategy === lastConfigStrategy;
       });
       if (specialWindow) {
+        // focusWindow will set this to maxZIndex + 1, ensuring it's on top
         windowStore.focusWindow(specialWindow.id);
         return;
       }
     }
 
-    const allCurrentWindows = windowStore.windows.filter((w) => !w.isMinimized);
-    for (const window of allCurrentWindows) {
-      const identifier = serializeWindow(window);
-      if (identifier === lastIdentifier) {
-        windowStore.focusWindow(window.id);
-        return;
-      }
+    // Focus the last window in URL, which will give it the highest z-index (maxZIndex + 1)
+    const lastWindow = windowByIdentifier.get(lastIdentifier);
+    if (lastWindow) {
+      windowStore.focusWindow(lastWindow.id);
+      return;
     }
 
     // Fallback: focus last visible window

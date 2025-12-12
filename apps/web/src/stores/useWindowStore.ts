@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { DEFAULT_BOOKMARKS } from '@/config/defaultBookmarks';
 import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { serializeWindowsToUrl } from '@/lib/routing/windowSerialization';
-import { useUI } from '@/lib/store';
+import { useUI, type App } from '@/lib/store';
 import { getHostnameFromUrl, sanitizeUrlPath } from '@/lib/utils';
 
 export type BookmarkItem =
@@ -70,11 +70,41 @@ export type WindowOpenConfig = Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'a
   appName?: string;
 };
 
+const getDockIconForFinderPath = (path: string | undefined): App | null => {
+  if (!path) return null;
+
+  const normalizedPath = path.toLowerCase();
+
+  if (normalizedPath.includes('dock/writing')) return 'writing';
+  if (normalizedPath.includes('dock/reading')) return 'reading';
+  if (normalizedPath.includes('dock/trash')) return 'trash';
+  if (normalizedPath.includes('dock/finder')) return 'finder';
+
+  return null;
+};
+
 const getAppTypeForDock = (
-  windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder' | 'photos'
-): 'browser' | 'textedit' | 'terminal' | 'pdfviewer' | 'photos' | null => {
-  if (windowType === 'finder') return null;
-  return windowType;
+  window: Window
+):
+  | 'browser'
+  | 'textedit'
+  | 'terminal'
+  | 'pdfviewer'
+  | 'photos'
+  | 'writing'
+  | 'reading'
+  | 'trash'
+  | 'finder'
+  | null => {
+  if (window.type === 'finder') {
+    return getDockIconForFinderPath(window.currentPath);
+  }
+
+  if (window.type === 'textedit' || window.type === 'pdfviewer') {
+    return null;
+  }
+
+  return window.type;
 };
 
 interface WindowStore {
@@ -118,6 +148,8 @@ interface WindowStore {
   setActiveTab: (windowId: string, tabId: string) => void;
   getActiveTerminalTab: (windowId: string) => TerminalTab | null;
   reorderTabs: (windowId: string, fromIndex: number, toIndex: number) => void;
+  updateMaxZIndex: () => void;
+  getWindows: () => Window[];
 }
 
 export const useWindowStore = create<WindowStore>((set, get) => ({
@@ -171,7 +203,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       newWindow.activeTabId = newWindow.tabs[0].id;
     }
 
-    const appType = getAppTypeForDock(window.type);
+    const appType = getAppTypeForDock(newWindow);
 
     set({
       windows: [...state.windows, newWindow],
@@ -195,7 +227,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
         : state.activeWindowId;
 
     const nextActiveWindow = activeWindowId ? windows.find((w) => w.id === activeWindowId) : null;
-    const nextAppType = nextActiveWindow ? getAppTypeForDock(nextActiveWindow.type) : null;
+    const nextAppType = nextActiveWindow ? getAppTypeForDock(nextActiveWindow) : null;
 
     set({ windows, activeWindowId });
 
@@ -220,7 +252,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     const zIndex = state.maxZIndex + 1;
     const windows = state.windows.map((w) => (w.id === id ? { ...w, zIndex } : w));
 
-    const appType = getAppTypeForDock(window.type);
+    const appType = getAppTypeForDock(window);
 
     set({
       windows,
@@ -758,5 +790,16 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
         ),
       };
     });
+  },
+
+  updateMaxZIndex: () => {
+    set((state) => {
+      const maxZ = state.windows.reduce((max, w) => Math.max(max, w.zIndex), 100);
+      return { maxZIndex: maxZ };
+    });
+  },
+
+  getWindows: () => {
+    return get().windows;
   },
 }));
