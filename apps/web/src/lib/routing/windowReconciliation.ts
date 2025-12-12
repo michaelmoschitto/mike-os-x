@@ -26,8 +26,18 @@ export interface WindowStoreActions {
 
 /**
  * Reassigns z-index values to windows based on URL order.
- * Windows earlier in the URL get lower z-index values, and the last window gets focused
- * which automatically assigns it the highest z-index (maxZIndex + 1).
+ *
+ * This function ensures proper window stacking after reconciliation:
+ * 1. Windows earlier in the URL get lower z-indices (BASE, BASE+1, BASE+2, ...)
+ * 2. All but the last window get sequential z-indices
+ * 3. The last window gets focused, which assigns it maxZIndex + 1 (top of stack)
+ *
+ * Special cases:
+ * - Singleton windows (like Photos) use requiresSpecialReconciliation pattern
+ * - Must use getWindows() to fetch fresh state after opening new windows
+ *
+ * @param urlWindowConfigs - Window configurations from URL, in order
+ * @param windowStore - Window store actions for state access and updates
  */
 function reassignWindowZIndices(
   urlWindowConfigs: WindowConfig[],
@@ -113,8 +123,18 @@ function needsUpdate(currentWindow: Window, newConfig: Partial<Window>): boolean
 }
 
 /**
- * Reconcile current windows with URL window configurations
- * This function syncs the actual window state with what the URL says should be open
+ * Reconcile current windows with URL window configurations.
+ * This function syncs the actual window state with what the URL says should be open.
+ *
+ * Reconciliation flow:
+ * 1. Handle special windows (photos) that follow singleton pattern
+ * 2. Close windows not in URL
+ * 3. Update existing windows with new config
+ * 4. Open new windows from URL
+ * 5. Reassign z-indices based on URL order (last window on top)
+ *
+ * @param urlWindowConfigs - Window configurations parsed from URL
+ * @param windowStore - Window store actions for state access and updates
  */
 export function reconcileWindowsWithUrl(
   urlWindowConfigs: WindowConfig[],

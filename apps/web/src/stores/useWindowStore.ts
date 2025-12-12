@@ -820,8 +820,18 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
 
   /**
    * Gets the current windows array from the store.
-   * This always returns fresh state, not a snapshot, which is critical for
-   * window reconciliation after opening/closing windows.
+   *
+   * CRITICAL: This always returns fresh state, not a snapshot.
+   * During window reconciliation, we open/close/update windows, and then need to
+   * immediately access the updated window list to reassign z-indices.
+   *
+   * If we used a snapshot (like passing `windows` prop), we'd see stale data:
+   * - useEffect captures `windows` snapshot
+   * - reconcileWindowsWithUrl() opens new windows
+   * - Tries to access windows → still sees old snapshot!
+   * - Newly opened windows don't get z-index assigned → appear behind
+   *
+   * This getter ensures we always get the current state from Zustand.
    */
   getWindows: () => {
     return get().windows;
