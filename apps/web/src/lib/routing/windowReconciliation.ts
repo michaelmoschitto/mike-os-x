@@ -1,4 +1,4 @@
-import { WINDOW_Z_INDEX } from '@/lib/constants/windowZIndex';
+import { WINDOW_Z_INDEX } from '@/lib/constants';
 import { serializeWindow, type WindowConfig } from '@/lib/routing/windowSerialization';
 import {
   getWindowTypeStrategy,

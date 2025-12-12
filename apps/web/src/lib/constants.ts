@@ -65,3 +65,22 @@ export const getCenteredWindowPosition = (
     y: centerY + UI_DIMENSIONS.menuBarHeight,
   };
 };
+
+/**
+ * Window z-index constants for managing window stacking order.
+ *
+ * Z-index update strategy:
+ * - New windows get maxZIndex + 1 (openWindow)
+ * - Focused windows get maxZIndex + 1 (focusWindow)
+ * - URL reconciliation reassigns sequential z-indices starting from BASE (reassignWindowZIndices)
+ * - maxZIndex is recalculated after batch updates (updateMaxZIndex)
+ *
+ * This ensures:
+ * 1. New/focused windows always appear on top
+ * 2. URL order determines stacking when multiple windows are reconciled
+ * 3. No z-index conflicts or gaps
+ */
+export const WINDOW_Z_INDEX = {
+  BASE: 100,
+  INCREMENT: 1,
+} as const;

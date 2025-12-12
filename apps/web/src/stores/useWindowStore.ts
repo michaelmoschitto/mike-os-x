@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 
 import { DEFAULT_BOOKMARKS } from '@/config/defaultBookmarks';
-import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
-import { WINDOW_Z_INDEX } from '@/lib/constants/windowZIndex';
+import { WINDOW_DIMENSIONS, WINDOW_Z_INDEX, getCenteredWindowPosition } from '@/lib/constants';
 import { serializeWindowsToUrl } from '@/lib/routing/windowSerialization';
 import { useUI, type App } from '@/lib/store';
 import { getHostnameFromUrl, sanitizeUrlPath } from '@/lib/utils';

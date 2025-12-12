@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type App =
+export type App =
   | 'finder'
   | 'browser'
   | 'textedit'
