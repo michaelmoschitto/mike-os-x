@@ -71,7 +71,7 @@ _8 books_
 
 - [Bun Joins Anthropic](https://bun.com/blog/bun-joins-anthropic)
 - [Planetscale, Vitess, and the Slack Chief Architect](https://news.ycombinator.com/item?id=27199042)
-  ](https://spectrum.ieee.org/mirai-botnet)
+- [The Strange Story of the Teens Behind the Mirai Botnet](https://spectrum.ieee.org/mirai-botnet)
 
 ### Product & Execution
 
