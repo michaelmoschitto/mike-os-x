@@ -85,6 +85,7 @@ _8 books_
 
 - [The Self-Promotion Horror Show](https://hils.substack.com/p/the-self-promotion-horror-show)
 - [Berkshire Hathaway Letter To Shareholders (Nov 2025)](https://berkshirehathaway.com/news/nov1025.pdf)
+- [Work and Meaning Excerpt](https://www.darioamodei.com/essay/machines-of-loving-grace#:~:text=wants%20to%20adopt.-,5.%20Work%20and%20meaning,questions%20and%20I%20hope%20to%20do%20so%20at%20some%20later%20time.,-Taking%20stock)
 - [Brian Armstrong on working with smart people](https://x.com/brian_armstrong/status/1990073384022020290?s=20)
 - [@HyperliquidX: How to Win in Crypto (By building for users, not VCs)](https://x.com/KevinWSHPod/status/1854852404610842854)
 
