@@ -18,6 +18,7 @@ _4 books_
 - [Never Finished](https://www.goodreads.com/book/show/63079845-never-finished)
 - [Staff Engineer: Leadership Beyond the Management Track](https://www.goodreads.com/book/show/56481725-staff-engineer)
 - [The Mamba Mentality: How I Play](https://www.goodreads.com/book/show/40230101-the-mamba-mentality)
+- [Team of Teams](https://www.goodreads.com/book/show/40230101-the-mamba-mentality)
 
 ### 2025
 
@@ -52,6 +53,7 @@ _8 books_
 
 ### AI, Applied Engineering
 
+- [Machines of Loving Grace](https://www.darioamodei.com/essay/machines-of-loving-grace)
 - [The Overthinking Problem in AI](https://www.amazon.science/blog/the-overthinking-problem-in-ai)
 - [Code execution with MCP: Building more efficient agents](https://www.anthropic.com/engineering/code-execution-with-mcp)
 - [Generative Agents: Interactive Simulacra of Human Behavior](https://arxiv.org/abs/2304.03442)
