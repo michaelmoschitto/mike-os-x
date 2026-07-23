@@ -141,7 +141,7 @@ const BrowserContent = ({ url, onLoadStart, onLoadEnd, onUrlChange }: BrowserCon
 
   const handleOpenInBrowser = () => {
     if (url) {
-      globalThis.window.open(url, '_blank');
+      globalThis.window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -246,7 +246,7 @@ const BrowserContent = ({ url, onLoadStart, onLoadEnd, onUrlChange }: BrowserCon
         src={url}
         title="Browser Content"
         className="h-full w-full border-0"
-        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox allow-top-navigation"
+        sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
         onLoad={handleIframeLoad}
         onError={handleIframeError}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -257,11 +257,6 @@ const BrowserContent = ({ url, onLoadStart, onLoadEnd, onUrlChange }: BrowserCon
         - allow-scripts: Allows JavaScript execution (required for most websites)
         - allow-popups: Allows window.open() to create popups
         - allow-forms: Allows form submission
-        - allow-popups-to-escape-sandbox: Allows popups to escape sandbox restrictions
-        - allow-top-navigation: Allows navigation of the top-level browsing context (parent window)
-          ⚠️ SECURITY NOTE: This allows embedded pages to navigate the parent window. 
-          This is necessary for some websites to function properly, but could be a security concern.
-          Consider removing if not needed for your use case.
       */}
     </div>
   );
