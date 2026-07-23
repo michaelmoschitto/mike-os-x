@@ -56,7 +56,7 @@ services:
 
   # Redis
   redis:
-    image: redis:8-alpine
+    image: redis:8-alpine@sha256:9d317178eceac8454a2284a9e6df2466b93c745529947f0cd42a0fa9609d7005
     ports:
       - '6379:6379'
     volumes:
@@ -65,7 +65,7 @@ services:
   # Jekyll Blog (for local testing)
   # Uses cached image - no pulling needed after first run
   blog:
-    image: jekyll/jekyll:latest
+    image: jekyll/jekyll:4.2.2@sha256:400b8d1569f118bca8a3a09a25f32803b00a55d1ea241feaf5f904d66ca9c625
     ports:
       - '4000:4000'
       - '35729:35729'

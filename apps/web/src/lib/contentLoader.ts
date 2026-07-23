@@ -1,6 +1,6 @@
-import matter from 'gray-matter';
+import { load } from 'js-yaml';
 
-import type { ContentMetadata } from '@/lib/fileToApp';
+import type { AppType, ContentMetadata } from '@/lib/fileToApp';
 
 export interface LoadedContent {
   content: string;
@@ -8,6 +8,52 @@ export interface LoadedContent {
 }
 
 let globModulesCache: Record<string, () => Promise<string | { default: string }>> | null = null;
+
+interface ParsedContent {
+  content: string;
+  data: Record<string, unknown>;
+}
+
+const parseFrontmatter = (rawContent: string): ParsedContent => {
+  const match = rawContent.match(/^---\r?\n([\s\S]*?)^---[ \t]*(?:\r?\n|$)/m);
+  if (!match) {
+    return { content: rawContent, data: {} };
+  }
+
+  const parsedData = match[1].trim() ? load(match[1]) : {};
+  const data =
+    parsedData && typeof parsedData === 'object' && !Array.isArray(parsedData)
+      ? (parsedData as Record<string, unknown>)
+      : {};
+
+  return {
+    content: rawContent.slice(match[0].length),
+    data,
+  };
+};
+
+const getOptionalString = (value: unknown): string | undefined => {
+  return typeof value === 'string' ? value : undefined;
+};
+
+const getAppType = (value: unknown): AppType | undefined => {
+  const appTypes: AppType[] = ['textedit', 'browser', 'pdfviewer', 'photos', 'finder', 'shortcut'];
+  return typeof value === 'string' && appTypes.includes(value as AppType)
+    ? (value as AppType)
+    : undefined;
+};
+
+const toLoadedContent = ({ content, data }: ParsedContent): LoadedContent => {
+  return {
+    content,
+    metadata: {
+      title: getOptionalString(data.title),
+      slug: getOptionalString(data.slug),
+      app: getAppType(data.app),
+      description: getOptionalString(data.description),
+    },
+  };
+};
 
 const getGlobModules = (): Record<string, () => Promise<string | { default: string }>> => {
   if (!globModulesCache) {
@@ -44,32 +90,12 @@ export const loadContentFile = async (globKey: string): Promise<LoadedContent> =
 
       const fileContent = await contentModules[normalizedKey]();
       const rawContent = typeof fileContent === 'string' ? fileContent : fileContent.default || '';
-      const parsed = matter(rawContent);
-
-      return {
-        content: parsed.content,
-        metadata: {
-          title: parsed.data.title,
-          slug: parsed.data.slug,
-          app: parsed.data.app,
-          description: parsed.data.description,
-        },
-      };
+      return toLoadedContent(parseFrontmatter(rawContent));
     }
 
     const fileContent = await importFn();
     const rawContent = typeof fileContent === 'string' ? fileContent : fileContent.default || '';
-    const parsed = matter(rawContent);
-
-    return {
-      content: parsed.content,
-      metadata: {
-        title: parsed.data.title,
-        slug: parsed.data.slug,
-        app: parsed.data.app,
-        description: parsed.data.description,
-      },
-    };
+    return toLoadedContent(parseFrontmatter(rawContent));
   } catch (error) {
     console.error('[ContentLoader] Error loading file:', error);
     throw new Error(`Failed to load content file: ${globKey}`, { cause: error });
@@ -81,17 +107,7 @@ export const loadContentFile = async (globKey: string): Promise<LoadedContent> =
  */
 export const parseContent = (rawContent: string): LoadedContent => {
   try {
-    const parsed = matter(rawContent);
-
-    return {
-      content: parsed.content,
-      metadata: {
-        title: parsed.data.title,
-        slug: parsed.data.slug,
-        app: parsed.data.app,
-        description: parsed.data.description,
-      },
-    };
+    return toLoadedContent(parseFrontmatter(rawContent));
   } catch (error) {
     return {
       content: rawContent,
