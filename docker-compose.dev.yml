@@ -13,6 +13,8 @@ services:
     volumes:
       - ./apps/api:/app
       - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - ${DOCKER_GID:-0}
     environment:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - REDIS_URL=redis://redis:6379/0
@@ -28,7 +30,7 @@ services:
     depends_on:
       - redis
       - terminal
-    command: uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: /opt/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
   # Terminal container
   terminal:
