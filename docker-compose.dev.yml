@@ -46,6 +46,7 @@ services:
     user: '1000:1000'
     mem_limit: ${CONTAINER_MEMORY:-1g}
     cpus: ${CONTAINER_CPUS:-1.0}
+    pids_limit: ${CONTAINER_PIDS:-128}
     tmpfs:
       - /tmp:size=256m
       - /var/tmp:size=256m

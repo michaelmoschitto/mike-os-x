@@ -8,7 +8,7 @@ from fastapi import WebSocket
 from services.container_manager import ContainerManager
 from services.pty_session_manager import PTYSessionManager
 from services.rate_limiter import RateLimiter
-from services.terminal_bridge import TerminalBridge
+from services.terminal_bridge import MAX_SESSIONS_PER_CONNECTION, TerminalBridge
 
 
 @pytest.fixture
@@ -194,6 +194,52 @@ async def test_multiple_sessions_same_websocket(terminal_bridge, mock_session_ma
     assert mock_session_manager.create_session.call_count == 3
     for session_id in session_ids:
         mock_session_manager.create_session.assert_any_call(session_id)
+
+
+@pytest.mark.asyncio
+async def test_rejects_session_creation_above_connection_limit(
+    terminal_bridge, mock_session_manager
+):
+    websocket = AsyncMock(spec=WebSocket)
+    connection_id = "connection-1"
+    terminal_bridge.websocket_sessions[connection_id] = {
+        f"session-{index}" for index in range(MAX_SESSIONS_PER_CONNECTION)
+    }
+
+    await terminal_bridge._handle_create_session(
+        websocket,
+        connection_id,
+        "127.0.0.1",
+        {"type": "create_session", "sessionId": "session-over-limit"},
+    )
+
+    mock_session_manager.create_session.assert_not_awaited()
+    assert "Session limit reached" in websocket.send_text.await_args.args[0]
+
+
+@pytest.mark.asyncio
+async def test_rejects_input_for_session_owned_by_another_connection(
+    terminal_bridge, mock_session_manager
+):
+    websocket = AsyncMock(spec=WebSocket)
+    victim_session_id = "victim-session"
+    terminal_bridge.websocket_sessions["victim-connection"] = {victim_session_id}
+    terminal_bridge.websocket_sessions["attacker-connection"] = set()
+    mock_session_manager.sessions[victim_session_id] = MagicMock()
+
+    await terminal_bridge._handle_input(
+        websocket,
+        "attacker-connection",
+        "127.0.0.1",
+        {
+            "type": "input",
+            "sessionId": victim_session_id,
+            "data": "echo compromised\n",
+        },
+    )
+
+    mock_session_manager.write_to_session.assert_not_awaited()
+    assert "Session not found" in websocket.send_text.await_args.args[0]
 
 
 @pytest.mark.asyncio
