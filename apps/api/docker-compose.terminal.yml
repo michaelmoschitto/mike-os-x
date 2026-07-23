@@ -14,16 +14,12 @@ services:
       - ALL
     network_mode: none
     user: '1000:1000'
-    mem_limit: 1g
-    cpus: 1.0
+    mem_limit: 256m
+    cpus: 0.5
     pids_limit: 128
     tmpfs:
       - /tmp:size=256m
       - /var/tmp:size=256m
-    volumes:
-      - terminal-workspace:/workspace:rw
+      - /workspace:size=64m,uid=1000,gid=1000,mode=0755
     restart: unless-stopped
     command: tail -f /dev/null
-
-volumes:
-  terminal-workspace:

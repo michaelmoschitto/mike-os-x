@@ -22,9 +22,10 @@ services:
       - TERMINAL_VOLUME_NAME=${TERMINAL_VOLUME_NAME:-terminal-workspace}
       - RATE_LIMIT_CONNECTIONS=${RATE_LIMIT_CONNECTIONS:-50}
       - RATE_LIMIT_COMMANDS=${RATE_LIMIT_COMMANDS:-5000}
-      - CONTAINER_MEMORY=${CONTAINER_MEMORY:-1g}
-      - CONTAINER_CPUS=${CONTAINER_CPUS:-1.0}
-      - CONTAINER_DISK=${CONTAINER_DISK:-5g}
+      - CONTAINER_MEMORY=${CONTAINER_MEMORY:-256m}
+      - CONTAINER_CPUS=${CONTAINER_CPUS:-0.5}
+      - CONTAINER_PIDS=${CONTAINER_PIDS:-128}
+      - CONTAINER_DISK=${CONTAINER_DISK:-64m}
     depends_on:
       - redis
       - terminal
@@ -44,14 +45,13 @@ services:
       - ALL
     network_mode: none
     user: '1000:1000'
-    mem_limit: ${CONTAINER_MEMORY:-1g}
-    cpus: ${CONTAINER_CPUS:-1.0}
+    mem_limit: ${CONTAINER_MEMORY:-256m}
+    cpus: ${CONTAINER_CPUS:-0.5}
     pids_limit: ${CONTAINER_PIDS:-128}
     tmpfs:
       - /tmp:size=256m
       - /var/tmp:size=256m
-    volumes:
-      - terminal-workspace:/workspace:rw
+      - /workspace:size=${CONTAINER_DISK:-64m},uid=1000,gid=1000,mode=0755
     restart: unless-stopped
     command: tail -f /dev/null
 
@@ -78,5 +78,4 @@ services:
 
 volumes:
   redis-data:
-  terminal-workspace:
   jekyll-bundle-cache:
