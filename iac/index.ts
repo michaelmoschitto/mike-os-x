@@ -6,6 +6,8 @@ import * as aws from '@pulumi/aws';
 // Configuration
 const config = new pulumi.Config();
 const sshPublicKey = config.get('sshPublicKey') || ''; // Will be set via pulumi config
+const sshIngressCidr = config.require('sshIngressCidr');
+const dockerIngressCidr = config.require('dockerIngressCidr');
 
 // Get the latest Ubuntu 22.04 AMI
 const ubuntu = aws.ec2.getAmi({
@@ -37,14 +39,14 @@ const securityGroup = new aws.ec2.SecurityGroup('terminal-host-sg', {
       fromPort: 22,
       toPort: 22,
       protocol: 'tcp',
-      cidrBlocks: ['0.0.0.0/0'], // Consider restricting this to your IP
+      cidrBlocks: [sshIngressCidr],
     },
     {
       description: 'Docker TLS',
       fromPort: 2376,
       toPort: 2376,
       protocol: 'tcp',
-      cidrBlocks: ['0.0.0.0/0'], // Railway will connect here
+      cidrBlocks: [dockerIngressCidr],
     },
   ],
   egress: [
@@ -90,11 +92,10 @@ apt-get install -y git curl wget
 curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 
-# Configure Docker daemon to listen on both Unix socket and TCP
-# Note: TLS will be configured after certificates are generated
+# Keep Docker on the local socket until the deployment workflow installs TLS.
 cat > /etc/docker/daemon.json <<'DOCKER_EOF'
 {
-  "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2376"]
+  "hosts": ["unix:///var/run/docker.sock"]
 }
 DOCKER_EOF
 
@@ -109,7 +110,7 @@ OVERRIDE_EOF
 # Enable and start Docker service
 systemctl daemon-reload
 systemctl enable docker
-systemctl start docker
+systemctl restart docker
 
 # Wait for Docker to be ready
 sleep 5
@@ -130,8 +131,8 @@ cat > /etc/logrotate.d/docker-containers <<'LOGROTATE_EOF'
 }
 LOGROTATE_EOF
 
-echo "EC2 bootstrap complete. Docker is running on Unix socket and TCP (without TLS)."
-echo "Next: Upload TLS certificates to /etc/docker/certs/ and update daemon.json with TLS config."
+echo "EC2 bootstrap complete. Docker is available only through the local Unix socket."
+echo "The deployment workflow must install TLS before enabling TCP access."
 `;
 
 // EC2 instance for terminal host
