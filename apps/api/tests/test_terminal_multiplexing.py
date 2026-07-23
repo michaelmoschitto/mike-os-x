@@ -32,6 +32,7 @@ def mock_container_manager(mock_container):
     manager = MagicMock(spec=ContainerManager)
     manager.ensure_container_running.return_value = mock_container
     manager.ensure_container_healthy.return_value = mock_container
+    manager.create_session_container.return_value = mock_container
     manager.get_container.return_value = mock_container
     return manager
 
@@ -77,6 +78,22 @@ def terminal_bridge(mock_container_manager, mock_rate_limiter, mock_session_mana
     bridge.rate_limiter = mock_rate_limiter
     bridge.session_manager = mock_session_manager
     return bridge
+
+
+@pytest.mark.asyncio
+async def test_pty_session_uses_and_removes_isolated_container(
+    mock_container_manager, mock_container
+):
+    session_manager = PTYSessionManager(mock_container_manager)
+
+    session = await session_manager.create_session("isolated-session")
+
+    mock_container_manager.create_session_container.assert_called_once_with()
+    assert session.container is mock_container
+
+    await session_manager.close_session("isolated-session")
+
+    mock_container_manager.remove_session_container.assert_called_once_with(mock_container)
 
 
 @pytest.mark.asyncio

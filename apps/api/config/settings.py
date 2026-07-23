@@ -113,9 +113,10 @@ class Settings(BaseSettings):
     rate_limit_commands: int = Field(default=5000)
 
     # Container Resources
-    container_memory: str = Field(default="1g")
-    container_cpus: float = Field(default=1.0)
-    container_disk: str = Field(default="5g")
+    container_memory: str = Field(default="256m")
+    container_cpus: float = Field(default=0.5)
+    container_pids: int = Field(default=128)
+    container_disk: str = Field(default="64m")
 
     @property
     def cors_origins_list(self) -> list[str]:
