@@ -19,6 +19,15 @@ services:
       - '8000:8000'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - ${DOCKER_GID:-0}
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=32m,mode=1777
     environment:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
