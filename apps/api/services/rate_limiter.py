@@ -1,5 +1,7 @@
 import logging
 import time
+from collections import defaultdict, deque
+from urllib.parse import urlsplit
 
 import redis
 from fastapi import HTTPException, status
@@ -8,30 +10,61 @@ from config.settings import settings
 
 logger = logging.getLogger(__name__)
 
+MAX_LOCAL_BUCKETS = 10_000
+
 
 class RateLimiter:
-    """
-    Rate limiter using Redis for connection and command rate limiting.
-
-    Note: If Redis is unavailable, the rate limiter will fail-open (allow all traffic).
-    This is intentional to prevent service disruption if Redis goes down, but means
-    rate limiting will be disabled in that scenario. Ensure Redis is properly configured
-    and monitored in production.
-    """
-
     def __init__(self) -> None:
+        self.local_events: dict[str, deque[float]] = defaultdict(deque)
+        self.last_local_cleanup = time.monotonic()
+        redis_host = urlsplit(settings.redis_url).hostname or "configured host"
+
         try:
             self.redis_client = redis.from_url(settings.redis_url, decode_responses=True)
             self.redis_client.ping()
-            logger.info(f"Connected to Redis at {settings.redis_url}")
-        except redis.ConnectionError as e:
-            logger.error(f"Failed to connect to Redis at {settings.redis_url}: {e}")
-            logger.error("Rate limiting will be disabled. Please start Redis.")
+            logger.info(f"Connected to Redis at {redis_host}")
+        except redis.RedisError as e:
+            logger.error(f"Failed to connect to Redis at {redis_host}: {e}")
+            logger.warning("Redis unavailable; using in-process rate limits")
             self.redis_client = None
 
+    def _check_local_limit(self, key: str, limit: int) -> bool:
+        now = time.monotonic()
+        window_start = now - 60
+
+        if now - self.last_local_cleanup >= 60:
+            for existing_key, existing_events in list(self.local_events.items()):
+                while existing_events and existing_events[0] <= window_start:
+                    existing_events.popleft()
+                if not existing_events:
+                    del self.local_events[existing_key]
+            self.last_local_cleanup = now
+
+        if key not in self.local_events and len(self.local_events) >= MAX_LOCAL_BUCKETS:
+            logger.warning("Local rate-limit bucket capacity reached")
+            return False
+
+        events = self.local_events[key]
+
+        while events and events[0] <= window_start:
+            events.popleft()
+
+        if len(events) >= limit:
+            return False
+
+        events.append(now)
+        return True
+
     async def check_connection_limit(self, ip: str) -> None:
+        if not self._check_local_limit(
+            f"connections:{ip}", settings.rate_limit_connections
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many connections. Please try again later.",
+            )
+
         if not self.redis_client:
-            logger.warning("Redis not available, skipping connection rate limit check")
             return
 
         try:
@@ -45,10 +78,15 @@ class RateLimiter:
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     detail="Too many connections. Please try again later.",
                 )
-        except redis.ConnectionError:
-            logger.warning("Redis connection lost during rate limit check, allowing connection")
+        except redis.RedisError:
+            logger.warning("Redis connection lost; enforcing in-process connection limit")
 
     async def check_command_limit(self, ip: str) -> bool:
+        if not self._check_local_limit(
+            f"commands:{ip}", settings.rate_limit_commands
+        ):
+            return False
+
         if not self.redis_client:
             return True
 
@@ -59,10 +97,8 @@ class RateLimiter:
                 self.redis_client.expire(key, 60)
 
             return count <= settings.rate_limit_commands
-        except redis.ConnectionError:
-            logger.warning(
-                "Redis connection lost during command rate limit check, allowing command"
-            )
+        except redis.RedisError:
+            logger.warning("Redis connection lost; enforcing in-process command limit")
             return True
 
     def track_connection(self, connection_id: str, ip: str, user_agent: str) -> None:
@@ -79,7 +115,7 @@ class RateLimiter:
                     "connected_at": str(int(time.time())),
                 },
             )
-        except redis.ConnectionError:
+        except redis.RedisError:
             logger.warning("Redis connection lost during connection tracking")
 
     def untrack_connection(self, connection_id: str) -> None:
@@ -89,7 +125,7 @@ class RateLimiter:
         try:
             self.redis_client.srem("connections:active", connection_id)
             self.redis_client.delete(f"connection:{connection_id}:metadata")
-        except redis.ConnectionError:
+        except redis.RedisError:
             logger.warning("Redis connection lost during connection untracking")
 
     def get_active_connections_count(self) -> int:
@@ -98,6 +134,6 @@ class RateLimiter:
 
         try:
             return self.redis_client.scard("connections:active")
-        except redis.ConnectionError:
+        except redis.RedisError:
             logger.warning("Redis connection lost during connection count")
             return 0
