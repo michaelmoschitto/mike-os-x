@@ -1,80 +1,57 @@
-#!/bin/bash
-set -e
-
-# Upload Docker TLS certificates to Railway as base64 environment variables
-# Usage: ./scripts/upload-certs-to-railway.sh [certs-directory]
-#
-# Default certs directory: ~/Downloads/docker-tls-client-certs
+#!/usr/bin/env bash
+set -euo pipefail
 
 CERTS_DIR="${1:-$HOME/Downloads/docker-tls-client-certs}"
+DOCKER_HOST_VALUE="${2:-${DOCKER_HOST:-}}"
+RAILWAY_SERVICE="${RAILWAY_SERVICE:-@mike-os-x/api}"
+MIN_VALID_DAYS="${MIN_VALID_DAYS:-30}"
 
-echo "📁 Looking for certificates in: $CERTS_DIR"
+for file in ca.pem cert.pem key.pem; do
+    if [[ ! -f "$CERTS_DIR/$file" ]]; then
+        echo "Missing certificate file: $CERTS_DIR/$file" >&2
+        exit 1
+    fi
+done
 
-# Check if certs exist
-if [[ ! -f "$CERTS_DIR/ca.pem" ]] || [[ ! -f "$CERTS_DIR/cert.pem" ]] || [[ ! -f "$CERTS_DIR/key.pem" ]]; then
-    echo "❌ Error: Certificate files not found in $CERTS_DIR"
-    echo ""
-    echo "Expected files:"
-    echo "  - $CERTS_DIR/ca.pem"
-    echo "  - $CERTS_DIR/cert.pem"
-    echo "  - $CERTS_DIR/key.pem"
-    echo ""
-    echo "Download the 'docker-tls-client-certs' artifact from the GitHub Actions workflow"
-    echo "and extract it, then run:"
-    echo ""
-    echo "  ./scripts/upload-certs-to-railway.sh /path/to/extracted/certs"
+if ! command -v railway >/dev/null 2>&1; then
+    echo "Railway CLI is required. Install it with: brew install railway" >&2
     exit 1
 fi
 
-# Check Railway CLI is installed
-if ! command -v railway &> /dev/null; then
-    echo "❌ Railway CLI not installed. Install with: brew install railway"
+if ! railway whoami >/dev/null 2>&1; then
+    echo "Railway authentication is required. Run: railway login" >&2
     exit 1
 fi
 
-# Check if logged in
-if ! railway whoami &> /dev/null; then
-    echo "❌ Not logged in to Railway. Run: railway login"
+MIN_VALID_SECONDS=$((MIN_VALID_DAYS * 24 * 60 * 60))
+openssl verify -CAfile "$CERTS_DIR/ca.pem" "$CERTS_DIR/cert.pem"
+openssl x509 -checkend "$MIN_VALID_SECONDS" -noout -in "$CERTS_DIR/ca.pem"
+openssl x509 -checkend "$MIN_VALID_SECONDS" -noout -in "$CERTS_DIR/cert.pem"
+
+CLIENT_KEY_HASH="$(openssl pkey -in "$CERTS_DIR/key.pem" -pubout 2>/dev/null | openssl sha256)"
+CLIENT_CERT_HASH="$(openssl x509 -in "$CERTS_DIR/cert.pem" -pubkey -noout | openssl sha256)"
+if [[ "$CLIENT_KEY_HASH" != "$CLIENT_CERT_HASH" ]]; then
+    echo "Client certificate and private key do not match" >&2
     exit 1
 fi
 
-echo "🔐 Encoding certificates..."
+DOCKER_CA_CERT="$(base64 < "$CERTS_DIR/ca.pem" | tr -d '\n')"
+DOCKER_CLIENT_CERT="$(base64 < "$CERTS_DIR/cert.pem" | tr -d '\n')"
+DOCKER_CLIENT_KEY="$(base64 < "$CERTS_DIR/key.pem" | tr -d '\n')"
 
-DOCKER_CA_CERT=$(base64 < "$CERTS_DIR/ca.pem" | tr -d '\n')
-DOCKER_CLIENT_CERT=$(base64 < "$CERTS_DIR/cert.pem" | tr -d '\n')
-DOCKER_CLIENT_KEY=$(base64 < "$CERTS_DIR/key.pem" | tr -d '\n')
+railway_args=(
+    variables
+    --service "$RAILWAY_SERVICE"
+    --set "DOCKER_CA_CERT=$DOCKER_CA_CERT"
+    --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT"
+    --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY"
+    --set "DOCKER_TLS_VERIFY=1"
+)
 
-echo "📤 Uploading to Railway..."
-
-
-# Set all variables at once (triggers single redeploy)
-if [[ -n "$RAILWAY_PROJECT_ID" ]]; then
-    echo "Using project ID: $RAILWAY_PROJECT_ID"
-    railway variables \
-        --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
-        --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT" \
-        --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY"
-elif [[ -n "$RAILWAY_PROJECT" ]]; then
-    echo "Using project flag: $RAILWAY_PROJECT"
-    railway --project "$RAILWAY_PROJECT" variables \
-        --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
-        --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT" \
-        --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY"
-else
-    echo "Using linked project (run 'railway link' if not already linked)"
-    railway variables \
-        --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
-        --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT" \
-        --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY"
+if [[ -n "$DOCKER_HOST_VALUE" ]]; then
+    railway_args+=(--set "DOCKER_HOST=$DOCKER_HOST_VALUE")
 fi
 
-echo "  ✅ DOCKER_CA_CERT set"
-echo "  ✅ DOCKER_CLIENT_CERT set"
-echo "  ✅ DOCKER_CLIENT_KEY set"
-
-echo ""
-echo "🎉 All certificates uploaded successfully!"
-echo ""
-echo "Railway will automatically redeploy. Check the deployment logs for:"
-echo "  'Using TLS for Docker connection'"
+railway "${railway_args[@]}"
+echo "Validated and uploaded Docker TLS variables to Railway service $RAILWAY_SERVICE"
 

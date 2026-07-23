@@ -13,6 +13,11 @@ on:
         description: 'SSH public key for EC2 access (or use EC2_SSH_PUBLIC_KEY secret)'
         required: false
         type: string
+      force_tls_rotation:
+        description: 'Rotate Docker TLS certificates even when they are still current'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   deploy-infrastructure:
@@ -70,6 +75,10 @@ jobs:
 
           if [ -z "${{ secrets.DOCKER_INGRESS_CIDR }}" ]; then
             MISSING_SECRETS+=("DOCKER_INGRESS_CIDR")
+          fi
+
+          if [ -z "${{ secrets.EC2_SSH_KEY }}" ]; then
+            MISSING_SECRETS+=("EC2_SSH_KEY")
           fi
 
           if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
@@ -214,83 +223,39 @@ jobs:
             sleep 10
           done
 
-          echo "::warning::EC2 instance may not be fully ready, but continuing..."
+          echo "::error::EC2 instance did not become reachable over SSH"
+          exit 1
+
+      - name: Determine whether TLS rotation is required
+        id: tls_rotation
+        env:
+          EC2_IP: ${{ steps.get_ip.outputs.EC2_IP }}
+          FORCE_TLS_ROTATION: ${{ inputs.force_tls_rotation || 'false' }}
+        run: |
+          set -euo pipefail
+          ROTATE=false
+          REASON=current
+
+          if [ "$FORCE_TLS_ROTATION" = "true" ]; then
+            ROTATE=true
+            REASON=forced
+          elif ! ssh -i ~/.ssh/id_rsa ubuntu@"$EC2_IP" \
+            "sudo test -f /etc/docker/certs/server-cert.pem &&
+             sudo openssl x509 -checkend 2592000 -noout -in /etc/docker/certs/server-cert.pem &&
+             sudo openssl x509 -noout -ext subjectAltName -in /etc/docker/certs/server-cert.pem | grep -q 'IP Address:$EC2_IP'"; then
+            ROTATE=true
+            REASON=missing_expiring_or_wrong_host
+          fi
+
+          echo "rotate=$ROTATE" >> "$GITHUB_OUTPUT"
+          echo "TLS rotation required: $ROTATE ($REASON)"
 
       - name: Generate TLS certificates
-        run: |
-          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
-          CERTS_DIR="$(pwd)/certs"
-          DAEMON_DIR="$CERTS_DIR/daemon"
-          CLIENT_DIR="$CERTS_DIR/client"
-
-          echo "Generating Docker TLS certificates for $EC2_IP..."
-
-          mkdir -p "$DAEMON_DIR" "$CLIENT_DIR"
-
-          # Generate CA private key
-          openssl genrsa -out "$CERTS_DIR/ca-key.pem" 4096
-
-          # Generate CA certificate
-          openssl req -new -x509 -days 365 -key "$CERTS_DIR/ca-key.pem" \
-              -sha256 -out "$CERTS_DIR/ca.pem" \
-              -subj "/C=US/ST=State/L=City/O=Organization/CN=docker-ca"
-
-          # Generate server private key
-          openssl genrsa -out "$DAEMON_DIR/server-key.pem" 4096
-
-          # Generate server certificate signing request
-          openssl req -subj "/C=US/ST=State/L=City/O=Organization/CN=$EC2_IP" \
-              -sha256 -new -key "$DAEMON_DIR/server-key.pem" \
-              -out "$DAEMON_DIR/server.csr"
-
-          # Create server certificate extensions
-          echo "subjectAltName = IP:$EC2_IP,DNS:$EC2_IP,DNS:localhost,IP:127.0.0.1,IP:::1" > "$DAEMON_DIR/server-extfile.cnf"
-          echo "extendedKeyUsage = serverAuth" >> "$DAEMON_DIR/server-extfile.cnf"
-
-          # Generate server certificate
-          openssl x509 -req -days 365 -sha256 \
-              -in "$DAEMON_DIR/server.csr" \
-              -CA "$CERTS_DIR/ca.pem" \
-              -CAkey "$CERTS_DIR/ca-key.pem" \
-              -CAcreateserial \
-              -out "$DAEMON_DIR/server-cert.pem" \
-              -extfile "$DAEMON_DIR/server-extfile.cnf"
-
-          # Generate client private key
-          openssl genrsa -out "$CLIENT_DIR/key.pem" 4096
-
-          # Generate client certificate signing request
-          openssl req -subj "/C=US/ST=State/L=City/O=Organization/CN=client" \
-              -new -key "$CLIENT_DIR/key.pem" \
-              -out "$CLIENT_DIR/client.csr"
-
-          # Create client certificate extensions
-          echo "extendedKeyUsage = clientAuth" > "$CLIENT_DIR/client-extfile.cnf"
-
-          # Generate client certificate
-          openssl x509 -req -days 365 -sha256 \
-              -in "$CLIENT_DIR/client.csr" \
-              -CA "$CERTS_DIR/ca.pem" \
-              -CAkey "$CERTS_DIR/ca-key.pem" \
-              -CAcreateserial \
-              -out "$CLIENT_DIR/cert.pem" \
-              -extfile "$CLIENT_DIR/client-extfile.cnf"
-
-          # Copy CA cert to client directory
-          cp "$CERTS_DIR/ca.pem" "$CLIENT_DIR/ca.pem"
-
-          # Set proper permissions
-          chmod 600 "$CERTS_DIR/ca-key.pem" "$DAEMON_DIR/server-key.pem" "$CLIENT_DIR/key.pem"
-          chmod 644 "$CERTS_DIR/ca.pem" "$DAEMON_DIR/server-cert.pem" "$CLIENT_DIR/cert.pem"
-
-          # Clean up temporary files
-          rm -f "$DAEMON_DIR/server.csr" "$DAEMON_DIR/server-extfile.cnf" \
-                "$CLIENT_DIR/client.csr" "$CLIENT_DIR/client-extfile.cnf" \
-                "$CERTS_DIR/ca.srl"
-
-          echo "✅ TLS certificates generated successfully"
+        if: steps.tls_rotation.outputs.rotate == 'true'
+        run: ./scripts/generate-docker-tls.sh "${{ steps.get_ip.outputs.EC2_IP }}" "$(pwd)/certs" 365
 
       - name: Upload server certificates to EC2
+        if: steps.tls_rotation.outputs.rotate == 'true'
         run: |
           EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
           mkdir -p /tmp/certs
@@ -301,6 +266,7 @@ jobs:
           echo "✅ Server certificates uploaded to EC2"
 
       - name: Configure Docker TLS on EC2
+        if: steps.tls_rotation.outputs.rotate == 'true'
         run: |
           EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
 
@@ -347,6 +313,7 @@ jobs:
           "
 
       - name: Verify Docker TLS configuration
+        if: steps.tls_rotation.outputs.rotate == 'true'
         run: |
           EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
           ssh -i ~/.ssh/id_rsa ubuntu@$EC2_IP << 'EOF'
@@ -406,12 +373,6 @@ jobs:
         run: |
           EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
 
-          # Encode certificates to base64
-          DOCKER_CA_CERT=$(base64 < certs/client/ca.pem | tr -d '\n')
-          DOCKER_CLIENT_CERT=$(base64 < certs/client/cert.pem | tr -d '\n')
-          DOCKER_CLIENT_KEY=$(base64 < certs/client/key.pem | tr -d '\n')
-
-          # Configure API service with all environment variables
           # Build Railway reference variable syntax by concatenating to avoid GitHub Actions parsing
           DOLLAR='$'
           OPEN='{{'
@@ -420,9 +381,6 @@ jobs:
           railway variables \
             --service @mike-os-x/api \
             --set "ENVIRONMENT=production" \
-            --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
-            --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT" \
-            --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY" \
             --set "DOCKER_HOST=tcp://$EC2_IP:2376" \
             --set "DOCKER_TLS_VERIFY=1" \
             --set "REDIS_URL=$REDIS_REF" \
@@ -430,6 +388,23 @@ jobs:
             --set "ADMIN_API_KEY=${{ secrets.ADMIN_API_KEY }}"
 
           echo "✅ Railway API service configured"
+
+      - name: Configure Railway API TLS Credentials
+        if: steps.tls_rotation.outputs.rotate == 'true'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          DOCKER_CA_CERT=$(base64 < certs/client/ca.pem | tr -d '\n')
+          DOCKER_CLIENT_CERT=$(base64 < certs/client/cert.pem | tr -d '\n')
+          DOCKER_CLIENT_KEY=$(base64 < certs/client/key.pem | tr -d '\n')
+
+          railway variables \
+            --service @mike-os-x/api \
+            --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
+            --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT" \
+            --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY"
+
+          echo "✅ Railway API TLS credentials configured"
 
       - name: Remove generated client credentials
         if: always()
@@ -495,6 +470,8 @@ jobs:
         run: rm -f ~/.ssh/id_rsa
 
       - name: Summary
+        env:
+          TLS_ROTATED: ${{ steps.tls_rotation.outputs.rotate }}
         run: |
           EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
           echo "## Infrastructure Deployment Complete" >> $GITHUB_STEP_SUMMARY
@@ -505,7 +482,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Verification" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ TLS certificates generated and installed" >> $GITHUB_STEP_SUMMARY
+          if [ "$TLS_ROTATED" = "true" ]; then
+            echo "✅ TLS certificates rotated and installed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Existing TLS certificates remain current" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "✅ Docker daemon configured for TLS" >> $GITHUB_STEP_SUMMARY
           echo "✅ Docker service running and accessible" >> $GITHUB_STEP_SUMMARY
           echo "✅ Terminal container deployed and healthy" >> $GITHUB_STEP_SUMMARY
