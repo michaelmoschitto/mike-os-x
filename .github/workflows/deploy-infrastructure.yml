@@ -122,8 +122,11 @@ jobs:
 
       - name: Set SSH public key
         working-directory: iac
+        env:
+          SSH_PUBLIC_KEY_INPUT: ${{ github.event.inputs.ssh_public_key }}
+          SSH_PUBLIC_KEY_SECRET: ${{ secrets.EC2_SSH_PUBLIC_KEY }}
         run: |
-          SSH_KEY="${{ github.event.inputs.ssh_public_key || secrets.EC2_SSH_PUBLIC_KEY }}"
+          SSH_KEY="${SSH_PUBLIC_KEY_INPUT:-$SSH_PUBLIC_KEY_SECRET}"
           if [ -z "$SSH_KEY" ]; then
             echo "::error::SSH public key is required but not provided."
             echo "Please either:"
@@ -131,6 +134,15 @@ jobs:
             echo "  2. Provide it as a workflow input when manually triggering the workflow"
             exit 1
           fi
+
+          TEMP_KEY=$(mktemp)
+          trap 'rm -f "$TEMP_KEY"' EXIT
+          printf '%s\n' "$SSH_KEY" > "$TEMP_KEY"
+          if ! ssh-keygen -l -f "$TEMP_KEY" > /dev/null; then
+            echo "::error::The provided SSH public key is invalid."
+            exit 1
+          fi
+
           pulumi config set sshPublicKey "$SSH_KEY"
 
       - name: Handle existing key pair
