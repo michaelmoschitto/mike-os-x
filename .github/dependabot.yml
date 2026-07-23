@@ -1,0 +1,57 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      web-dependencies:
+        patterns:
+          - '*'
+
+  - package-ecosystem: npm
+    directory: /iac
+    schedule:
+      interval: weekly
+    groups:
+      infrastructure-dependencies:
+        patterns:
+          - '*'
+
+  - package-ecosystem: pip
+    directory: /apps/api
+    schedule:
+      interval: weekly
+    groups:
+      api-dependencies:
+        patterns:
+          - '*'
+
+  - package-ecosystem: bundler
+    directory: /blog
+    schedule:
+      interval: weekly
+    groups:
+      blog-dependencies:
+        patterns:
+          - '*'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - '*'
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /apps/api
+    schedule:
+      interval: weekly
