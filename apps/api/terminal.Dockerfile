@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:22.04@sha256:0e0a0fc6d18feda9db1590da249ac93e8d5abfea8f4c3c0c849ce512b5ef8982
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
@@ -33,12 +33,33 @@ WORKDIR /workspace
 
 USER root
 
-RUN git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /opt/oh-my-zsh && \
-    git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /opt/oh-my-zsh/custom/plugins/zsh-autosuggestions && \
-    git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting.git /opt/oh-my-zsh/custom/plugins/zsh-syntax-highlighting && \
-    git clone --depth 1 https://github.com/junegunn/fzf.git /opt/fzf && \
+ARG OH_MY_ZSH_COMMIT=e1d1f0dcd53d87096e5bfa48cb1c30d37cb7e5bf
+ARG ZSH_AUTOSUGGESTIONS_COMMIT=85919cd1ffa7d2d5412f6d3fe437ebdbeeec4fc5
+ARG ZSH_SYNTAX_HIGHLIGHTING_COMMIT=1d85c692615a25fe2293bdd44b34c217d5d2bf04
+ARG FZF_COMMIT=235a726fae89bec3ac6d3e7facd2716d78bb625d
+
+RUN git init /opt/oh-my-zsh && \
+    git -C /opt/oh-my-zsh remote add origin https://github.com/ohmyzsh/ohmyzsh.git && \
+    git -C /opt/oh-my-zsh fetch --depth 1 origin "$OH_MY_ZSH_COMMIT" && \
+    git -C /opt/oh-my-zsh checkout --detach FETCH_HEAD && \
+    git init /opt/oh-my-zsh/custom/plugins/zsh-autosuggestions && \
+    git -C /opt/oh-my-zsh/custom/plugins/zsh-autosuggestions remote add origin https://github.com/zsh-users/zsh-autosuggestions.git && \
+    git -C /opt/oh-my-zsh/custom/plugins/zsh-autosuggestions fetch --depth 1 origin "$ZSH_AUTOSUGGESTIONS_COMMIT" && \
+    git -C /opt/oh-my-zsh/custom/plugins/zsh-autosuggestions checkout --detach FETCH_HEAD && \
+    git init /opt/oh-my-zsh/custom/plugins/zsh-syntax-highlighting && \
+    git -C /opt/oh-my-zsh/custom/plugins/zsh-syntax-highlighting remote add origin https://github.com/zsh-users/zsh-syntax-highlighting.git && \
+    git -C /opt/oh-my-zsh/custom/plugins/zsh-syntax-highlighting fetch --depth 1 origin "$ZSH_SYNTAX_HIGHLIGHTING_COMMIT" && \
+    git -C /opt/oh-my-zsh/custom/plugins/zsh-syntax-highlighting checkout --detach FETCH_HEAD && \
+    git init /opt/fzf && \
+    git -C /opt/fzf remote add origin https://github.com/junegunn/fzf.git && \
+    git -C /opt/fzf fetch --depth 1 origin "$FZF_COMMIT" && \
+    git -C /opt/fzf checkout --detach FETCH_HEAD && \
     cd /opt/fzf && \
     ./install --all --no-bash --no-fish && \
+    rm -rf /opt/oh-my-zsh/.git \
+      /opt/oh-my-zsh/custom/plugins/zsh-autosuggestions/.git \
+      /opt/oh-my-zsh/custom/plugins/zsh-syntax-highlighting/.git \
+      /opt/fzf/.git && \
     chown -R workspace:workspace /opt/oh-my-zsh /opt/fzf
 
 RUN echo 'export ZSH="$HOME/.oh-my-zsh"' > /opt/zshrc-template && \

@@ -68,10 +68,9 @@ set -e
 
 # Update system
 apt-get update
-apt-get upgrade -y
 
-# Install Docker
-curl -fsSL https://get.docker.com | sh
+# Install signed Ubuntu packages
+apt-get install -y docker.io docker-compose git curl wget
 
 # Add ubuntu user to docker group
 usermod -aG docker ubuntu
@@ -82,13 +81,6 @@ mkdir -p /home/ubuntu/mike-os-x
 
 # Set ownership
 chown -R ubuntu:ubuntu /home/ubuntu/mike-os-x
-
-# Install git and other utilities
-apt-get install -y git curl wget
-
-# Install Docker Compose (standalone)
-curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
 
 # Configure Docker daemon to listen on both Unix socket and TCP
 # Note: TLS will be configured after certificates are generated
