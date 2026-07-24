@@ -1,5 +1,6 @@
 import PDFViewer from '@/components/apps/PDFViewer/PDFViewer';
 import Window from '@/components/window/Window';
+import { useContentIndex } from '@/lib/contentIndex';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
 import { sanitizeUrlPath, validatePdfUrl } from '@/lib/utils';
 import type { Window as WindowType } from '@/stores/useWindowStore';
@@ -17,7 +18,11 @@ const PDFViewerWindow = ({ window: windowData, isActive }: PDFViewerWindowProps)
     });
 
   const sanitizedPath = windowData.urlPath ? sanitizeUrlPath(windowData.urlPath) : '';
-  const pdfUrl = sanitizedPath ? `/content${sanitizedPath}.pdf` : '';
+  const dateModified = useContentIndex(
+    (state) => state.getEntry(sanitizedPath)?.dateModified?.getTime()
+  );
+  const version = dateModified ? `?v=${dateModified}` : '';
+  const pdfUrl = sanitizedPath ? `/content${sanitizedPath}.pdf${version}` : '';
   const isValidUrl = pdfUrl ? validatePdfUrl(pdfUrl) : false;
 
   return (
