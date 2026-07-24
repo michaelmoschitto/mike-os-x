@@ -1,12 +1,12 @@
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import PDFPageRenderer from '@/components/apps/PDFViewer/PDFPageRenderer';
 import PDFToolbar from '@/components/apps/PDFViewer/PDFToolbar';
 import { validatePdfUrl } from '@/lib/utils';
 
-// Use the worker from the public directory
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface PDFViewerProps {
   url: string;

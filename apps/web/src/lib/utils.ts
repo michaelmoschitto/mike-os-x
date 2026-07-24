@@ -156,7 +156,8 @@ export const validatePdfUrl = (url: string): boolean => {
     return false;
   }
 
-  if (!trimmed.endsWith('.pdf')) {
+  const pathname = trimmed.split(/[?#]/, 1)[0];
+  if (!pathname.endsWith('.pdf')) {
     return false;
   }
 
