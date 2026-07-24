@@ -1,9 +1,9 @@
 # Turbopuffer Product Engineer Demo Plan
 
-Status: implementation plan  
-Target repository: `mike-os-x`  
-Product surfaces: Sherlock and tpuf Process Viewer  
-Primary deployment: Vite web app + FastAPI API on Railway  
+Status: implementation plan
+Target repository: `mike-os-x`
+Product surfaces: Sherlock and tpuf Process Viewer
+Primary deployment: Vite web app + FastAPI API on Railway
 Research cutoff: July 24, 2026
 
 ## 1. Executive decision
