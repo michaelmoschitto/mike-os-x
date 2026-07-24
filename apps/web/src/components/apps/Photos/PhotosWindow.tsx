@@ -9,10 +9,17 @@ import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
 import { getPhotoAlbums, getAlbumPhotos, type PhotoData } from '@/lib/photosContent';
+import { getPhotoDisplayUrl } from '@/lib/photosUtils';
 import { serializeWindow } from '@/lib/routing/windowSerialization';
 import { cn } from '@/lib/utils';
 import { showCompactNotification } from '@/stores/notificationHelpers';
 import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
+
+const preloadImage = (url: string) => {
+  const image = new Image();
+  image.decoding = 'async';
+  image.src = url;
+};
 
 const buildPhotoRoute = (photo: PhotoData, photos: PhotoData[]): string => {
   // Find the photo index in the photos array
@@ -202,6 +209,20 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
   }, []);
 
   useEffect(() => {
+    if (selectedPhotoIndex === null || photos.length === 0) return;
+
+    const adjacentIndexes = [
+      (selectedPhotoIndex - 1 + photos.length) % photos.length,
+      (selectedPhotoIndex + 1) % photos.length,
+    ];
+
+    for (const index of adjacentIndexes) {
+      if (index === selectedPhotoIndex) continue;
+      preloadImage(getPhotoDisplayUrl(photos[index]));
+    }
+  }, [photos, selectedPhotoIndex]);
+
+  useEffect(() => {
     if (!isSlideshow || slideshowPaused || photos.length === 0) return;
 
     const interval = setInterval(() => {
@@ -221,6 +242,7 @@ const PhotosWindow = ({ window: windowData, isActive }: PhotosWindowProps) => {
       position={windowData.position}
       size={windowData.size}
       zIndex={windowData.zIndex}
+      animateOpen={false}
       onClose={handleClose}
       onMinimize={handleMinimize}
       onFocus={handleFocus}

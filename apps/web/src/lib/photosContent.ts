@@ -10,6 +10,8 @@ export interface PhotoData {
   urlPath: string;
   filePath: string;
   fileExtension: string;
+  thumbnailUrl?: string;
+  displayUrl?: string;
   size?: number;
   dateModified?: Date;
   dateCreated?: Date;
@@ -113,6 +115,8 @@ export const getAlbumPhotos = (albumPath?: string): PhotoData[] => {
         urlPath: entry.urlPath,
         filePath: entry.filePath,
         fileExtension: entry.fileExtension,
+        thumbnailUrl: entry.variants?.thumbnail,
+        displayUrl: entry.variants?.display,
         size: entry.fileSize,
         dateModified: entry.dateModified,
         dateCreated: entry.dateCreated,
@@ -130,6 +134,8 @@ export const getAlbumPhotos = (albumPath?: string): PhotoData[] => {
         urlPath: entry.urlPath,
         filePath: entry.filePath,
         fileExtension: entry.fileExtension,
+        thumbnailUrl: entry.variants?.thumbnail,
+        displayUrl: entry.variants?.display,
         size: entry.fileSize,
         dateModified: entry.dateModified,
         dateCreated: entry.dateCreated,
@@ -184,6 +190,8 @@ export const getPhotoByPath = (photoPath: string): PhotoData | null => {
     urlPath: entry.urlPath,
     filePath: entry.filePath,
     fileExtension: entry.fileExtension,
+    thumbnailUrl: entry.variants?.thumbnail,
+    displayUrl: entry.variants?.display,
     size: entry.fileSize,
     dateModified: entry.dateModified,
     dateCreated: entry.dateCreated,
