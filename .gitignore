@@ -9,6 +9,9 @@ bun.lockb
 
 # Testing
 coverage/
+.coverage
+.coverage.*
+htmlcov/
 
 # Production
 dist/
