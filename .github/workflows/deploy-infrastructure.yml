@@ -235,7 +235,7 @@ jobs:
               \"docker ps | grep -q terminal-shared\",
               \"docker ps | grep -q terminal-agent\",
               \"docker ps | grep -q terminal-agent-caddy\",
-              \"curl -fsS http://127.0.0.1:8001/health\"
+              \"timeout 60 sh -c 'until curl -fsS http://127.0.0.1:8001/health; do sleep 2; done'\"
             ]" \
             --query 'Command.CommandId' \
             --output text)
