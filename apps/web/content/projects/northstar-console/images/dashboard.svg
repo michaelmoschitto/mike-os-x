@@ -1,0 +1,55 @@
+<svg width="1440" height="900" viewBox="0 0 1440 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1440" height="900" fill="#F6F8FC"/>
+  <rect width="1440" height="66" fill="#172033"/>
+  <circle cx="48" cy="33" r="15" fill="#75D0B0"/>
+  <text x="78" y="40" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="700">northstar</text>
+  <rect x="0" y="66" width="270" height="834" fill="#202B41"/>
+  <text x="33" y="124" fill="#99A6BE" font-family="Arial, sans-serif" font-size="13" font-weight="700">WORKSPACE</text>
+  <rect x="18" y="146" width="234" height="46" rx="8" fill="#354462"/>
+  <circle cx="46" cy="169" r="8" fill="#75D0B0"/>
+  <text x="66" y="175" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="700">Overview</text>
+  <text x="35" y="239" fill="#C7D0E0" font-family="Arial, sans-serif" font-size="16">Accounts</text>
+  <text x="35" y="288" fill="#C7D0E0" font-family="Arial, sans-serif" font-size="16">Signals</text>
+  <text x="35" y="337" fill="#C7D0E0" font-family="Arial, sans-serif" font-size="16">Reports</text>
+  <rect x="306" y="95" width="1098" height="66" rx="10" fill="white" stroke="#D8DEE9"/>
+  <circle cx="338" cy="128" r="9" stroke="#97A2B7" stroke-width="2"/>
+  <path d="M345 135L353 143" stroke="#97A2B7" stroke-width="2" stroke-linecap="round"/>
+  <text x="370" y="134" fill="#97A2B7" font-family="Arial, sans-serif" font-size="15">Search accounts, people, or signals</text>
+  <circle cx="1348" cy="128" r="17" fill="#DCE9FF"/>
+  <text x="1342" y="134" fill="#2752A4" font-family="Arial, sans-serif" font-size="13" font-weight="700">MM</text>
+  <text x="306" y="220" fill="#172033" font-family="Arial, sans-serif" font-size="35" font-weight="700">Customer health</text>
+  <text x="306" y="253" fill="#68748A" font-family="Arial, sans-serif" font-size="17">A clear view of where attention is needed today.</text>
+  <rect x="306" y="302" width="320" height="168" rx="12" fill="white" stroke="#D8DEE9"/>
+  <text x="334" y="340" fill="#68748A" font-family="Arial, sans-serif" font-size="13" font-weight="700">PORTFOLIO HEALTH</text>
+  <text x="334" y="412" fill="#172033" font-family="Arial, sans-serif" font-size="56" font-weight="700">82</text>
+  <text x="418" y="411" fill="#21A179" font-family="Arial, sans-serif" font-size="16" font-weight="700">+4.2%</text>
+  <text x="334" y="442" fill="#68748A" font-family="Arial, sans-serif" font-size="14">Healthy across 128 accounts</text>
+  <rect x="648" y="302" width="756" height="168" rx="12" fill="white" stroke="#D8DEE9"/>
+  <text x="676" y="340" fill="#68748A" font-family="Arial, sans-serif" font-size="13" font-weight="700">HEALTH TREND</text>
+  <line x1="676" y1="421" x2="1376" y2="421" stroke="#EDF0F5"/>
+  <line x1="676" y1="381" x2="1376" y2="381" stroke="#EDF0F5"/>
+  <path d="M676 420C724 398 760 434 808 399C856 364 900 392 951 369C1001 346 1054 382 1101 326C1148 270 1194 349 1238 309C1282 269 1337 282 1376 234" stroke="#4D7CE8" stroke-width="5" stroke-linecap="round"/>
+  <path d="M676 420C724 398 760 434 808 399C856 364 900 392 951 369C1001 346 1054 382 1101 326C1148 270 1194 349 1238 309C1282 269 1337 282 1376 234V442H676V420Z" fill="url(#paint0_linear)" opacity=".22"/>
+  <circle cx="1376" cy="234" r="7" fill="#4D7CE8"/>
+  <rect x="306" y="495" width="1098" height="345" rx="12" fill="white" stroke="#D8DEE9"/>
+  <text x="334" y="538" fill="#172033" font-family="Arial, sans-serif" font-size="20" font-weight="700">Needs attention</text>
+  <text x="1287" y="538" fill="#4D7CE8" font-family="Arial, sans-serif" font-size="14" font-weight="700">View all</text>
+  <line x1="334" y1="565" x2="1376" y2="565" stroke="#E8ECF3"/>
+  <circle cx="365" cy="621" r="17" fill="#FFE5A8"/>
+  <text x="402" y="617" fill="#172033" font-family="Arial, sans-serif" font-size="16" font-weight="700">Mercury Labs</text>
+  <text x="402" y="643" fill="#68748A" font-family="Arial, sans-serif" font-size="14">Usage down 18% this week � Last activity 4 days ago</text>
+  <rect x="1258" y="604" width="95" height="32" rx="16" fill="#FFF2D6"/>
+  <text x="1279" y="625" fill="#A86100" font-family="Arial, sans-serif" font-size="12" font-weight="700">Monitor</text>
+  <line x1="334" y1="680" x2="1376" y2="680" stroke="#E8ECF3"/>
+  <circle cx="365" cy="735" r="17" fill="#FFD1D5"/>
+  <text x="402" y="731" fill="#172033" font-family="Arial, sans-serif" font-size="16" font-weight="700">Atlas Finance</text>
+  <text x="402" y="757" fill="#68748A" font-family="Arial, sans-serif" font-size="14">Executive sponsor has not engaged � Renewal is in 38 days</text>
+  <rect x="1258" y="718" width="95" height="32" rx="16" fill="#FFE4E5"/>
+  <text x="1287" y="739" fill="#B8303A" font-family="Arial, sans-serif" font-size="12" font-weight="700">Review</text>
+  <defs>
+    <linearGradient id="paint0_linear" x1="1026" y1="234" x2="1026" y2="442" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4D7CE8"/>
+      <stop offset="1" stop-color="#4D7CE8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+</svg>

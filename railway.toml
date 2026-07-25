@@ -7,6 +7,7 @@ builder = "dockerfile"
 dockerfilePath = "./Dockerfile"
 watchPatterns = [
   "apps/web/**",
+  "apps/work/**",
   "scripts/**",
   "Dockerfile",
   "nginx.conf",

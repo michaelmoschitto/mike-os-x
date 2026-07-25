@@ -1,0 +1,39 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="675" fill="#F6F8FC"/>
+  <rect width="1200" height="58" fill="#172033"/>
+  <circle cx="42" cy="29" r="13" fill="#75D0B0"/>
+  <text x="68" y="35" fill="white" font-family="Arial, sans-serif" font-size="21" font-weight="700">northstar</text>
+  <rect x="0" y="58" width="238" height="617" fill="#202B41"/>
+  <text x="30" y="113" fill="#99A6BE" font-family="Arial, sans-serif" font-size="13" font-weight="700">WORKSPACE</text>
+  <rect x="18" y="139" width="202" height="42" rx="7" fill="#354462"/>
+  <circle cx="43" cy="160" r="7" fill="#75D0B0"/>
+  <text x="60" y="165" fill="white" font-family="Arial, sans-serif" font-size="15" font-weight="700">Overview</text>
+  <text x="35" y="223" fill="#C7D0E0" font-family="Arial, sans-serif" font-size="15">Accounts</text>
+  <text x="35" y="270" fill="#C7D0E0" font-family="Arial, sans-serif" font-size="15">Signals</text>
+  <text x="35" y="317" fill="#C7D0E0" font-family="Arial, sans-serif" font-size="15">Reports</text>
+  <text x="286" y="125" fill="#172033" font-family="Arial, sans-serif" font-size="31" font-weight="700">Customer health</text>
+  <text x="286" y="156" fill="#68748A" font-family="Arial, sans-serif" font-size="16">A clear view of where attention is needed today.</text>
+  <rect x="286" y="204" width="266" height="143" rx="12" fill="white" stroke="#D8DEE9"/>
+  <text x="310" y="237" fill="#68748A" font-family="Arial, sans-serif" font-size="13" font-weight="700">PORTFOLIO HEALTH</text>
+  <text x="310" y="300" fill="#172033" font-family="Arial, sans-serif" font-size="48" font-weight="700">82</text>
+  <text x="380" y="299" fill="#21A179" font-family="Arial, sans-serif" font-size="15" font-weight="700">+4.2%</text>
+  <text x="310" y="326" fill="#68748A" font-family="Arial, sans-serif" font-size="14">Healthy across 128 accounts</text>
+  <rect x="574" y="204" width="596" height="143" rx="12" fill="white" stroke="#D8DEE9"/>
+  <text x="598" y="237" fill="#68748A" font-family="Arial, sans-serif" font-size="13" font-weight="700">HEALTH TREND</text>
+  <path d="M598 303C642 284 670 318 713 288C755 258 790 284 833 266C876 248 915 281 955 240C996 199 1026 244 1062 218C1098 192 1128 199 1150 184" stroke="#4D7CE8" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="1150" cy="184" r="6" fill="#4D7CE8"/>
+  <rect x="286" y="372" width="884" height="257" rx="12" fill="white" stroke="#D8DEE9"/>
+  <text x="310" y="409" fill="#172033" font-family="Arial, sans-serif" font-size="18" font-weight="700">Needs attention</text>
+  <text x="1031" y="409" fill="#4D7CE8" font-family="Arial, sans-serif" font-size="14" font-weight="700">View all</text>
+  <line x1="310" y1="433" x2="1146" y2="433" stroke="#E8ECF3"/>
+  <circle cx="335" cy="476" r="14" fill="#FFE5A8"/>
+  <text x="365" y="473" fill="#172033" font-family="Arial, sans-serif" font-size="15" font-weight="700">Mercury Labs</text>
+  <text x="365" y="496" fill="#68748A" font-family="Arial, sans-serif" font-size="13">Usage down 18% this week</text>
+  <rect x="1037" y="461" width="87" height="30" rx="15" fill="#FFF2D6"/>
+  <text x="1058" y="481" fill="#A86100" font-family="Arial, sans-serif" font-size="12" font-weight="700">Monitor</text>
+  <circle cx="335" cy="556" r="14" fill="#FFD1D5"/>
+  <text x="365" y="553" fill="#172033" font-family="Arial, sans-serif" font-size="15" font-weight="700">Atlas Finance</text>
+  <text x="365" y="576" fill="#68748A" font-family="Arial, sans-serif" font-size="13">Executive sponsor has not engaged</text>
+  <rect x="1037" y="541" width="87" height="30" rx="15" fill="#FFE4E5"/>
+  <text x="1065" y="561" fill="#B8303A" font-family="Arial, sans-serif" font-size="12" font-weight="700">Review</text>
+</svg>
