@@ -6,6 +6,7 @@ import uuid
 
 from fastapi import WebSocket, WebSocketDisconnect
 
+from config.settings import settings
 from services.container_manager import ContainerManager
 from services.message_protocol import (
     ClientMessage,
@@ -31,8 +32,7 @@ MAX_TERMINAL_COLS = 1000
 MIN_TERMINAL_ROWS = 1
 MAX_TERMINAL_ROWS = 1000
 SESSION_IDLE_TIMEOUT = 30 * 60
-MAX_SESSIONS_PER_CONNECTION = 5
-MAX_TOTAL_SESSIONS = 100
+MAX_SESSIONS_PER_CONNECTION = settings.max_sessions_per_connection
 MAX_SESSION_ID_LENGTH = 128
 
 
@@ -71,6 +71,23 @@ class TerminalBridge:
         await self._send_session_error(websocket, session_id, "Session not found")
         return False
 
+    def _remove_session_state(self, connection_id: str, session_id: str) -> None:
+        if connection_id in self.websocket_sessions:
+            self.websocket_sessions[connection_id].discard(session_id)
+        self.session_last_activity.pop(session_id, None)
+        self.session_input_totals.pop(session_id, None)
+
+    async def cleanup_orphaned_sessions(self) -> None:
+        await asyncio.to_thread(self.container_manager.remove_all_session_containers)
+
+    async def close_all_sessions(self) -> None:
+        await self.session_manager.close_all_sessions()
+        await self.cleanup_orphaned_sessions()
+        self.session_last_activity.clear()
+        self.session_input_totals.clear()
+        for sessions in self.websocket_sessions.values():
+            sessions.clear()
+
     async def _handle_create_session(
         self,
         websocket: WebSocket,
@@ -98,15 +115,15 @@ class TerminalBridge:
             await self._send_session_error(websocket, session_id, "Session not found")
             return
 
-        if len(owned_sessions) >= MAX_SESSIONS_PER_CONNECTION:
+        if len(owned_sessions) >= settings.max_sessions_per_connection:
             await self._send_session_error(
                 websocket,
                 session_id,
-                f"Session limit reached ({MAX_SESSIONS_PER_CONNECTION})",
+                f"Session limit reached ({settings.max_sessions_per_connection})",
             )
             return
 
-        if len(self.session_manager.sessions) >= MAX_TOTAL_SESSIONS:
+        if len(self.session_manager.sessions) >= settings.max_terminal_sessions:
             await self._send_session_error(
                 websocket,
                 session_id,
@@ -131,7 +148,12 @@ class TerminalBridge:
                 await self._send_message(websocket, message)
 
             async def read_from_session() -> None:
-                await self.session_manager.read_from_session(session_id, websocket, send_output)
+                try:
+                    await self.session_manager.read_from_session(
+                        session_id, websocket, send_output
+                    )
+                finally:
+                    self._remove_session_state(connection_id, session_id)
 
             session.read_task = asyncio.create_task(read_from_session())
             logger.info(f"Session {session_id} created and read task started")
@@ -216,8 +238,7 @@ class TerminalBridge:
             }
             await self._send_message(websocket, error_msg)
             await self.session_manager.close_session(session_id)
-            if connection_id in self.websocket_sessions:
-                self.websocket_sessions[connection_id].discard(session_id)
+            self._remove_session_state(connection_id, session_id)
             return
 
         self.session_last_activity[session_id] = time.time()
@@ -303,11 +324,7 @@ class TerminalBridge:
             return
 
         await self.session_manager.close_session(session_id)
-        if connection_id in self.websocket_sessions:
-            self.websocket_sessions[connection_id].discard(session_id)
-
-        self.session_last_activity.pop(session_id, None)
-        self.session_input_totals.pop(session_id, None)
+        self._remove_session_state(connection_id, session_id)
 
         response: SessionClosedMessage = {
             "type": "session_closed",
@@ -338,9 +355,7 @@ class TerminalBridge:
                 }
                 await self._send_message(websocket, error_msg)
                 await self.session_manager.close_session(session_id)
-                self.websocket_sessions[connection_id].discard(session_id)
-                self.session_last_activity.pop(session_id, None)
-                self.session_input_totals.pop(session_id, None)
+                self._remove_session_state(connection_id, session_id)
 
     async def handle_websocket(self, websocket: WebSocket, client_ip: str) -> None:
         await websocket.accept()
@@ -420,8 +435,7 @@ class TerminalBridge:
             if connection_id in self.websocket_sessions:
                 for session_id in list(self.websocket_sessions[connection_id]):
                     await self.session_manager.close_session(session_id)
-                    self.session_last_activity.pop(session_id, None)
-                    self.session_input_totals.pop(session_id, None)
+                    self._remove_session_state(connection_id, session_id)
                 del self.websocket_sessions[connection_id]
 
             if timeout_task:

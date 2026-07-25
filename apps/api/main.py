@@ -1,9 +1,11 @@
+import asyncio
 import logging
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
+from config.settings import settings
 from middleware.auth import verify_admin_key
 from middleware.cors import setup_cors
 from models.responses import (
@@ -27,6 +29,11 @@ setup_cors(app)
 container_manager = ContainerManager()
 terminal_bridge = TerminalBridge()
 rate_limiter = RateLimiter()
+
+
+@app.on_event("startup")
+async def cleanup_orphaned_terminal_sessions() -> None:
+    await terminal_bridge.cleanup_orphaned_sessions()
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -107,15 +114,17 @@ async def websocket_terminal(websocket: WebSocket) -> None:
 
 @app.post("/api/admin/terminal/reset")
 async def admin_reset(admin_key: str = Depends(verify_admin_key)) -> JSONResponse:
-    container_manager.reset_container()
-    return JSONResponse(content={"message": "Terminal container reset successfully"})
+    await terminal_bridge.close_all_sessions()
+    await asyncio.to_thread(container_manager.reset_container)
+    return JSONResponse(content={"message": "Terminal sessions reset successfully"})
 
 
 @app.post("/api/admin/terminal/restart")
 async def admin_restart(admin_key: str = Depends(verify_admin_key)) -> JSONResponse:
-    container_manager.restart_container()
+    await terminal_bridge.close_all_sessions()
+    await asyncio.to_thread(container_manager.restart_container)
     return JSONResponse(
-        content={"message": "Terminal container restarted successfully"}
+        content={"message": "Terminal sessions closed and template restarted successfully"}
     )
 
 
@@ -123,38 +132,50 @@ async def admin_restart(admin_key: str = Depends(verify_admin_key)) -> JSONRespo
 async def admin_reset_workspace(
     admin_key: str = Depends(verify_admin_key),
 ) -> JSONResponse:
-    container_manager.reset_workspace()
-    return JSONResponse(content={"message": "Workspace reset successfully"})
+    await terminal_bridge.close_all_sessions()
+    await asyncio.to_thread(container_manager.reset_workspace)
+    return JSONResponse(content={"message": "Terminal sessions reset successfully"})
 
 
 @app.get("/api/admin/terminal/stats", response_model=AdminStatsResponse)
 async def admin_stats(admin_key: str = Depends(verify_admin_key)) -> AdminStatsResponse:
-    container = container_manager.get_container()
-    if not container:
-        raise ValueError("Container not found")
-
-    stats = container.stats(stream=False)
+    session_containers = await asyncio.to_thread(
+        container_manager.get_session_containers
+    )
+    stats = await asyncio.gather(
+        *(asyncio.to_thread(container.stats, stream=False) for container in session_containers)
+    )
     active_connections = rate_limiter.get_active_connections_count()
 
-    memory_usage = stats.get("memory_stats", {}).get("usage", 0)
-    cpu_delta = stats.get("cpu_stats", {}).get("cpu_usage", {}).get("total_usage", 0)
-    system_cpu = stats.get("cpu_stats", {}).get("system_cpu_usage", 0)
-    cpu_percent = (cpu_delta / system_cpu * 100) if system_cpu > 0 else 0.0
+    memory_usage = sum(
+        stat.get("memory_stats", {}).get("usage", 0) for stat in stats
+    )
+    cpu_total = sum(
+        stat.get("cpu_stats", {}).get("cpu_usage", {}).get("total_usage", 0)
+        for stat in stats
+    )
+    system_cpu_total = sum(
+        stat.get("cpu_stats", {}).get("system_cpu_usage", 0) for stat in stats
+    )
+    cpu_usage = (cpu_total / system_cpu_total * 100) if system_cpu_total else 0.0
 
     return AdminStatsResponse(
-        container_id=container.id,
+        container_id=f"{len(session_containers)} isolated session containers",
         memory_usage=f"{memory_usage / 1024 / 1024:.2f} MB",
-        cpu_usage=cpu_percent,
-        disk_usage="N/A",
+        cpu_usage=cpu_usage,
+        disk_usage=f"{settings.container_disk} per session",
         active_connections=active_connections,
     )
 
 
 @app.get("/api/admin/terminal/logs")
 async def admin_logs(admin_key: str = Depends(verify_admin_key)) -> JSONResponse:
-    container = container_manager.get_container()
-    if not container:
-        raise ValueError("Container not found")
-
-    logs = container.logs(tail=100).decode("utf-8", errors="replace")
+    session_containers = await asyncio.to_thread(
+        container_manager.get_session_containers
+    )
+    logs = "\n\n".join(
+        f"=== {container.name} ===\n"
+        f"{(await asyncio.to_thread(container.logs, tail=100)).decode('utf-8', errors='replace')}"
+        for container in session_containers
+    )
     return JSONResponse(content={"logs": logs})

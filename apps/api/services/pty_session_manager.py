@@ -33,10 +33,12 @@ class PTYSession:
             except Exception:
                 pass
 
-        if self.read_task:
+        current_task = asyncio.current_task()
+
+        if self.read_task and self.read_task is not current_task:
             self.read_task.cancel()
 
-        if self.write_task:
+        if self.write_task and self.write_task is not current_task:
             self.write_task.cancel()
 
 
@@ -50,7 +52,9 @@ class PTYSessionManager:
             logger.warning(f"Session {session_id} already exists")
             return self.sessions[session_id]
 
-        container = self.container_manager.create_session_container()
+        container = await asyncio.to_thread(
+            self.container_manager.create_session_container
+        )
         logger.info(f"Container {container.id} is running for session {session_id}")
 
         try:
@@ -66,6 +70,7 @@ class PTYSessionManager:
                     "TERM": "xterm-256color",
                     "LANG": "en_US.UTF-8",
                     "LC_ALL": "en_US.UTF-8",
+                    "ZDOTDIR": "/opt/zsh",
                 },
             )
             logger.info(f"Created exec instance {exec_id['Id']} for session {session_id}")
@@ -84,7 +89,9 @@ class PTYSessionManager:
             self.sessions[session_id] = session
             return session
         except Exception:
-            self.container_manager.remove_session_container(container)
+            await asyncio.to_thread(
+                self.container_manager.remove_session_container, container
+            )
             raise
 
     def get_session(self, session_id: str) -> PTYSession | None:
@@ -94,7 +101,9 @@ class PTYSessionManager:
         session = self.sessions.pop(session_id, None)
         if session:
             session.close()
-            self.container_manager.remove_session_container(session.container)
+            await asyncio.to_thread(
+                self.container_manager.remove_session_container, session.container
+            )
             logger.info(f"Closed session {session_id}")
 
     async def resize_session(self, session_id: str, cols: int, rows: int) -> None:
@@ -166,11 +175,10 @@ class PTYSessionManager:
                     break
         except Exception as e:
             logger.error(f"Unexpected error in read_from_session for {session_id}: {e}")
+        finally:
+            await self.close_session(session_id)
 
-    def close_all_sessions(self) -> None:
+    async def close_all_sessions(self) -> None:
         for session_id in list(self.sessions.keys()):
-            session = self.sessions.pop(session_id)
-            if session:
-                session.close()
-                self.container_manager.remove_session_container(session.container)
+            await self.close_session(session_id)
         logger.info("Closed all sessions")

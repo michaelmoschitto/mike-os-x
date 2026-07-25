@@ -10,6 +10,8 @@ from config.settings import settings
 
 logger = logging.getLogger(__name__)
 
+SESSION_CONTAINER_LABEL = "com.mike-os-x.terminal-session"
+
 
 class ContainerManager:
     def __init__(self) -> None:
@@ -114,10 +116,15 @@ class ContainerManager:
                     f"rw,size={settings.container_disk},uid=1000,gid=1000,mode=0755"
                 ),
             },
-            labels={"com.mike-os-x.terminal-session": "true"},
+            labels={SESSION_CONTAINER_LABEL: "true"},
         )
         logger.info(f"Created isolated terminal container {container.id}")
         return container
+
+    def get_session_containers(self) -> list[Container]:
+        return self.client.containers.list(
+            all=True, filters={"label": f"{SESSION_CONTAINER_LABEL}=true"}
+        )
 
     def remove_session_container(self, container: Container) -> None:
         try:
@@ -127,6 +134,21 @@ class ContainerManager:
             pass
         except DockerException as e:
             logger.warning(f"Failed to remove terminal container {container.id}: {e}")
+
+    def remove_all_session_containers(self) -> int:
+        removed = 0
+        for container in self.get_session_containers():
+            try:
+                container.remove(force=True)
+                removed += 1
+            except NotFound:
+                continue
+            except DockerException as e:
+                logger.warning(f"Failed to remove terminal container {container.id}: {e}")
+
+        if removed:
+            logger.info(f"Removed {removed} isolated terminal containers")
+        return removed
 
     def restart_container(self) -> Container:
         container = self.get_container()
@@ -139,16 +161,8 @@ class ContainerManager:
         return container
 
     def reset_container(self) -> None:
-        container = self.get_container()
-        if container:
-            container.stop()
-            container.remove()
-
-        try:
-            volume = self.client.volumes.get(self.volume_name)
-            volume.remove()
-        except NotFound:
-            pass
+        self.remove_all_session_containers()
+        self.reset_workspace()
 
     def get_container_status(self) -> dict[str, str | bool | None]:
         container = self.get_container()

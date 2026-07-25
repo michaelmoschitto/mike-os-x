@@ -117,6 +117,8 @@ class Settings(BaseSettings):
     container_cpus: float = Field(default=0.5)
     container_pids: int = Field(default=128)
     container_disk: str = Field(default="64m")
+    max_terminal_sessions: int = Field(default=2, ge=1)
+    max_sessions_per_connection: int = Field(default=1, ge=1)
 
     @property
     def cors_origins_list(self) -> list[str]:
