@@ -12,7 +12,15 @@ import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
 import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
 import { useUI } from '@/lib/store';
 
-type DockIconType = 'browser' | 'terminal' | 'writing' | 'photos' | 'reading' | 'finder' | 'trash';
+type DockIconType =
+  | 'browser'
+  | 'terminal'
+  | 'projects'
+  | 'writing'
+  | 'photos'
+  | 'reading'
+  | 'finder'
+  | 'trash';
 
 interface DockIcon {
   id: DockIconType;
@@ -23,6 +31,7 @@ interface DockIcon {
 const dockIcons: DockIcon[] = [
   { id: 'browser', label: 'Internet Explorer', icon: '/icons/browser.png' },
   { id: 'terminal', label: 'Terminal', icon: '/icons/ai.png' },
+  { id: 'projects', label: 'Selected Work', icon: '/icons/projects.png' },
   { id: 'writing', label: 'Writing', icon: '/icons/writing.png' },
   { id: 'photos', label: 'Photos', icon: '/icons/photos.png' },
   { id: 'reading', label: 'Reading', icon: '/icons/reading.png' },
@@ -55,6 +64,7 @@ const Dock = () => {
       finder: 'finder:dock/finder',
       browser: 'browser:https://blog.mikemoschitto.com',
       terminal: 'terminal',
+      projects: 'projects',
       reading: 'finder:dock/reading',
       writing: 'finder:dock/writing',
       trash: 'finder:dock/trash',

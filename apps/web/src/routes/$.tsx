@@ -28,6 +28,24 @@ export const Route = createFileRoute('/$')({
       });
     }
 
+    if (path === 'projects' || path.startsWith('projects/')) {
+      const projectSlug = path === 'projects' ? '' : path.substring('projects/'.length);
+      const isValidSlug = projectSlug === '' || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(projectSlug);
+
+      if (!isValidSlug) {
+        throw redirect({ to: '/', search: { w: undefined, state: undefined } });
+      }
+
+      const currentParams = new URLSearchParams(window.location.search);
+      const existingWindows = currentParams.getAll('w').filter((id) => !id.startsWith('projects'));
+      const projectIdentifier = projectSlug ? `projects:${projectSlug}` : 'projects';
+
+      throw redirect({
+        to: '/',
+        search: { w: [...existingWindows, projectIdentifier], state: undefined },
+      });
+    }
+
     // Initialize content index if needed
     const indexState = useContentIndex.getState();
     if (!indexState.isIndexed) {
@@ -44,7 +62,7 @@ export const Route = createFileRoute('/$')({
 
       let windowIdentifier: string;
 
-      if (appType === 'photo') {
+      if (appType === 'photos') {
         // Photos use format: photos:album:photoName (without extension)
         const pathParts = normalizedPath.split('/').filter(Boolean);
         if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
@@ -61,8 +79,11 @@ export const Route = createFileRoute('/$')({
           );
           windowIdentifier = `photos:desktop:${photoName}`;
         }
-      } else if (appType === 'pdf') {
+      } else if (appType === 'pdfviewer') {
         windowIdentifier = `pdfviewer:${normalizedPath}`;
+      } else if (appType === 'projects') {
+        const projectSlug = resolved.entry.metadata.slug?.replace(/^\/?projects\//, '');
+        windowIdentifier = projectSlug ? `projects:${projectSlug}` : 'projects';
       } else {
         // markdown, text, and other content
         windowIdentifier = `textedit:${normalizedPath}`;

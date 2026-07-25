@@ -4,7 +4,7 @@ import {
   getStrategyForIdentifier,
 } from '@/lib/routing/windowTypeStrategies';
 import { normalizePathForRouting } from '@/lib/utils';
-import type { Window, TerminalTab } from '@/stores/useWindowStore';
+import type { Window, TerminalTab, WindowType } from '@/stores/useWindowStore';
 
 /**
  * Validate if a window identifier is valid
@@ -42,6 +42,7 @@ function isValidWindowIdentifier(identifier: string | null | undefined): identif
   const validPatterns = [
     /^terminal$/,
     /^photos(:[a-zA-Z0-9_-]+)?(:[a-zA-Z0-9_-]+)?$/,
+    /^projects(:[a-z0-9]+(?:-[a-z0-9]+)*)?$/,
     /^browser:[a-zA-Z0-9/:._%-]+$/,
     /^finder:\/?[a-zA-Z0-9/._-]+$/,
     /^pdfviewer:\/?[a-zA-Z0-9/._-]+$/,
@@ -63,7 +64,7 @@ export interface WindowConfig {
 
 export interface ExtendedWindowState {
   windows: Array<{
-    type: 'terminal' | 'browser' | 'photos' | 'finder' | 'pdfviewer' | 'textedit';
+    type: WindowType;
     args: string[];
     position: { x: number; y: number };
     size: { width: number; height: number };
@@ -218,6 +219,11 @@ export function serializeExtendedState(windows: Window[]): string {
             if (pathParts.length >= 3 && pathParts[0] === 'dock' && pathParts[1] === 'photos') {
               serialized.args = [pathParts[2]];
             }
+          }
+          break;
+        case 'projects':
+          if (w.projectSlug) {
+            serialized.args.push(w.projectSlug);
           }
           break;
         case 'finder':
@@ -391,6 +397,9 @@ export function deserializeUrlToWindows(searchParams: URLSearchParams): WindowCo
             } else {
               identifier = 'photos';
             }
+          } else if (windowState.type === 'projects') {
+            identifier =
+              windowState.args.length > 0 ? `projects:${windowState.args[0]}` : 'projects';
           } else if (windowState.type === 'finder' && windowState.args.length > 0) {
             identifier = `finder:${windowState.args[0]}`;
           } else if (windowState.type === 'pdfviewer' && windowState.args.length > 0) {

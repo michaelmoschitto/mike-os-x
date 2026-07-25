@@ -26,6 +26,10 @@ export const WINDOW_DIMENSIONS = {
     width: 1100,
     height: 650,
   },
+  projects: {
+    width: 1000,
+    height: 680,
+  },
 } as const;
 
 /**

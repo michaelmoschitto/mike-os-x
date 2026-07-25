@@ -1,7 +1,7 @@
 import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { getPhotoByPath, getAlbumPhotos } from '@/lib/photosContent';
 import { normalizePathForRouting, normalizeUrlPath } from '@/lib/utils';
-import type { Window, WindowOpenConfig } from '@/stores/useWindowStore';
+import type { Window, WindowOpenConfig, WindowType } from '@/stores/useWindowStore';
 
 /**
  * Strategy interface for window type-specific behavior.
@@ -245,6 +245,34 @@ const photosStrategy: WindowTypeStrategy = {
   requiresSpecialReconciliation: true,
 };
 
+const projectsStrategy: WindowTypeStrategy = {
+  serialize: (window) => {
+    if (window.isMinimized) return null;
+    return window.projectSlug ? `projects:${window.projectSlug}` : 'projects';
+  },
+
+  deserialize: (identifier) => {
+    const { width, height } = WINDOW_DIMENSIONS.projects;
+    const position = getCenteredWindowPosition(width, height);
+    const [, projectSlug] = identifier.split(':');
+
+    return {
+      type: 'projects',
+      title: 'Selected Work',
+      content: '',
+      position,
+      size: { width, height },
+      projectSlug,
+    };
+  },
+
+  needsUpdate: (currentWindow, newConfig) => {
+    return currentWindow.projectSlug !== newConfig.projectSlug;
+  },
+
+  requiresSpecialReconciliation: true,
+};
+
 const finderStrategy: WindowTypeStrategy = {
   serialize: (window) => {
     if (window.isMinimized) return null;
@@ -357,13 +385,11 @@ const textEditStrategy: WindowTypeStrategy = {
  * Registry of window type strategies.
  * Maps window types to their strategy implementations.
  */
-export const windowTypeStrategies: Record<
-  'terminal' | 'browser' | 'photos' | 'finder' | 'pdfviewer' | 'textedit',
-  WindowTypeStrategy
-> = {
+export const windowTypeStrategies: Record<WindowType, WindowTypeStrategy> = {
   terminal: terminalStrategy,
   browser: browserStrategy,
   photos: photosStrategy,
+  projects: projectsStrategy,
   finder: finderStrategy,
   pdfviewer: pdfViewerStrategy,
   textedit: textEditStrategy,
@@ -372,9 +398,7 @@ export const windowTypeStrategies: Record<
 /**
  * Get the strategy for a window type.
  */
-export function getWindowTypeStrategy(
-  windowType: 'terminal' | 'browser' | 'photos' | 'finder' | 'pdfviewer' | 'textedit'
-): WindowTypeStrategy {
+export function getWindowTypeStrategy(windowType: WindowType): WindowTypeStrategy {
   return windowTypeStrategies[windowType];
 }
 
@@ -392,6 +416,10 @@ export function getStrategyForIdentifier(identifier: string): WindowTypeStrategy
 
   if (identifier.startsWith('photos')) {
     return photosStrategy;
+  }
+
+  if (identifier === 'projects' || identifier.startsWith('projects:')) {
+    return projectsStrategy;
   }
 
   if (identifier.startsWith('finder:')) {
