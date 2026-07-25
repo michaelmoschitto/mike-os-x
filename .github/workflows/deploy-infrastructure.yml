@@ -216,7 +216,7 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "Deploy mike-os-x terminal agent" \
             --parameters "commands=[
-              \"set -euo pipefail\",
+              \"set -eu\",
               \"export TERMINAL_AGENT_TOKEN='$TERMINAL_AGENT_TOKEN'\",
               \"export AGENT_HOSTNAME='$AGENT_HOSTNAME'\",
               \"if [ ! -d /home/ubuntu/mike-os-x/.git ]; then sudo -u ubuntu git clone https://github.com/$REPO.git /home/ubuntu/mike-os-x; fi\",
