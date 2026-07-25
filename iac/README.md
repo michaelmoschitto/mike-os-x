@@ -1,55 +1,42 @@
 # Terminal Host Infrastructure
 
-Pulumi configuration for the isolated EC2 host that runs the public terminal container.
+Pulumi configuration for the isolated EC2 host that runs the terminal sandbox and authenticated terminal agent.
 
- ## Prerequisites
+## Prerequisites
 
- - Pulumi CLI (>= v3): https://www.pulumi.com/docs/get-started/install/
- - Node.js (>= 14): https://nodejs.org/
- - AWS credentials configured (e.g., via `aws configure` or environment variables)
+- Pulumi CLI (>= v3)
+- Bun
+- AWS credentials configured
 
- ## Getting Started
+## Getting Started
 
 1. Configure the required values:
 
    ```shell
    pulumi config set sshPublicKey 'ssh-ed25519 ...'
-   pulumi config set sshIngressCidr '203.0.113.10/32'
-   pulumi config set dockerIngressCidr '203.0.113.20/32'
+   pulumi config set agentHostname 'agent.os.mikemoschitto.com'
    ```
 
- 2. Preview and deploy your infrastructure:
+2. Preview and deploy:
 
    ```shell
-    pulumi preview
-    pulumi up
-    ```
+   pulumi preview
+   pulumi up
+   ```
 
- 3. When you're finished, tear down your stack:
+3. Point `agentHostname` DNS at the Elastic IP, then deploy the agent stack with GitHub Actions.
 
-   ```shell
-    pulumi destroy
-    pulumi stack rm
-    ```
+## Security model
 
- ## Project Layout
+- Security group allows only TCP/80 and TCP/443
+- Docker listens only on the local Unix socket
+- Railway connects to the agent over HTTPS with HMAC-signed requests
+- Instance management uses AWS Systems Manager (no public SSH ingress)
 
- - `Pulumi.yaml` — Pulumi project and template metadata
-- `index.ts` — EC2 instance, Elastic IP, and restricted security group
- - `package.json` — Node.js dependencies
- - `tsconfig.json` — TypeScript compiler options
-
- ## Configuration
+## Configuration
 
 | Key | Description | Default |
 | --- | --- | --- |
 | `aws:region` | AWS deployment region | `us-east-1` |
-| `sshPublicKey` | Public key for EC2 administration | Required |
-| `sshIngressCidr` | Restricted IPv4 CIDR allowed to reach SSH | Required |
-| `dockerIngressCidr` | Restricted IPv4 CIDR allowed to reach Docker TLS | Required |
-
- Use `pulumi config set <key> <value>` to customize configuration.
-
- ## Getting Help
-
- If you encounter any issues or have suggestions, please open an issue in this repository.
+| `sshPublicKey` | Public key retained for break-glass AMI/console recovery | Required |
+| `agentHostname` | Public hostname for the terminal agent TLS certificate | `agent.os.mikemoschitto.com` |

@@ -91,6 +91,10 @@ class Settings(BaseSettings):
     admin_api_key: str = Field(default="")
     cors_origins: str = Field(default="")
 
+    # Terminal agent (production). When set, Docker is accessed through the EC2 agent.
+    terminal_agent_url: str = Field(default="")
+    terminal_agent_token: str = Field(default="")
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
@@ -108,6 +112,18 @@ class Settings(BaseSettings):
                 "ADMIN_API_KEY must be set in production environment. "
                 "Please set the ADMIN_API_KEY environment variable."
             )
+
+        if self.terminal_agent_url and (
+            not self.terminal_agent_token or len(self.terminal_agent_token) < 32
+        ):
+            raise ValueError(
+                "TERMINAL_AGENT_TOKEN must be set to a high-entropy secret "
+                "(at least 32 characters) when TERMINAL_AGENT_URL is configured."
+            )
+
+    @property
+    def uses_terminal_agent(self) -> bool:
+        return bool(self.terminal_agent_url)
 
     rate_limit_connections: int = Field(default=50)
     rate_limit_commands: int = Field(default=5000)

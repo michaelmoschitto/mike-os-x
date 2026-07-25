@@ -6,18 +6,17 @@ on:
     paths:
       - 'iac/**'
       - 'apps/api/terminal.Dockerfile'
+      - 'apps/api/Dockerfile.agent'
       - 'apps/api/docker-compose.terminal.yml'
+      - 'apps/api/docker-compose.agent.yml'
+      - 'apps/api/Caddyfile'
+      - 'apps/api/agent/**'
   workflow_dispatch:
     inputs:
       ssh_public_key:
-        description: 'SSH public key for EC2 access (or use EC2_SSH_PUBLIC_KEY secret)'
+        description: 'SSH public key for EC2 key pair (emergency access only; SSH ingress is closed)'
         required: false
         type: string
-      force_tls_rotation:
-        description: 'Rotate Docker TLS certificates even when they are still current'
-        required: false
-        type: boolean
-        default: false
 
 jobs:
   deploy-infrastructure:
@@ -45,45 +44,42 @@ jobs:
         run: |
           MISSING_SECRETS=()
 
-          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
-            MISSING_SECRETS+=("AWS_ACCESS_KEY_ID")
-          fi
+          for secret_name in \
+            AWS_ACCESS_KEY_ID \
+            AWS_SECRET_ACCESS_KEY \
+            PULUMI_PASSPHRASE \
+            RAILWAY_TOKEN \
+            CORS_ORIGINS \
+            ADMIN_API_KEY \
+            TERMINAL_AGENT_TOKEN \
+            AGENT_HOSTNAME \
+            EC2_SSH_PUBLIC_KEY
+          do
+            case "$secret_name" in
+              AWS_ACCESS_KEY_ID) value="${{ secrets.AWS_ACCESS_KEY_ID }}" ;;
+              AWS_SECRET_ACCESS_KEY) value="${{ secrets.AWS_SECRET_ACCESS_KEY }}" ;;
+              PULUMI_PASSPHRASE) value="${{ secrets.PULUMI_PASSPHRASE }}" ;;
+              RAILWAY_TOKEN) value="${{ secrets.RAILWAY_TOKEN }}" ;;
+              CORS_ORIGINS) value="${{ secrets.CORS_ORIGINS }}" ;;
+              ADMIN_API_KEY) value="${{ secrets.ADMIN_API_KEY }}" ;;
+              TERMINAL_AGENT_TOKEN) value="${{ secrets.TERMINAL_AGENT_TOKEN }}" ;;
+              AGENT_HOSTNAME) value="${{ secrets.AGENT_HOSTNAME }}" ;;
+              EC2_SSH_PUBLIC_KEY) value="${{ secrets.EC2_SSH_PUBLIC_KEY }}" ;;
+            esac
 
-          if [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
-            MISSING_SECRETS+=("AWS_SECRET_ACCESS_KEY")
-          fi
+            if [ -z "$value" ]; then
+              MISSING_SECRETS+=("$secret_name")
+            fi
+          done
 
-          if [ -z "${{ secrets.PULUMI_PASSPHRASE }}" ]; then
-            MISSING_SECRETS+=("PULUMI_PASSPHRASE")
-          fi
-
-          if [ -z "${{ secrets.RAILWAY_TOKEN }}" ]; then
-            MISSING_SECRETS+=("RAILWAY_TOKEN")
-          fi
-
-          if [ -z "${{ secrets.CORS_ORIGINS }}" ]; then
-            MISSING_SECRETS+=("CORS_ORIGINS")
-          fi
-
-          if [ -z "${{ secrets.ADMIN_API_KEY }}" ]; then
-            MISSING_SECRETS+=("ADMIN_API_KEY")
-          fi
-
-          if [ -z "${{ secrets.SSH_INGRESS_CIDR }}" ]; then
-            MISSING_SECRETS+=("SSH_INGRESS_CIDR")
-          fi
-
-          if [ -z "${{ secrets.DOCKER_INGRESS_CIDR }}" ]; then
-            MISSING_SECRETS+=("DOCKER_INGRESS_CIDR")
-          fi
-
-          if [ -z "${{ secrets.EC2_SSH_KEY }}" ]; then
-            MISSING_SECRETS+=("EC2_SSH_KEY")
+          TOKEN="${{ secrets.TERMINAL_AGENT_TOKEN }}"
+          if [ ${#TOKEN} -lt 32 ]; then
+            echo "::error::TERMINAL_AGENT_TOKEN must be at least 32 characters"
+            exit 1
           fi
 
           if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
             echo "::error::Missing required GitHub secrets: ${MISSING_SECRETS[*]}"
-            echo "Please configure these secrets in your repository settings:"
             for secret in "${MISSING_SECRETS[@]}"; do
               echo "  - $secret"
             done
@@ -135,14 +131,6 @@ jobs:
           SSH_PUBLIC_KEY_SECRET: ${{ secrets.EC2_SSH_PUBLIC_KEY }}
         run: |
           SSH_KEY="${SSH_PUBLIC_KEY_INPUT:-$SSH_PUBLIC_KEY_SECRET}"
-          if [ -z "$SSH_KEY" ]; then
-            echo "::error::SSH public key is required but not provided."
-            echo "Please either:"
-            echo "  1. Set the EC2_SSH_PUBLIC_KEY secret in repository settings, or"
-            echo "  2. Provide it as a workflow input when manually triggering the workflow"
-            exit 1
-          fi
-
           TEMP_KEY=$(mktemp)
           trap 'rm -f "$TEMP_KEY"' EXIT
           printf '%s\n' "$SSH_KEY" > "$TEMP_KEY"
@@ -150,40 +138,20 @@ jobs:
             echo "::error::The provided SSH public key is invalid."
             exit 1
           fi
-
           pulumi config set sshPublicKey "$SSH_KEY"
 
-      - name: Configure restricted ingress
+      - name: Configure agent hostname
         working-directory: iac
-        env:
-          SSH_INGRESS_CIDR: ${{ secrets.SSH_INGRESS_CIDR }}
-          DOCKER_INGRESS_CIDR: ${{ secrets.DOCKER_INGRESS_CIDR }}
-        run: |
-          python3 - <<'PY'
-          import ipaddress
-          import os
-
-          for name in ("SSH_INGRESS_CIDR", "DOCKER_INGRESS_CIDR"):
-              value = os.environ[name]
-              network = ipaddress.ip_network(value, strict=False)
-              if network.version != 4 or network.prefixlen == 0:
-                  raise SystemExit(f"{name} must be a restricted IPv4 CIDR")
-          PY
-
-          pulumi config set sshIngressCidr "$SSH_INGRESS_CIDR"
-          pulumi config set dockerIngressCidr "$DOCKER_INGRESS_CIDR"
+        run: pulumi config set agentHostname "${{ secrets.AGENT_HOSTNAME }}"
 
       - name: Handle existing key pair
         working-directory: iac
         run: |
-          # Check if key pair exists in Pulumi state
           if pulumi stack export 2>/dev/null | jq -e '.deployment.resources[] | select(.type == "aws:ec2/keyPair:KeyPair" and .id == "mike-os-x-terminal-key")' > /dev/null 2>&1; then
             echo "✅ Key pair already in Pulumi state"
           else
-            # Key pair not in state, check if it exists in AWS
             if aws ec2 describe-key-pairs --key-names mike-os-x-terminal-key --region us-west-2 > /dev/null 2>&1; then
               echo "⚠️  Key pair exists in AWS but not in Pulumi state"
-              echo "Deleting orphaned key pair to allow Pulumi to manage it..."
               aws ec2 delete-key-pair --key-name mike-os-x-terminal-key --region us-west-2
               echo "✅ Orphaned key pair deleted, Pulumi will create a new one"
             else
@@ -203,176 +171,90 @@ jobs:
         working-directory: iac
         run: pulumi up --yes --non-interactive
 
-      - name: Get EC2 IP
-        id: get_ip
+      - name: Get instance metadata
+        id: host
         working-directory: iac
         run: |
+          INSTANCE_ID=$(pulumi stack output instanceId --show-secrets)
           EC2_IP=$(pulumi stack output publicIp --show-secrets)
-          echo "EC2_IP=$EC2_IP" >> $GITHUB_OUTPUT
-          echo "EC2 IP: $EC2_IP"
+          AGENT_URL=$(pulumi stack output agentUrl --show-secrets)
+          echo "INSTANCE_ID=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+          echo "EC2_IP=$EC2_IP" >> "$GITHUB_OUTPUT"
+          echo "AGENT_URL=$AGENT_URL" >> "$GITHUB_OUTPUT"
+          echo "Instance: $INSTANCE_ID ($EC2_IP)"
 
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ steps.get_ip.outputs.EC2_IP }} >> ~/.ssh/known_hosts
-
-      - name: Wait for EC2 to be ready
-        run: |
-          echo "Waiting for EC2 instance to be ready..."
-          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
-          max_attempts=30
-          attempt=0
-
-          while [ $attempt -lt $max_attempts ]; do
-            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i ~/.ssh/id_rsa ubuntu@$EC2_IP echo "Connected" 2>/dev/null; then
-              echo "✅ EC2 instance is ready"
-              exit 0
-            fi
-            attempt=$((attempt + 1))
-            echo "Attempt $attempt/$max_attempts: Waiting for SSH..."
-            sleep 10
-          done
-
-          echo "::error::EC2 instance did not become reachable over SSH"
-          exit 1
-
-      - name: Determine whether TLS rotation is required
-        id: tls_rotation
+      - name: Wait for SSM agent
         env:
-          EC2_IP: ${{ steps.get_ip.outputs.EC2_IP }}
-          FORCE_TLS_ROTATION: ${{ inputs.force_tls_rotation || 'false' }}
+          INSTANCE_ID: ${{ steps.host.outputs.INSTANCE_ID }}
         run: |
           set -euo pipefail
-          ROTATE=false
-          REASON=current
+          for attempt in $(seq 1 36); do
+            STATUS=$(aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+              --query 'InstanceInformationList[0].PingStatus' \
+              --output text 2>/dev/null || true)
+            if [ "$STATUS" = "Online" ]; then
+              echo "✅ SSM agent online"
+              exit 0
+            fi
+            echo "Attempt $attempt/36: SSM status=$STATUS"
+            sleep 10
+          done
+          echo "::error::SSM agent did not come online"
+          exit 1
 
-          if [ "$FORCE_TLS_ROTATION" = "true" ]; then
-            ROTATE=true
-            REASON=forced
-          elif ! ssh -i ~/.ssh/id_rsa ubuntu@"$EC2_IP" \
-            "sudo test -f /etc/docker/certs/server-cert.pem &&
-             sudo openssl x509 -checkend 2592000 -noout -in /etc/docker/certs/server-cert.pem &&
-             sudo openssl x509 -noout -ext subjectAltName -in /etc/docker/certs/server-cert.pem | grep -q 'IP Address:$EC2_IP'"; then
-            ROTATE=true
-            REASON=missing_expiring_or_wrong_host
+      - name: Deploy terminal agent via SSM
+        env:
+          INSTANCE_ID: ${{ steps.host.outputs.INSTANCE_ID }}
+          TERMINAL_AGENT_TOKEN: ${{ secrets.TERMINAL_AGENT_TOKEN }}
+          AGENT_HOSTNAME: ${{ secrets.AGENT_HOSTNAME }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy mike-os-x terminal agent" \
+            --parameters "commands=[
+              \"set -euo pipefail\",
+              \"export TERMINAL_AGENT_TOKEN='$TERMINAL_AGENT_TOKEN'\",
+              \"export AGENT_HOSTNAME='$AGENT_HOSTNAME'\",
+              \"if [ ! -d /home/ubuntu/mike-os-x/.git ]; then sudo -u ubuntu git clone https://github.com/$REPO.git /home/ubuntu/mike-os-x; fi\",
+              \"cd /home/ubuntu/mike-os-x\",
+              \"sudo -u ubuntu git fetch origin main\",
+              \"sudo -u ubuntu git checkout main\",
+              \"sudo -u ubuntu git pull origin main\",
+              \"cd /home/ubuntu/mike-os-x/apps/api\",
+              \"printf '%s\\\\n' '{\\\"hosts\\\": [\\\"unix:///var/run/docker.sock\\\"]}' | sudo tee /etc/docker/daemon.json >/dev/null\",
+              \"sudo systemctl restart docker\",
+              \"sleep 3\",
+              \"sudo -E docker-compose -f docker-compose.agent.yml build\",
+              \"sudo -E docker-compose -f docker-compose.agent.yml up -d\",
+              \"sleep 5\",
+              \"docker ps | grep -q terminal-shared\",
+              \"docker ps | grep -q terminal-agent\",
+              \"docker ps | grep -q terminal-agent-caddy\",
+              \"curl -fsS http://127.0.0.1:8001/health\"
+            ]" \
+            --query 'Command.CommandId' \
+            --output text)
+
+          echo "SSM command: $COMMAND_ID"
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" || true
+          STATUS=$(aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --query 'Status' \
+            --output text)
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --query '{Status:Status,Stdout:StandardOutputContent,Stderr:StandardErrorContent}' \
+            --output json
+          if [ "$STATUS" != "Success" ]; then
+            echo "::error::SSM deploy failed with status $STATUS"
+            exit 1
           fi
-
-          echo "rotate=$ROTATE" >> "$GITHUB_OUTPUT"
-          echo "TLS rotation required: $ROTATE ($REASON)"
-
-      - name: Generate TLS certificates
-        if: steps.tls_rotation.outputs.rotate == 'true'
-        run: ./scripts/generate-docker-tls.sh "${{ steps.get_ip.outputs.EC2_IP }}" "$(pwd)/certs" 365
-
-      - name: Upload server certificates to EC2
-        if: steps.tls_rotation.outputs.rotate == 'true'
-        run: |
-          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
-          mkdir -p /tmp/certs
-          cp certs/daemon/* /tmp/certs/
-          cp certs/ca.pem /tmp/certs/
-
-          scp -i ~/.ssh/id_rsa -r /tmp/certs/* ubuntu@$EC2_IP:/tmp/certs/
-          echo "✅ Server certificates uploaded to EC2"
-
-      - name: Configure Docker TLS on EC2
-        if: steps.tls_rotation.outputs.rotate == 'true'
-        run: |
-          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
-
-          # Create the daemon.json content
-          DAEMON_JSON='{
-            "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2376"],
-            "tls": true,
-            "tlsverify": true,
-            "tlscacert": "/etc/docker/certs/ca.pem",
-            "tlscert": "/etc/docker/certs/server-cert.pem",
-            "tlskey": "/etc/docker/certs/server-key.pem"
-          }'
-
-          ssh -i ~/.ssh/id_rsa ubuntu@$EC2_IP "
-            set -e
-            echo 'Configuring Docker TLS...'
-            
-            # Copy certificates to Docker certs directory
-            sudo mkdir -p /etc/docker/certs
-            sudo cp /tmp/certs/* /etc/docker/certs/
-            sudo chmod 600 /etc/docker/certs/server-key.pem
-            sudo chmod 644 /etc/docker/certs/ca.pem /etc/docker/certs/server-cert.pem
-            
-            # Configure Docker daemon
-            echo '$DAEMON_JSON' | sudo tee /etc/docker/daemon.json > /dev/null
-            
-            # Create override to remove -H from ExecStart (conflicts with daemon.json hosts)
-            sudo mkdir -p /etc/systemd/system/docker.service.d
-            echo '[Service]
-          ExecStart=
-          ExecStart=/usr/bin/dockerd' | sudo tee /etc/systemd/system/docker.service.d/override.conf > /dev/null
-            
-            # Restart Docker
-            sudo systemctl daemon-reload
-            sudo systemctl restart docker
-            sudo rm -rf /tmp/certs
-            
-            # Wait for Docker to be ready
-            sleep 5
-            
-            # Verify Docker is running
-            docker ps || exit 1
-            echo '✅ Docker TLS configured successfully'
-          "
-
-      - name: Verify Docker TLS configuration
-        if: steps.tls_rotation.outputs.rotate == 'true'
-        run: |
-          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
-          ssh -i ~/.ssh/id_rsa ubuntu@$EC2_IP << 'EOF'
-            set -e
-            echo "Verifying Docker TLS configuration..."
-            
-            # Check certificates exist
-            if [ ! -f /etc/docker/certs/ca.pem ] || \
-               [ ! -f /etc/docker/certs/server-cert.pem ] || \
-               [ ! -f /etc/docker/certs/server-key.pem ]; then
-              echo "::error::Missing TLS certificates in /etc/docker/certs/"
-              exit 1
-            fi
-            
-            # Check certificate permissions
-            if [ "$(stat -c %a /etc/docker/certs/server-key.pem)" != "600" ]; then
-              echo "::error::Server key permissions incorrect (should be 600)"
-              exit 1
-            fi
-            
-            # Check daemon.json configuration
-            if ! grep -q '"tls": true' /etc/docker/daemon.json; then
-              echo "::error::Docker daemon.json missing TLS configuration"
-              exit 1
-            fi
-            
-            # Check Docker is listening on port 2376
-            if ! sudo netstat -tlnp 2>/dev/null | grep -q ':2376' && \
-               ! sudo ss -tlnp 2>/dev/null | grep -q ':2376'; then
-              echo "::warning::Docker may not be listening on port 2376"
-              echo "Checking Docker service status..."
-              sudo systemctl status docker --no-pager || true
-            fi
-            
-            # Verify Docker is running
-            if ! docker ps > /dev/null 2>&1; then
-              echo "::error::Docker is not responding"
-              exit 1
-            fi
-            
-            echo "✅ All TLS certificates present"
-            echo "✅ Certificate permissions correct"
-            echo "✅ Docker daemon.json configured for TLS"
-            echo "✅ Docker service is running"
-            echo ""
-            echo "Docker TLS configuration verified successfully!"
-          EOF
 
       - name: Install Railway CLI
         run: |
@@ -382,135 +264,69 @@ jobs:
       - name: Configure Railway API Service
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          AGENT_URL: ${{ steps.host.outputs.AGENT_URL }}
         run: |
-          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
-
-          # Build Railway reference variable syntax by concatenating to avoid GitHub Actions parsing
+          set -euo pipefail
           DOLLAR='$'
           OPEN='{{'
           CLOSE='}}'
           REDIS_REF="${DOLLAR}${OPEN}Redis.REDIS_URL${CLOSE}"
+
           railway variables \
             --service @mike-os-x/api \
             --set "ENVIRONMENT=production" \
-            --set "DOCKER_HOST=tcp://$EC2_IP:2376" \
-            --set "DOCKER_TLS_VERIFY=1" \
+            --set "TERMINAL_AGENT_URL=$AGENT_URL" \
+            --set "TERMINAL_AGENT_TOKEN=${{ secrets.TERMINAL_AGENT_TOKEN }}" \
             --set "REDIS_URL=$REDIS_REF" \
             --set "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" \
-            --set "ADMIN_API_KEY=${{ secrets.ADMIN_API_KEY }}"
+            --set "ADMIN_API_KEY=${{ secrets.ADMIN_API_KEY }}" \
+            --set "DOCKER_HOST=" \
+            --set "DOCKER_TLS_VERIFY=0" \
+            --set "DOCKER_CA_CERT=" \
+            --set "DOCKER_CLIENT_CERT=" \
+            --set "DOCKER_CLIENT_KEY="
 
-          echo "✅ Railway API service configured"
-
-      - name: Configure Railway API TLS Credentials
-        if: steps.tls_rotation.outputs.rotate == 'true'
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: |
-          DOCKER_CA_CERT=$(base64 < certs/client/ca.pem | tr -d '\n')
-          DOCKER_CLIENT_CERT=$(base64 < certs/client/cert.pem | tr -d '\n')
-          DOCKER_CLIENT_KEY=$(base64 < certs/client/key.pem | tr -d '\n')
-
-          railway variables \
-            --service @mike-os-x/api \
-            --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
-            --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT" \
-            --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY"
-
-          echo "✅ Railway API TLS credentials configured"
-
-      - name: Remove generated client credentials
-        if: always()
-        run: rm -rf certs
+          echo "✅ Railway API configured for terminal agent"
 
       - name: Configure Railway Web Service
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          # Configure web service with API URL
           railway variables \
             --service @mike-os-x/web \
             --set "VITE_API_URL=https://api.os.mikemoschitto.com"
-
           echo "✅ Railway web service configured"
 
-      - name: Clone repository on EC2
+      - name: Verify agent HTTPS
+        env:
+          AGENT_URL: ${{ steps.host.outputs.AGENT_URL }}
         run: |
-          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
-          ssh -i ~/.ssh/id_rsa ubuntu@$EC2_IP << 'EOF'
-            set -e
-            if [ ! -d ~/mike-os-x/.git ]; then
-              echo "Cloning repository..."
-              git clone https://github.com/${{ github.repository }}.git ~/mike-os-x
-            else
-              echo "Repository already exists, updating..."
-              cd ~/mike-os-x
-              git fetch origin main
-              git checkout main
-              git pull origin main
-            fi
-            echo "✅ Repository ready"
-          EOF
-
-      - name: Deploy Terminal Container
-        run: |
-          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
-          ssh -i ~/.ssh/id_rsa ubuntu@$EC2_IP << 'EOF'
-            set -e
-            cd ~/mike-os-x/apps/api
-            
-            echo "Building terminal container..."
-            docker-compose -f docker-compose.terminal.yml build terminal
-            
-            echo "Starting terminal container..."
-            docker-compose -f docker-compose.terminal.yml up -d terminal
-            
-            sleep 3
-            
-            # Verify container is running
-            if docker ps | grep -q terminal-shared; then
-              echo "✅ Terminal container deployed and running"
-              docker exec terminal-shared echo "Terminal container healthy"
-            else
-              echo "::error::Terminal container failed to start"
-              docker logs terminal-shared || true
-              exit 1
-            fi
-          EOF
-
-      - name: Remove deployment SSH key
-        if: always()
-        run: rm -f ~/.ssh/id_rsa
+          set -euo pipefail
+          if curl -fsS --retry 5 --retry-delay 5 "$AGENT_URL/health" >/dev/null; then
+            echo "✅ Agent HTTPS health check passed"
+          else
+            echo "::warning::Public HTTPS health check failed. Confirm DNS for AGENT_HOSTNAME points at the Elastic IP and wait for Caddy certificate issuance."
+          fi
 
       - name: Summary
         env:
-          TLS_ROTATED: ${{ steps.tls_rotation.outputs.rotate }}
+          EC2_IP: ${{ steps.host.outputs.EC2_IP }}
+          AGENT_URL: ${{ steps.host.outputs.AGENT_URL }}
+          INSTANCE_ID: ${{ steps.host.outputs.INSTANCE_ID }}
         run: |
-          EC2_IP="${{ steps.get_ip.outputs.EC2_IP }}"
-          echo "## Infrastructure Deployment Complete" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**EC2 IP:** \`$EC2_IP\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Docker Host:** \`tcp://$EC2_IP:2376\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Verification" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "$TLS_ROTATED" = "true" ]; then
-            echo "✅ TLS certificates rotated and installed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "✅ Existing TLS certificates remain current" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "✅ Docker daemon configured for TLS" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Docker service running and accessible" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Terminal container deployed and healthy" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Railway Configuration" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Railway automatically configured:" >> $GITHUB_STEP_SUMMARY
-          echo "  - API: Docker TLS, Redis, CORS, Auth, Production environment" >> $GITHUB_STEP_SUMMARY
-          echo "  - Web: API URL configured" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Services will auto-deploy with new configuration." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Ready to Use" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Infrastructure is fully deployed. Terminal should be accessible at https://os.mikemoschitto.com" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Infrastructure Deployment Complete"
+            echo ""
+            echo "**EC2 IP:** \`$EC2_IP\`"
+            echo "**Instance:** \`$INSTANCE_ID\`"
+            echo "**Terminal agent:** \`$AGENT_URL\`"
+            echo ""
+            echo "### Security"
+            echo ""
+            echo "- Docker daemon stays on the local Unix socket"
+            echo "- Public ingress limited to HTTPS/HTTP for the authenticated agent"
+            echo "- SSH ingress removed; deploy through AWS SSM"
+            echo "- Railway API uses TERMINAL_AGENT_URL instead of Docker TLS"
+            echo ""
+            echo "Terminal UI remains at https://os.mikemoschitto.com"
+          } >> "$GITHUB_STEP_SUMMARY"

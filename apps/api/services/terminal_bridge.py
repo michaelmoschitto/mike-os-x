@@ -37,10 +37,15 @@ MAX_SESSION_ID_LENGTH = 128
 
 
 class TerminalBridge:
-    def __init__(self) -> None:
-        self.container_manager = ContainerManager()
-        self.rate_limiter = RateLimiter()
-        self.session_manager = PTYSessionManager(self.container_manager)
+    def __init__(
+        self,
+        container_manager: ContainerManager | None = None,
+        session_manager: PTYSessionManager | None = None,
+        rate_limiter: RateLimiter | None = None,
+    ) -> None:
+        self.container_manager = container_manager or ContainerManager()
+        self.rate_limiter = rate_limiter or RateLimiter()
+        self.session_manager = session_manager or PTYSessionManager(self.container_manager)
         self.session_last_activity: dict[str, float] = {}
         self.session_input_totals: dict[str, int] = {}
         self.websocket_sessions: dict[str, set[str]] = {}  # connection_id -> set of session_ids
@@ -78,7 +83,10 @@ class TerminalBridge:
         self.session_input_totals.pop(session_id, None)
 
     async def cleanup_orphaned_sessions(self) -> None:
-        await asyncio.to_thread(self.container_manager.remove_all_session_containers)
+        cleanup = self.container_manager.remove_all_session_containers
+        result = cleanup()
+        if asyncio.iscoroutine(result):
+            await result
 
     async def close_all_sessions(self) -> None:
         await self.session_manager.close_all_sessions()

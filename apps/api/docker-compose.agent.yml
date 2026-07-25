@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  terminal:
+    build:
+      context: .
+      dockerfile: terminal.Dockerfile
+    container_name: terminal-shared
+    hostname: mikeos
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    network_mode: none
+    user: '1000:1000'
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 128
+    tmpfs:
+      - /tmp:size=256m
+      - /var/tmp:size=256m
+      - /workspace:size=64m,uid=1000,gid=1000,mode=0755
+    restart: unless-stopped
+    command: tail -f /dev/null
+
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: terminal-agent
+    restart: unless-stopped
+    environment:
+      DOCKER_HOST: unix:///var/run/docker.sock
+      TERMINAL_AGENT_TOKEN: ${TERMINAL_AGENT_TOKEN}
+      CONTAINER_MEMORY: 256m
+      CONTAINER_CPUS: "0.5"
+      CONTAINER_PIDS: "128"
+      CONTAINER_DISK: 64m
+      MAX_TERMINAL_SESSIONS: "2"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "127.0.0.1:8001:8000"
+    depends_on:
+      - terminal
+
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: terminal-agent-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      AGENT_HOSTNAME: ${AGENT_HOSTNAME:-agent.os.mikemoschitto.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - agent
+
+volumes:
+  caddy-data:
+  caddy-config:

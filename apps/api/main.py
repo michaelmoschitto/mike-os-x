@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 
@@ -13,7 +15,10 @@ from models.responses import (
     HealthResponse,
     TerminalStatusResponse,
 )
+from services.agent_backends import AgentContainerManager, AgentPTYSessionManager
+from services.agent_client import AgentClient
 from services.container_manager import ContainerManager
+from services.pty_session_manager import PTYSessionManager
 from services.rate_limiter import RateLimiter
 from services.terminal_bridge import TerminalBridge
 
@@ -26,8 +31,23 @@ app = FastAPI(title="Terminal API", version="0.1.0")
 
 setup_cors(app)
 
-container_manager = ContainerManager()
-terminal_bridge = TerminalBridge()
+agent_client: AgentClient | None = None
+if settings.uses_terminal_agent:
+    agent_client = AgentClient(settings.terminal_agent_url, settings.terminal_agent_token)
+    container_manager: ContainerManager | AgentContainerManager = AgentContainerManager(
+        agent_client
+    )
+    session_manager: PTYSessionManager | AgentPTYSessionManager = AgentPTYSessionManager(
+        agent_client
+    )
+else:
+    container_manager = ContainerManager()
+    session_manager = PTYSessionManager(container_manager)
+
+terminal_bridge = TerminalBridge(
+    container_manager=container_manager,
+    session_manager=session_manager,
+)
 rate_limiter = RateLimiter()
 
 
@@ -36,10 +56,20 @@ async def cleanup_orphaned_terminal_sessions() -> None:
     await terminal_bridge.cleanup_orphaned_sessions()
 
 
+@app.on_event("shutdown")
+async def shutdown_agent_client() -> None:
+    if agent_client is not None:
+        await agent_client.aclose()
+
+
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     try:
-        status_info = container_manager.get_container_status()
+        if isinstance(container_manager, AgentContainerManager):
+            status_info = await container_manager.get_container_status()
+        else:
+            status_info = await asyncio.to_thread(container_manager.get_container_status)
+
         terminal_status = status_info.get("status", "unknown")
         terminal_available = status_info.get("running", False)
 
@@ -49,8 +79,8 @@ async def health() -> HealthResponse:
         return HealthResponse(
             status="healthy",
             terminal_available=True,
-            terminal_status=terminal_status,
-            container_status=terminal_status,
+            terminal_status=str(terminal_status),
+            container_status=str(terminal_status),
         )
     except Exception as e:
         logger.error(f"Health check failed: {e}")
@@ -59,11 +89,15 @@ async def health() -> HealthResponse:
 
 @app.get("/api/terminal/status", response_model=TerminalStatusResponse)
 async def terminal_status() -> TerminalStatusResponse:
-    status_info = container_manager.get_container_status()
+    if isinstance(container_manager, AgentContainerManager):
+        status_info = await container_manager.get_container_status()
+    else:
+        status_info = await asyncio.to_thread(container_manager.get_container_status)
+
     return TerminalStatusResponse(
-        status=status_info["status"],
-        container_id=status_info.get("container_id"),
-        running=status_info["running"],
+        status=str(status_info["status"]),
+        container_id=status_info.get("container_id"),  # type: ignore[arg-type]
+        running=bool(status_info["running"]),
     )
 
 
@@ -77,7 +111,14 @@ def get_client_ip(websocket: WebSocket) -> str:
 
 
 def filter_sensitive_headers(headers: dict) -> dict:
-    sensitive_headers = {"authorization", "cookie", "x-api-key", "x-auth-token"}
+    sensitive_headers = {
+        "authorization",
+        "cookie",
+        "x-api-key",
+        "x-auth-token",
+        "x-terminal-agent-signature",
+        "x-terminal-agent-timestamp",
+    }
     return {k: v for k, v in headers.items() if k.lower() not in sensitive_headers}
 
 
@@ -115,14 +156,20 @@ async def websocket_terminal(websocket: WebSocket) -> None:
 @app.post("/api/admin/terminal/reset")
 async def admin_reset(admin_key: str = Depends(verify_admin_key)) -> JSONResponse:
     await terminal_bridge.close_all_sessions()
-    await asyncio.to_thread(container_manager.reset_container)
+    if isinstance(container_manager, AgentContainerManager):
+        await container_manager.reset_container()
+    else:
+        await asyncio.to_thread(container_manager.reset_container)
     return JSONResponse(content={"message": "Terminal sessions reset successfully"})
 
 
 @app.post("/api/admin/terminal/restart")
 async def admin_restart(admin_key: str = Depends(verify_admin_key)) -> JSONResponse:
     await terminal_bridge.close_all_sessions()
-    await asyncio.to_thread(container_manager.restart_container)
+    if isinstance(container_manager, AgentContainerManager):
+        await container_manager.restart_container()
+    else:
+        await asyncio.to_thread(container_manager.restart_container)
     return JSONResponse(
         content={"message": "Terminal sessions closed and template restarted successfully"}
     )
@@ -133,30 +180,30 @@ async def admin_reset_workspace(
     admin_key: str = Depends(verify_admin_key),
 ) -> JSONResponse:
     await terminal_bridge.close_all_sessions()
-    await asyncio.to_thread(container_manager.reset_workspace)
+    if isinstance(container_manager, AgentContainerManager):
+        await container_manager.reset_workspace()
+    else:
+        await asyncio.to_thread(container_manager.reset_workspace)
     return JSONResponse(content={"message": "Terminal sessions reset successfully"})
 
 
 @app.get("/api/admin/terminal/stats", response_model=AdminStatsResponse)
 async def admin_stats(admin_key: str = Depends(verify_admin_key)) -> AdminStatsResponse:
-    session_containers = await asyncio.to_thread(
-        container_manager.get_session_containers
-    )
+    if isinstance(container_manager, AgentContainerManager):
+        payload = await container_manager.get_stats()
+        return AdminStatsResponse(**payload)
+
+    session_containers = await asyncio.to_thread(container_manager.get_session_containers)
     stats = await asyncio.gather(
         *(asyncio.to_thread(container.stats, stream=False) for container in session_containers)
     )
     active_connections = rate_limiter.get_active_connections_count()
 
-    memory_usage = sum(
-        stat.get("memory_stats", {}).get("usage", 0) for stat in stats
-    )
+    memory_usage = sum(stat.get("memory_stats", {}).get("usage", 0) for stat in stats)
     cpu_total = sum(
-        stat.get("cpu_stats", {}).get("cpu_usage", {}).get("total_usage", 0)
-        for stat in stats
+        stat.get("cpu_stats", {}).get("cpu_usage", {}).get("total_usage", 0) for stat in stats
     )
-    system_cpu_total = sum(
-        stat.get("cpu_stats", {}).get("system_cpu_usage", 0) for stat in stats
-    )
+    system_cpu_total = sum(stat.get("cpu_stats", {}).get("system_cpu_usage", 0) for stat in stats)
     cpu_usage = (cpu_total / system_cpu_total * 100) if system_cpu_total else 0.0
 
     return AdminStatsResponse(
@@ -170,9 +217,11 @@ async def admin_stats(admin_key: str = Depends(verify_admin_key)) -> AdminStatsR
 
 @app.get("/api/admin/terminal/logs")
 async def admin_logs(admin_key: str = Depends(verify_admin_key)) -> JSONResponse:
-    session_containers = await asyncio.to_thread(
-        container_manager.get_session_containers
-    )
+    if isinstance(container_manager, AgentContainerManager):
+        payload = await container_manager.get_logs()
+        return JSONResponse(content=payload)
+
+    session_containers = await asyncio.to_thread(container_manager.get_session_containers)
     logs = "\n\n".join(
         f"=== {container.name} ===\n"
         f"{(await asyncio.to_thread(container.logs, tail=100)).decode('utf-8', errors='replace')}"

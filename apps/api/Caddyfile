@@ -1,0 +1,4 @@
+{$AGENT_HOSTNAME} {
+	encode gzip
+	reverse_proxy agent:8000
+}
