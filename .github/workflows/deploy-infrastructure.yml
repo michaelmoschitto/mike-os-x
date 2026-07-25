@@ -69,6 +69,14 @@ jobs:
             MISSING_SECRETS+=("ADMIN_API_KEY")
           fi
 
+          if [ -z "${{ secrets.SSH_INGRESS_CIDR }}" ]; then
+            MISSING_SECRETS+=("SSH_INGRESS_CIDR")
+          fi
+
+          if [ -z "${{ secrets.DOCKER_INGRESS_CIDR }}" ]; then
+            MISSING_SECRETS+=("DOCKER_INGRESS_CIDR")
+          fi
+
           if [ -z "${{ secrets.EC2_SSH_KEY }}" ]; then
             MISSING_SECRETS+=("EC2_SSH_KEY")
           fi
@@ -132,6 +140,26 @@ jobs:
             exit 1
           fi
           pulumi config set sshPublicKey "$SSH_KEY"
+
+      - name: Configure restricted ingress
+        working-directory: iac
+        env:
+          SSH_INGRESS_CIDR: ${{ secrets.SSH_INGRESS_CIDR }}
+          DOCKER_INGRESS_CIDR: ${{ secrets.DOCKER_INGRESS_CIDR }}
+        run: |
+          python3 - <<'PY'
+          import ipaddress
+          import os
+
+          for name in ("SSH_INGRESS_CIDR", "DOCKER_INGRESS_CIDR"):
+              value = os.environ[name]
+              network = ipaddress.ip_network(value, strict=False)
+              if network.version != 4 or network.prefixlen == 0:
+                  raise SystemExit(f"{name} must be a restricted IPv4 CIDR")
+          PY
+
+          pulumi config set sshIngressCidr "$SSH_INGRESS_CIDR"
+          pulumi config set dockerIngressCidr "$DOCKER_INGRESS_CIDR"
 
       - name: Handle existing key pair
         working-directory: iac
@@ -274,6 +302,7 @@ jobs:
             # Restart Docker
             sudo systemctl daemon-reload
             sudo systemctl restart docker
+            sudo rm -rf /tmp/certs
             
             # Wait for Docker to be ready
             sleep 5
@@ -333,17 +362,6 @@ jobs:
             echo "Docker TLS configuration verified successfully!"
           EOF
 
-      - name: Upload client certificates as artifact
-        if: steps.tls_rotation.outputs.rotate == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-tls-client-certs
-          path: |
-            certs/client/ca.pem
-            certs/client/cert.pem
-            certs/client/key.pem
-          retention-days: 7
-
       - name: Install Railway CLI
         run: |
           curl -fsSL https://railway.app/install.sh | sh
@@ -387,6 +405,10 @@ jobs:
             --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY"
 
           echo "✅ Railway API TLS credentials configured"
+
+      - name: Remove generated client credentials
+        if: always()
+        run: rm -rf certs
 
       - name: Configure Railway Web Service
         env:
@@ -442,6 +464,10 @@ jobs:
               exit 1
             fi
           EOF
+
+      - name: Remove deployment SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_rsa
 
       - name: Summary
         env:
