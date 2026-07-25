@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        VITE_PORTFOLIO_PASSWORD_HASH: ${VITE_PORTFOLIO_PASSWORD_HASH:-}
     ports:
       - '3000:80'
     environment:

@@ -4,6 +4,7 @@ FROM oven/bun:1 AS builder
 WORKDIR /app
 
 ARG VITE_API_URL
+ARG VITE_PORTFOLIO_PASSWORD_HASH
 
 COPY package.json bun.lockb* ./
 COPY apps/web/package.json ./apps/web/
@@ -15,6 +16,7 @@ COPY scripts ./scripts
 COPY tsconfig.json ./
 
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_PORTFOLIO_PASSWORD_HASH=$VITE_PORTFOLIO_PASSWORD_HASH
 
 RUN bun run --filter=@mike-os-x/web build
 

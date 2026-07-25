@@ -81,6 +81,9 @@ jobs:
       - name: Run linter
         run: cd apps/web && bun run lint
 
+      - name: Run frontend tests
+        run: cd apps/web && bun run test
+
       - name: Build frontend
         run: cd apps/web && bun run build
 
@@ -93,6 +96,14 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Build Web Docker image
+        run: |
+          docker build \
+            --build-arg VITE_API_URL=http://localhost:8000 \
+            --build-arg VITE_PORTFOLIO_PASSWORD_HASH=ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad \
+            -t mike-os-x-web:test \
+            -f Dockerfile .
 
       - name: Build API Docker image
         run: docker build -t mike-os-x-api:test -f apps/api/Dockerfile apps/api
