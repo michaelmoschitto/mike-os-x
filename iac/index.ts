@@ -74,13 +74,6 @@ const securityGroup = new aws.ec2.SecurityGroup('terminal-host-sg', {
       protocol: 'tcp',
       cidrBlocks: ['0.0.0.0/0'],
     },
-    {
-      description: 'Temporary Docker TLS rollback path',
-      fromPort: 2376,
-      toPort: 2376,
-      protocol: 'tcp',
-      cidrBlocks: ['0.0.0.0/0'],
-    },
   ],
   egress: [
     {
