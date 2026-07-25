@@ -7,11 +7,7 @@ interface ProjectsSidebarProps {
   onSelectProject: (slug?: string) => void;
 }
 
-const ProjectsSidebar = ({
-  projects,
-  selectedSlug,
-  onSelectProject,
-}: ProjectsSidebarProps) => {
+const ProjectsSidebar = ({ projects, selectedSlug, onSelectProject }: ProjectsSidebarProps) => {
   return (
     <aside className="aqua-pinstripe w-[200px] flex-shrink-0 overflow-y-auto border-r border-[var(--color-border-subtle)] p-2">
       <p className="font-ui px-2 pt-1 pb-2 text-[10px] font-semibold tracking-wide text-[var(--color-text-secondary)] uppercase">

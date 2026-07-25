@@ -121,7 +121,10 @@ export const getProjects = (): ProjectSummary[] => {
     .map(entryToProject)
     .filter((project): project is ProjectSummary => project !== null)
     .sort((firstProject, secondProject) => {
-      return firstProject.order - secondProject.order || firstProject.title.localeCompare(secondProject.title);
+      return (
+        firstProject.order - secondProject.order ||
+        firstProject.title.localeCompare(secondProject.title)
+      );
     });
 };
 

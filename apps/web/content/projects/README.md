@@ -22,7 +22,7 @@ summary: One sentence describing the outcome.
 order: 1
 role: Product Designer
 team: Product and Engineering
-timeline: "2025"
+timeline: '2025'
 tags:
   - UI
 thumbnail: images/thumbnail.webp
@@ -33,5 +33,5 @@ thumbnailAlt: Description of the thumbnail
 Use standard Markdown image syntax. The image title becomes its visible caption:
 
 ```markdown
-![Meaningful screenshot description](images/screenshot.webp "Short explanatory caption.")
+![Meaningful screenshot description](images/screenshot.webp 'Short explanatory caption.')
 ```

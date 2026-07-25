@@ -2,7 +2,9 @@ interface ProjectsLoadingStateProps {
   message?: string;
 }
 
-const ProjectsLoadingState = ({ message = 'Loading selected work…' }: ProjectsLoadingStateProps) => {
+const ProjectsLoadingState = ({
+  message = 'Loading selected work…',
+}: ProjectsLoadingStateProps) => {
   return (
     <div
       className="flex h-full flex-1 items-center justify-center bg-white"

@@ -67,7 +67,9 @@ const ProjectsWindow = ({ window: windowData, isActive }: ProjectsWindowProps) =
     }
   };
 
-  const windowTitle = selectedProject ? `${selectedProject.title} — Selected Work` : 'Selected Work';
+  const windowTitle = selectedProject
+    ? `${selectedProject.title} — Selected Work`
+    : 'Selected Work';
   const isUnlocked = accessStatus === 'unlocked';
 
   return (

@@ -7,12 +7,7 @@ interface ProjectsErrorStateProps {
   onAction?: () => void;
 }
 
-const ProjectsErrorState = ({
-  title,
-  message,
-  actionLabel,
-  onAction,
-}: ProjectsErrorStateProps) => {
+const ProjectsErrorState = ({ title, message, actionLabel, onAction }: ProjectsErrorStateProps) => {
   return (
     <div className="flex h-full flex-1 items-center justify-center bg-white p-8" role="alert">
       <div className="max-w-[420px] text-center">

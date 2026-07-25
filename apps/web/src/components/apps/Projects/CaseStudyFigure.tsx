@@ -17,13 +17,7 @@ interface CaseStudyFigureProps {
   onOpen: (screenshot: ScreenshotDetails) => void;
 }
 
-const CaseStudyFigure = ({
-  project,
-  src,
-  alt,
-  caption,
-  onOpen,
-}: CaseStudyFigureProps) => {
+const CaseStudyFigure = ({ project, src, alt, caption, onOpen }: CaseStudyFigureProps) => {
   const [imageFailed, setImageFailed] = useState(false);
   const imageUrl = src ? resolveProjectAssetUrl(project, src) : null;
   const accessibleAlt = alt?.trim() || 'Case study interface screenshot';

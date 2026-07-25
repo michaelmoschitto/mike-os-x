@@ -8,10 +8,7 @@ const passwordMocks = vi.hoisted(() => ({
 
 vi.mock('@/lib/portfolioPassword', () => passwordMocks);
 
-import {
-  PORTFOLIO_SESSION_KEY,
-  usePortfolioAccessStore,
-} from '@/stores/usePortfolioAccessStore';
+import { PORTFOLIO_SESSION_KEY, usePortfolioAccessStore } from '@/stores/usePortfolioAccessStore';
 
 class MemoryStorage implements Storage {
   private values = new Map<string, string>();

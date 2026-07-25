@@ -4,7 +4,9 @@ export const getPortfolioPasswordHash = (): string => {
   return (import.meta.env.VITE_PORTFOLIO_PASSWORD_HASH ?? '').trim().toLowerCase();
 };
 
-export const isPortfolioPasswordConfigured = (passwordHash = getPortfolioPasswordHash()): boolean => {
+export const isPortfolioPasswordConfigured = (
+  passwordHash = getPortfolioPasswordHash()
+): boolean => {
   return SHA_256_HEX_PATTERN.test(passwordHash);
 };
 

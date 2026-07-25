@@ -1,11 +1,7 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 
 import { type ContentIndexEntry, useContentIndex } from '@/lib/contentIndex';
-import {
-  getProjectBySlug,
-  getProjects,
-  resolveProjectAssetUrl,
-} from '@/lib/projectsContent';
+import { getProjectBySlug, getProjects, resolveProjectAssetUrl } from '@/lib/projectsContent';
 
 const createProjectEntry = (
   slug: string,
@@ -42,14 +38,12 @@ describe('projectsContent', () => {
   test('returns valid projects in configured order', () => {
     const laterProject = createProjectEntry('later-project', 2);
     const firstProject = createProjectEntry('first-project', 1);
-    useContentIndex
-      .getState()
-      .setEntries(
-        new Map([
-          [laterProject.urlPath, laterProject],
-          [firstProject.urlPath, firstProject],
-        ])
-      );
+    useContentIndex.getState().setEntries(
+      new Map([
+        [laterProject.urlPath, laterProject],
+        [firstProject.urlPath, firstProject],
+      ])
+    );
 
     expect(getProjects().map((project) => project.slug)).toEqual([
       'first-project',
@@ -59,9 +53,7 @@ describe('projectsContent', () => {
 
   test('skips projects with incomplete metadata', () => {
     const invalidProject = createProjectEntry('invalid-project', 1, { thumbnailAlt: undefined });
-    useContentIndex
-      .getState()
-      .setEntries(new Map([[invalidProject.urlPath, invalidProject]]));
+    useContentIndex.getState().setEntries(new Map([[invalidProject.urlPath, invalidProject]]));
 
     expect(getProjects()).toEqual([]);
   });
