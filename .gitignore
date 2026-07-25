@@ -9,6 +9,8 @@ bun.lockb
 
 # Testing
 coverage/
+apps/web/test-results/
+apps/web/playwright-report/
 
 # Production
 dist/

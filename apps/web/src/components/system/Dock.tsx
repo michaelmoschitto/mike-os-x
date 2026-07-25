@@ -6,13 +6,22 @@ import {
   LayoutGroup,
   type MotionValue,
 } from 'framer-motion';
-import { Fragment, useRef, useState } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 
+import { WINDOW_DIMENSIONS, getCenteredWindowPosition } from '@/lib/constants';
 import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
 import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
-import { useUI } from '@/lib/store';
+import { getAppTypeForDock, useWindowStore } from '@/stores/useWindowStore';
 
-type DockIconType = 'browser' | 'terminal' | 'writing' | 'photos' | 'reading' | 'finder' | 'trash';
+type DockIconType =
+  | 'browser'
+  | 'terminal'
+  | 'textedit'
+  | 'writing'
+  | 'photos'
+  | 'reading'
+  | 'finder'
+  | 'trash';
 
 interface DockIcon {
   id: DockIconType;
@@ -23,6 +32,7 @@ interface DockIcon {
 const dockIcons: DockIcon[] = [
   { id: 'browser', label: 'Internet Explorer', icon: '/icons/browser.png' },
   { id: 'terminal', label: 'Terminal', icon: '/icons/ai.png' },
+  { id: 'textedit', label: 'TextEdit', icon: '/icons/file-text.png' },
   { id: 'writing', label: 'Writing', icon: '/icons/writing.png' },
   { id: 'photos', label: 'Photos', icon: '/icons/photos.png' },
   { id: 'reading', label: 'Reading', icon: '/icons/reading.png' },
@@ -34,12 +44,32 @@ const BASE_SIZE = 56;
 const MAX_SCALE = 2.3;
 const DISTANCE = 140;
 
+const pickTopmostWindow = <T extends { zIndex: number }>(windows: T[]): T | null =>
+  windows.reduce<T | null>(
+    (latest, window) => (!latest || window.zIndex > latest.zIndex ? window : latest),
+    null
+  );
+
 const Dock = () => {
   const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
-  const { activeApp } = useUI();
   const dockRef = useRef<HTMLDivElement>(null);
   const mouseX = useMotionValue(Infinity);
   const { addWindow } = useWindowNavigation();
+  const windows = useWindowStore((state) => state.windows);
+  const openWindow = useWindowStore((state) => state.openWindow);
+  const minimizeWindow = useWindowStore((state) => state.minimizeWindow);
+  const focusWindow = useWindowStore((state) => state.focusWindow);
+
+  const runningDockApps = useMemo(() => {
+    const apps = new Set<DockIconType>();
+    for (const window of windows) {
+      const app = getAppTypeForDock(window);
+      if (app && dockIcons.some((icon) => icon.id === app)) {
+        apps.add(app as DockIconType);
+      }
+    }
+    return apps;
+  }, [windows]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     mouseX.set(e.pageX);
@@ -50,7 +80,42 @@ const Dock = () => {
     setHoveredIcon(null);
   };
 
+  const handleTextEditDockClick = () => {
+    const textEditWindows = windows.filter((window) => window.type === 'textedit');
+    const minimizedWindow = pickTopmostWindow(
+      textEditWindows.filter((window) => window.isMinimized)
+    );
+    if (minimizedWindow) {
+      minimizeWindow(minimizedWindow.id);
+      focusWindow(minimizedWindow.id);
+      return;
+    }
+
+    const visibleWindow = pickTopmostWindow(
+      textEditWindows.filter((window) => !window.isMinimized)
+    );
+    if (visibleWindow) {
+      focusWindow(visibleWindow.id);
+      return;
+    }
+
+    const { width, height } = WINDOW_DIMENSIONS.textedit;
+    const position = getCenteredWindowPosition(width, height);
+    openWindow({
+      type: 'textedit',
+      title: 'Untitled',
+      content: '',
+      position,
+      size: { width, height },
+    });
+  };
+
   const handleIconClick = (iconId: DockIconType) => {
+    if (iconId === 'textedit') {
+      handleTextEditDockClick();
+      return;
+    }
+
     const windowMap: Record<string, string> = {
       finder: 'finder:dock/finder',
       browser: 'browser:https://blog.mikemoschitto.com',
@@ -94,7 +159,7 @@ const Dock = () => {
               <DockIcon
                 icon={item}
                 mouseX={mouseX}
-                isActive={activeApp === item.id}
+                isActive={runningDockApps.has(item.id)}
                 isHovered={hoveredIcon === item.id}
                 onHover={setHoveredIcon}
                 onClick={handleIconClick}

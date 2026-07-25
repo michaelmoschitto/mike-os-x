@@ -1,0 +1,349 @@
+name: Rotate Docker TLS
+
+on:
+  schedule:
+    - cron: '17 8 1 * *'
+  workflow_dispatch:
+    inputs:
+      force_rotation:
+        description: Rotate even when the current certificate is still valid
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: terminal-docker-tls-rotation
+  cancel-in-progress: false
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+          missing=()
+          for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY EC2_SSH_KEY RAILWAY_PROJECT_ID RAILWAY_TOKEN; do
+            if [[ -z "${!name}" ]]; then
+              missing+=("$name")
+            fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Resolve healthy terminal host
+        id: host
+        run: |
+          set -euo pipefail
+          INSTANCE_ID="$(aws ec2 describe-instances \
+            --filters \
+              "Name=tag:Name,Values=mike-os-x-terminal-host" \
+              "Name=instance-state-name,Values=running" \
+            --query 'Reservations[0].Instances[0].InstanceId' \
+            --output text)"
+          EC2_IP="$(aws ec2 describe-addresses \
+            --filters "Name=tag:Name,Values=mike-os-x-terminal-eip" \
+            --query 'Addresses[0].PublicIp' \
+            --output text)"
+
+          if [[ -z "$INSTANCE_ID" || "$INSTANCE_ID" == "None" ]]; then
+            echo "::error::No running terminal EC2 instance was found"
+            exit 1
+          fi
+          if [[ -z "$EC2_IP" || "$EC2_IP" == "None" ]]; then
+            echo "::error::No terminal Elastic IP was found"
+            exit 1
+          fi
+
+          aws ec2 wait instance-status-ok --instance-ids "$INSTANCE_ID"
+          EBS_STATUS="$(aws ec2 describe-instance-status \
+            --instance-ids "$INSTANCE_ID" \
+            --include-all-instances \
+            --query 'InstanceStatuses[0].AttachedEbsStatus.Status' \
+            --output text)"
+          if [[ "$EBS_STATUS" != "None" && "$EBS_STATUS" != "ok" ]]; then
+            echo "::error::EC2 attached EBS status is $EBS_STATUS"
+            exit 1
+          fi
+          echo "instance_id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+          echo "ip=$EC2_IP" >> "$GITHUB_OUTPUT"
+
+      - name: Configure SSH
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_IP: ${{ steps.host.outputs.ip }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cat > ~/.ssh/config <<'EOF'
+          Host *
+            BatchMode yes
+            ConnectTimeout 10
+            IdentityFile ~/.ssh/id_rsa
+            ServerAliveInterval 5
+            ServerAliveCountMax 2
+          EOF
+          chmod 600 ~/.ssh/config
+          timeout 15 ssh-keyscan -H "$EC2_IP" >> ~/.ssh/known_hosts
+
+      - name: Check certificate state
+        id: check
+        env:
+          EC2_IP: ${{ steps.host.outputs.ip }}
+          FORCE_ROTATION: ${{ inputs.force_rotation || 'false' }}
+        run: |
+          set -euo pipefail
+          rotate=false
+          reason=current
+          current_available=false
+
+          if ssh ubuntu@"$EC2_IP" \
+            "sudo test -f /etc/docker/certs/ca.pem &&
+             sudo test -f /etc/docker/certs/server-cert.pem &&
+             sudo test -f /etc/docker/certs/server-key.pem"; then
+            current_available=true
+          fi
+
+          if [[ "$FORCE_ROTATION" == "true" ]]; then
+            rotate=true
+            reason=forced
+          elif [[ "$current_available" != "true" ]]; then
+            rotate=true
+            reason=missing
+          elif ! ssh ubuntu@"$EC2_IP" \
+            "sudo openssl x509 -checkend 2592000 -noout -in /etc/docker/certs/server-cert.pem &&
+             sudo openssl x509 -noout -ext subjectAltName -in /etc/docker/certs/server-cert.pem | grep -q 'IP Address:$EC2_IP'"; then
+            rotate=true
+            reason=expiring_or_wrong_host
+          fi
+
+          echo "rotate=$rotate" >> "$GITHUB_OUTPUT"
+          echo "reason=$reason" >> "$GITHUB_OUTPUT"
+          echo "current_available=$current_available" >> "$GITHUB_OUTPUT"
+          echo "Certificate rotation decision: $rotate ($reason)"
+
+      - name: Generate and validate certificates
+        if: steps.check.outputs.rotate == 'true'
+        env:
+          EC2_IP: ${{ steps.host.outputs.ip }}
+        run: ./scripts/generate-docker-tls.sh "$EC2_IP" "$RUNNER_TEMP/docker-certs" 365
+
+      - name: Install Railway CLI
+        if: steps.check.outputs.rotate == 'true'
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+          echo "$HOME/.railway/bin" >> "$GITHUB_PATH"
+
+      - name: Stage dual CA trust on Docker
+        if: steps.check.outputs.rotate == 'true'
+        id: stage
+        env:
+          CURRENT_AVAILABLE: ${{ steps.check.outputs.current_available }}
+          EC2_IP: ${{ steps.host.outputs.ip }}
+        run: |
+          set -euo pipefail
+          ROTATION_ID="$(date -u +%Y%m%dT%H%M%SZ)"
+          BACKUP_DIR="/etc/docker/certs-backup-$ROTATION_ID"
+
+          ssh ubuntu@"$EC2_IP" "rm -rf /tmp/docker-tls-next && mkdir -p /tmp/docker-tls-next"
+          scp "$RUNNER_TEMP/docker-certs/daemon/"* ubuntu@"$EC2_IP":/tmp/docker-tls-next/
+
+          if [[ "$CURRENT_AVAILABLE" == "true" ]]; then
+            ssh ubuntu@"$EC2_IP" "
+              set -euo pipefail
+              sudo cp -a /etc/docker/certs '$BACKUP_DIR'
+              sudo cp /tmp/docker-tls-next/ca.pem /etc/docker/certs/new-ca.pem
+              sudo sh -c 'cat $BACKUP_DIR/ca.pem /etc/docker/certs/new-ca.pem > /etc/docker/certs/ca.pem'
+              sudo chmod 600 /etc/docker/certs/server-key.pem
+              sudo chmod 644 /etc/docker/certs/ca.pem /etc/docker/certs/server-cert.pem
+              sudo systemctl restart docker
+              sudo systemctl is-active --quiet docker
+            "
+            scp ubuntu@"$EC2_IP":"$BACKUP_DIR/ca.pem" "$RUNNER_TEMP/old-ca.pem"
+            cat "$RUNNER_TEMP/old-ca.pem" "$RUNNER_TEMP/docker-certs/client/ca.pem" \
+              > "$RUNNER_TEMP/docker-certs/client/ca-bundle.pem"
+          else
+            cp "$RUNNER_TEMP/docker-certs/client/ca.pem" \
+              "$RUNNER_TEMP/docker-certs/client/ca-bundle.pem"
+            ssh ubuntu@"$EC2_IP" "
+              set -euo pipefail
+              sudo mkdir -p /etc/docker/certs /etc/systemd/system/docker.service.d
+              sudo cp /tmp/docker-tls-next/ca.pem /etc/docker/certs/ca.pem
+              sudo cp /tmp/docker-tls-next/server-cert.pem /etc/docker/certs/server-cert.pem
+              sudo cp /tmp/docker-tls-next/server-key.pem /etc/docker/certs/server-key.pem
+              sudo chmod 600 /etc/docker/certs/server-key.pem
+              sudo chmod 644 /etc/docker/certs/ca.pem /etc/docker/certs/server-cert.pem
+              echo '[Service]
+          ExecStart=
+          ExecStart=/usr/bin/dockerd' | sudo tee /etc/systemd/system/docker.service.d/override.conf >/dev/null
+              echo '{\"hosts\":[\"unix:///var/run/docker.sock\",\"tcp://0.0.0.0:2376\"],\"tls\":true,\"tlsverify\":true,\"tlscacert\":\"/etc/docker/certs/ca.pem\",\"tlscert\":\"/etc/docker/certs/server-cert.pem\",\"tlskey\":\"/etc/docker/certs/server-key.pem\"}' |
+                sudo tee /etc/docker/daemon.json >/dev/null
+              sudo systemctl daemon-reload
+              sudo systemctl restart docker
+              sudo systemctl is-active --quiet docker
+            "
+          fi
+          echo "backup_dir=$BACKUP_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Update Railway client trust and Docker host
+        if: steps.check.outputs.rotate == 'true'
+        env:
+          EC2_IP: ${{ steps.host.outputs.ip }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+          DOCKER_CA_CERT="$(base64 < "$RUNNER_TEMP/docker-certs/client/ca-bundle.pem" | tr -d '\n')"
+          DOCKER_CLIENT_CERT="$(base64 < "$RUNNER_TEMP/docker-certs/client/cert.pem" | tr -d '\n')"
+          DOCKER_CLIENT_KEY="$(base64 < "$RUNNER_TEMP/docker-certs/client/key.pem" | tr -d '\n')"
+
+          railway variables \
+            --service @mike-os-x/api \
+            --set "DOCKER_CA_CERT=$DOCKER_CA_CERT" \
+            --set "DOCKER_CLIENT_CERT=$DOCKER_CLIENT_CERT" \
+            --set "DOCKER_CLIENT_KEY=$DOCKER_CLIENT_KEY" \
+            --set "DOCKER_HOST=tcp://$EC2_IP:2376" \
+            --set "DOCKER_TLS_VERIFY=1"
+
+      - name: Activate new Docker server certificate
+        if: steps.check.outputs.rotate == 'true'
+        id: activate
+        env:
+          EC2_IP: ${{ steps.host.outputs.ip }}
+        run: |
+          set -euo pipefail
+          ssh ubuntu@"$EC2_IP" "
+            set -euo pipefail
+            sudo cp /tmp/docker-tls-next/ca.pem /etc/docker/certs/ca.pem
+            sudo cp /tmp/docker-tls-next/server-cert.pem /etc/docker/certs/server-cert.pem
+            sudo cp /tmp/docker-tls-next/server-key.pem /etc/docker/certs/server-key.pem
+            sudo chmod 600 /etc/docker/certs/server-key.pem
+            sudo chmod 644 /etc/docker/certs/ca.pem /etc/docker/certs/server-cert.pem
+            sudo systemctl restart docker
+            sudo systemctl is-active --quiet docker
+          "
+
+      - name: Verify Docker over mutual TLS
+        if: steps.check.outputs.rotate == 'true'
+        id: verify_docker
+        env:
+          EC2_IP: ${{ steps.host.outputs.ip }}
+        run: |
+          set -euo pipefail
+          RESPONSE="$(curl --fail --silent --show-error --max-time 10 \
+            --cacert "$RUNNER_TEMP/docker-certs/client/ca.pem" \
+            --cert "$RUNNER_TEMP/docker-certs/client/cert.pem" \
+            --key "$RUNNER_TEMP/docker-certs/client/key.pem" \
+            "https://$EC2_IP:2376/_ping")"
+          [[ "$RESPONSE" == "OK" ]]
+
+      - name: Roll back Docker certificate on TLS verification failure
+        if: failure() && steps.check.outputs.current_available == 'true' && steps.activate.outcome == 'success' && steps.verify_docker.outcome == 'failure'
+        env:
+          BACKUP_DIR: ${{ steps.stage.outputs.backup_dir }}
+          EC2_IP: ${{ steps.host.outputs.ip }}
+        run: |
+          ssh ubuntu@"$EC2_IP" "
+            set -euo pipefail
+            sudo cp '$BACKUP_DIR/server-cert.pem' /etc/docker/certs/server-cert.pem
+            sudo cp '$BACKUP_DIR/server-key.pem' /etc/docker/certs/server-key.pem
+            sudo sh -c 'cat $BACKUP_DIR/ca.pem /etc/docker/certs/new-ca.pem > /etc/docker/certs/ca.pem'
+            sudo systemctl restart docker
+          "
+
+      - name: Wait for Railway API health
+        if: steps.check.outputs.rotate == 'true'
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --max-time 10 \
+              https://api.os.mikemoschitto.com/health > /tmp/health.json; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            echo "API is not healthy yet ($attempt/30)"
+            sleep 10
+          done
+          echo "::error::Railway API did not become healthy after rotation"
+          exit 1
+
+      - name: Remove old CA from Railway trust
+        if: steps.check.outputs.rotate == 'true'
+        env:
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+          DOCKER_CA_CERT="$(base64 < "$RUNNER_TEMP/docker-certs/client/ca.pem" | tr -d '\n')"
+          railway variables \
+            --service @mike-os-x/api \
+            --set "DOCKER_CA_CERT=$DOCKER_CA_CERT"
+
+      - name: Verify final API and terminal status
+        env:
+          ROTATED: ${{ steps.check.outputs.rotate }}
+        run: |
+          set -euo pipefail
+          if [[ "$ROTATED" == "true" ]]; then
+            sleep 10
+          fi
+          curl --fail --silent --show-error --retry 12 --retry-all-errors \
+            --retry-delay 10 --max-time 10 \
+            https://api.os.mikemoschitto.com/health
+          curl --fail --silent --show-error --retry 6 --retry-all-errors \
+            --retry-delay 10 --max-time 10 \
+            https://api.os.mikemoschitto.com/api/terminal/status
+          python3 - <<'PY'
+          import socket
+          import ssl
+
+          host = "api.os.mikemoschitto.com"
+          request = (
+              "GET /ws/test HTTP/1.1\r\n"
+              f"Host: {host}\r\n"
+              "Upgrade: websocket\r\n"
+              "Connection: Upgrade\r\n"
+              "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+              "Sec-WebSocket-Version: 13\r\n\r\n"
+          )
+
+          with socket.create_connection((host, 443), timeout=10) as raw_socket:
+              with ssl.create_default_context().wrap_socket(
+                  raw_socket, server_hostname=host
+              ) as websocket:
+                  websocket.sendall(request.encode())
+                  response = websocket.recv(4096).decode(errors="replace")
+
+          if " 101 " not in response.split("\r\n", 1)[0]:
+              raise SystemExit(f"WebSocket upgrade failed: {response.splitlines()[0]}")
+          print("WebSocket upgrade succeeded")
+          PY
+
+      - name: Cleanup certificate material
+        if: always()
+        run: |
+          rm -rf "$RUNNER_TEMP/docker-certs" "$RUNNER_TEMP/old-ca.pem"
+          rm -f ~/.ssh/id_rsa

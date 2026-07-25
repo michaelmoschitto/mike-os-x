@@ -15,6 +15,7 @@ interface TrafficLightsProps {
  */
 const TrafficLights = ({
   onClose,
+  onMinimize,
   isActive = true,
   isForeground,
   debugMode = false,
@@ -80,7 +81,7 @@ const TrafficLights = ({
         />
       </div>
 
-      <div className="pointer-events-none relative" style={{ width: '13px', height: '13px' }}>
+      <div className="relative" style={{ width: '13px', height: '13px' }}>
         <div
           aria-hidden="true"
           className="relative box-border cursor-default overflow-hidden rounded-full outline-none"
@@ -119,6 +120,20 @@ const TrafficLights = ({
             }}
           />
         </div>
+        <button
+          aria-label="Minimize"
+          className={cn(
+            'absolute -inset-2 z-10 cursor-default rounded-none outline-none',
+            debugMode ? 'bg-yellow-500/50' : 'opacity-0'
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMinimize?.();
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          type="button"
+        />
       </div>
 
       <div className="pointer-events-none relative" style={{ width: '13px', height: '13px' }}>

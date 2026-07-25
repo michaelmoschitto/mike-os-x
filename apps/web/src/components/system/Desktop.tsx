@@ -28,70 +28,43 @@ const Desktop = () => {
       <MobileBanner />
       <MenuBar />
 
-      {/* Desktop background - starts below menu bar */}
       <div
         className="absolute top-[22px] right-0 bottom-0 left-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: 'url(/imgs/osx-10-light.png)' }}
       >
-        {/* Desktop Icons */}
         <DesktopIcons />
 
-        {/* Windows */}
-        {windows
-          .filter((w) => !w.isMinimized)
+        {[...windows]
           .sort((a, b) => a.zIndex - b.zIndex)
           .map((window) => {
-            if (window.type === 'browser') {
-              return (
-                <BrowserWindow
-                  key={window.id}
-                  window={window}
-                  isActive={window.id === activeWindowId}
-                />
-              );
+            if (window.isMinimized && window.type !== 'textedit') {
+              return null;
             }
-            if (window.type === 'terminal') {
-              return (
-                <TerminalWindow
-                  key={window.id}
-                  window={window}
-                  isActive={window.id === activeWindowId}
-                />
+
+            const isActive = !window.isMinimized && window.id === activeWindowId;
+            const windowNode =
+              window.type === 'browser' ? (
+                <BrowserWindow window={window} isActive={isActive} />
+              ) : window.type === 'terminal' ? (
+                <TerminalWindow window={window} isActive={isActive} />
+              ) : window.type === 'pdfviewer' ? (
+                <PDFViewerWindow window={window} isActive={isActive} />
+              ) : window.type === 'finder' ? (
+                <FinderWindow window={window} isActive={isActive} />
+              ) : window.type === 'photos' ? (
+                <PhotosWindow window={window} isActive={isActive} />
+              ) : (
+                <TextEditWindow window={window} isActive={isActive} />
               );
-            }
-            if (window.type === 'pdfviewer') {
-              return (
-                <PDFViewerWindow
-                  key={window.id}
-                  window={window}
-                  isActive={window.id === activeWindowId}
-                />
-              );
-            }
-            if (window.type === 'finder') {
-              return (
-                <FinderWindow
-                  key={window.id}
-                  window={window}
-                  isActive={window.id === activeWindowId}
-                />
-              );
-            }
-            if (window.type === 'photos') {
-              return (
-                <PhotosWindow
-                  key={window.id}
-                  window={window}
-                  isActive={window.id === activeWindowId}
-                />
-              );
-            }
+
             return (
-              <TextEditWindow
+              <div
                 key={window.id}
-                window={window}
-                isActive={window.id === activeWindowId}
-              />
+                aria-hidden={window.isMinimized}
+                className={window.isMinimized ? 'pointer-events-none invisible' : undefined}
+              >
+                {windowNode}
+              </div>
             );
           })}
       </div>
