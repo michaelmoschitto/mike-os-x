@@ -6,7 +6,7 @@ WORKDIR /app
 ARG VITE_API_URL
 ARG VITE_PORTFOLIO_PASSWORD_HASH
 
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock ./
 COPY apps/web/package.json ./apps/web/
 
 RUN bun install --frozen-lockfile
