@@ -395,7 +395,8 @@ jobs:
           # Configure web service with API URL
           railway variables \
             --service @mike-os-x/web \
-            --set "VITE_API_URL=https://api.os.mikemoschitto.com"
+            --set "VITE_API_URL=https://api.os.mikemoschitto.com" \
+            --set "VITE_PORTFOLIO_PASSWORD_HASH=${{ secrets.VITE_PORTFOLIO_PASSWORD_HASH }}"
 
           echo "✅ Railway web service configured"
 

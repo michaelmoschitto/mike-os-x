@@ -9,6 +9,24 @@ export interface LoadedContent {
 
 let globModulesCache: Record<string, () => Promise<string | { default: string }>> | null = null;
 
+const getContentMetadata = (data: Record<string, unknown>): ContentMetadata => ({
+  title: typeof data.title === 'string' ? data.title : undefined,
+  slug: typeof data.slug === 'string' ? data.slug : undefined,
+  app: data.app as ContentMetadata['app'],
+  description: typeof data.description === 'string' ? data.description : undefined,
+  url: typeof data.url === 'string' ? data.url : undefined,
+  summary: typeof data.summary === 'string' ? data.summary : undefined,
+  order: typeof data.order === 'number' ? data.order : undefined,
+  role: typeof data.role === 'string' ? data.role : undefined,
+  team: typeof data.team === 'string' ? data.team : undefined,
+  timeline: typeof data.timeline === 'string' ? data.timeline : undefined,
+  tags: Array.isArray(data.tags)
+    ? data.tags.filter((tag): tag is string => typeof tag === 'string')
+    : undefined,
+  thumbnail: typeof data.thumbnail === 'string' ? data.thumbnail : undefined,
+  thumbnailAlt: typeof data.thumbnailAlt === 'string' ? data.thumbnailAlt : undefined,
+});
+
 const getGlobModules = (): Record<string, () => Promise<string | { default: string }>> => {
   if (!globModulesCache) {
     // Only import text files with ?raw - images and PDFs should not be loaded as strings
@@ -48,12 +66,7 @@ export const loadContentFile = async (globKey: string): Promise<LoadedContent> =
 
       return {
         content: parsed.content,
-        metadata: {
-          title: parsed.data.title,
-          slug: parsed.data.slug,
-          app: parsed.data.app,
-          description: parsed.data.description,
-        },
+        metadata: getContentMetadata(parsed.data),
       };
     }
 
@@ -63,12 +76,7 @@ export const loadContentFile = async (globKey: string): Promise<LoadedContent> =
 
     return {
       content: parsed.content,
-      metadata: {
-        title: parsed.data.title,
-        slug: parsed.data.slug,
-        app: parsed.data.app,
-        description: parsed.data.description,
-      },
+      metadata: getContentMetadata(parsed.data),
     };
   } catch (error) {
     console.error('[ContentLoader] Error loading file:', error);
@@ -85,12 +93,7 @@ export const parseContent = (rawContent: string): LoadedContent => {
 
     return {
       content: parsed.content,
-      metadata: {
-        title: parsed.data.title,
-        slug: parsed.data.slug,
-        app: parsed.data.app,
-        description: parsed.data.description,
-      },
+      metadata: getContentMetadata(parsed.data),
     };
   } catch (error) {
     return {

@@ -26,7 +26,8 @@
     "lint:web:fix": "cd apps/web && bun run lint:fix",
     "lint:api": "cd apps/api && uv run ruff check .",
     "lint:api:fix": "cd apps/api && uv run ruff check --fix .",
-    "type-check:api": "cd apps/api && uv run mypy ."
+    "type-check:api": "cd apps/api && uv run mypy .",
+    "portfolio:hash-password": "bun scripts/hashPortfolioPassword.ts"
   },
   "devDependencies": {
     "typescript": "^5.6.2"

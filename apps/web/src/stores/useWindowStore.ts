@@ -22,26 +22,31 @@ export interface TerminalTab {
   sessionId: string;
 }
 
-const getAppName = (
-  windowType: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder' | 'photos'
-): string => {
-  const appNames: Record<
-    'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder' | 'photos',
-    string
-  > = {
+export type WindowType =
+  | 'textedit'
+  | 'browser'
+  | 'terminal'
+  | 'pdfviewer'
+  | 'finder'
+  | 'photos'
+  | 'projects';
+
+const getAppName = (windowType: WindowType): string => {
+  const appNames: Record<WindowType, string> = {
     browser: 'Internet Explorer',
     textedit: 'TextEdit',
     terminal: 'Terminal',
     pdfviewer: 'Preview',
     finder: 'Finder',
     photos: 'Photos',
+    projects: 'Selected Work',
   };
   return appNames[windowType];
 };
 
 export interface Window {
   id: string;
-  type: 'textedit' | 'browser' | 'terminal' | 'pdfviewer' | 'finder' | 'photos';
+  type: WindowType;
   appName: string;
   title: string;
   content: string;
@@ -64,6 +69,7 @@ export interface Window {
   albumPath?: string;
   selectedPhotoIndex?: number;
   isSlideshow?: boolean;
+  projectSlug?: string;
 }
 
 export type WindowOpenConfig = Omit<Window, 'id' | 'zIndex' | 'isMinimized' | 'appName'> & {

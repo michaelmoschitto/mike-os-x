@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 
 import { BrowserWindow } from '@/components/apps/Browser';
 import { FinderWindow } from '@/components/apps/Finder';
@@ -13,6 +13,8 @@ import MobileBanner from '@/components/system/MobileBanner';
 import Notification from '@/components/system/Notification';
 import { useDesktopStore } from '@/stores/useDesktopStore';
 import { useWindowStore } from '@/stores/useWindowStore';
+
+const ProjectsWindow = lazy(() => import('@/components/apps/Projects/ProjectsWindow'));
 
 const Desktop = () => {
   const windows = useWindowStore((state) => state.windows);
@@ -84,6 +86,13 @@ const Desktop = () => {
                   window={window}
                   isActive={window.id === activeWindowId}
                 />
+              );
+            }
+            if (window.type === 'projects') {
+              return (
+                <Suspense key={window.id} fallback={null}>
+                  <ProjectsWindow window={window} isActive={window.id === activeWindowId} />
+                </Suspense>
               );
             }
             return (

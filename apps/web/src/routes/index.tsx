@@ -28,6 +28,7 @@ export const Route = createFileRoute('/')({
       const mightNeedContentIndex = windowIdentifiers.some(
         (id) =>
           id.startsWith('photos') ||
+          id.startsWith('projects') ||
           id.startsWith('finder') ||
           id.startsWith('textedit') ||
           id.startsWith('pdfviewer') ||

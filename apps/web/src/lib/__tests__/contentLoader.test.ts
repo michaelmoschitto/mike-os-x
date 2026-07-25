@@ -18,6 +18,16 @@ title: Test Document
 slug: test-doc
 app: photos
 description: A test document
+summary: A concise summary
+order: 2
+role: Product Designer
+team: Product and Engineering
+timeline: "2025"
+tags:
+  - Search
+  - UI
+thumbnail: images/thumbnail.webp
+thumbnailAlt: Updated search results
 ---
 Hello world`;
 
@@ -28,6 +38,14 @@ Hello world`;
       expect(result.metadata.slug).toBe('test-doc');
       expect(result.metadata.app).toBe('photos');
       expect(result.metadata.description).toBe('A test document');
+      expect(result.metadata.summary).toBe('A concise summary');
+      expect(result.metadata.order).toBe(2);
+      expect(result.metadata.role).toBe('Product Designer');
+      expect(result.metadata.team).toBe('Product and Engineering');
+      expect(result.metadata.timeline).toBe('2025');
+      expect(result.metadata.tags).toEqual(['Search', 'UI']);
+      expect(result.metadata.thumbnail).toBe('images/thumbnail.webp');
+      expect(result.metadata.thumbnailAlt).toBe('Updated search results');
     });
 
     test('handles empty frontmatter', () => {
