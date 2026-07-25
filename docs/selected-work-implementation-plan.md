@@ -2,15 +2,17 @@
 
 ## Status
 
-Proposed implementation plan for a password-gated, long-form UI portfolio inside the existing Mac OS X Aqua desktop experience.
+Accepted implementation plan for a long-form UI portfolio inside the existing Mac OS X Aqua desktop experience.
 
-This document is implementation-ready, but no feature code has been written yet.
+This revision intentionally stores portfolio Markdown and screenshots as plaintext in the public repository. The password is a presentation gate for interview sharing, not a security boundary.
+
+No feature code has been written yet.
 
 ## Summary
 
 Build a first-class `projects` desktop app with the user-facing title **Selected Work**. It will provide:
 
-- A password prompt before project metadata is shown
+- A lightweight password screen
 - An ordered project overview
 - Long-form Markdown case studies
 - Inline UI screenshots with captions
@@ -18,113 +20,93 @@ Build a first-class `projects` desktop app with the user-facing title **Selected
 - Deep links to individual projects
 - Aqua window chrome around a restrained, professional reading surface
 
-The portfolio source files will remain local and gitignored. A build command will validate, optimize, and encrypt the portfolio into a static package. Only encrypted output will be committed and deployed.
+Case studies will live under `apps/web/content/projects` and use the site's existing content pipeline. This removes the encryption compiler, browser decryption, key lifecycle, encrypted asset handling, and separate private-source workflow from the previous plan.
 
-## Plan Review and Decisions
+## Accepted Tradeoff
 
-The initial plan was reviewed against the current repository, deployment model, and repository visibility. The following decisions resolve the major implementation risks.
-
-### 1. Do not store private source content in the repository
-
-The repository is public. Runtime authentication cannot protect files committed under either:
-
-- `apps/web/content`
-- `apps/api/content`
-
-Files under `apps/web/content` are also copied or bundled into the public Vite application by:
+The repository is public. Files committed under `apps/web/content` are visible through GitHub and are copied or bundled into the deployed Vite application by:
 
 - `apps/web/vite.config.ts`
 - `scripts/buildContentMetadata.mjs`
 - `apps/web/src/lib/contentIndex.ts`
 
-Therefore, real project Markdown and screenshots must never enter the existing content tree or any other committed plaintext path.
+The project accepts that:
 
-### 2. Use an encrypted static package for the first version
+- Someone can browse the case-study source on GitHub.
+- Someone can access screenshots directly if they know or discover the URL.
+- Someone can bypass the password screen with developer tools.
+- Search engines or source-indexing services may discover the content.
 
-Password protection is a convenience boundary, not an authorization boundary for confidential material. A browser-decrypted static package is the simplest implementation that provides more than a cosmetic password check.
+The password still has practical value: normal visitors and interview reviewers receive an intentional entry experience, while casual navigation does not expose the portfolio immediately.
 
-This choice avoids adding:
+### Why not hide the files from GitHub?
 
-- Private object storage
-- Upload tooling
-- New Railway volumes
-- New API endpoints
-- Cross-origin cookie handling
-- Redis-backed sessions
-- New Pulumi resources
+The common low-effort options do not solve the complete problem:
 
-If stronger protection is required later, the encrypted package can be replaced by an authenticated API backed by private object storage without redesigning the Projects UI.
+- `.gitignore` prevents files from reaching GitHub, but also prevents Railway from receiving them during its repository build.
+- Git LFS stores large files differently, but files in a public repository remain publicly accessible.
+- Obscure filenames reduce accidental discovery but do not provide access control.
+- `robots.txt` can discourage compliant crawlers but does not protect files.
+- Making the repository private hides source from GitHub visitors, but the deployed static asset URLs remain public.
+- A private companion repository requires authenticated checkout during deployment and changes the current Railway build flow.
+- Private object storage requires upload tooling, credentials, and authenticated asset delivery.
 
-### 3. Use `projects` consistently
-
-The internal window type will be `projects`.
-
-This matches:
-
-- The existing `projects` value in `apps/web/src/lib/store.ts`
-- The terminology in `docs/OSX_Portfolio_Spec.md`
-- The intended Dock navigation
-
-The user-facing app name will be **Selected Work**.
-
-### 4. Use Markdown, not MDX
-
-The case studies need headings, lists, links, and figures, but do not currently require executable embeds.
-
-Plain Markdown is preferred because it:
-
-- Is easier to author
-- Has a smaller implementation surface
-- Can be rendered safely without raw HTML
-- Supports inline screenshots through normal image syntax
-- Avoids compiling private executable content
-
-Use `react-markdown` with `remark-gfm`. Do not enable raw HTML.
-
-### 5. Keep the first image viewer simple
-
-The first version will provide click-to-zoom, Escape-to-close, focus restoration, alt text, and captions.
-
-Previous/next gallery navigation is deferred until real case studies demonstrate that it improves the reading experience. This avoids introducing screenshot indexing and article parsing solely for a speculative interaction.
-
-### 6. Keep the decryption key in memory
-
-The password and derived key will not be stored in `localStorage` or `sessionStorage`.
-
-Refreshing the page will lock the portfolio again. This is a reasonable tradeoff for an interview portfolio and avoids persisting the equivalent of the password in browser-accessible storage.
+The last two options are valid future upgrades, but they are not justified for content that is approved for public exposure.
 
 ## Goals
 
 ### Product goals
 
-- Present UI work as a professional case-study collection
-- Make outcomes, responsibilities, constraints, and decisions easy to scan
-- Allow screenshots to appear beside the text that explains them
-- Preserve the Mac OS X identity without reducing readability
-- Make direct project links reliable for interview sharing
-- Make adding future projects predictable
+- Present UI work as a professional case-study collection.
+- Make outcomes, responsibilities, constraints, and decisions easy to scan.
+- Place screenshots beside the text that explains them.
+- Preserve the Mac OS X identity without reducing readability.
+- Make direct project links reliable for interview sharing.
+- Make adding future projects predictable.
 
 ### Engineering goals
 
-- Fit the existing window, routing, Zustand, Vite, and Railway architecture
-- Keep private source files out of Git and production plaintext
-- Load articles and images only when needed
-- Give each implementation slice an independent verification gate
-- Keep the public site functional when portfolio content is missing or corrupt
+- Reuse the existing window, routing, Zustand, Vite, and content systems.
+- Keep the password implementation intentionally small.
+- Load full articles and large images only when needed.
+- Give each implementation slice an independent verification gate.
+- Keep the site functional when project content is missing or malformed.
 
 ## Non-goals
 
+- Secure authentication or authorization
 - User accounts or per-viewer passwords
-- Strong revocation of previously published encrypted content
-- Finder integration for private project files
+- Hiding content from GitHub
+- Preventing direct asset access
+- Finder integration for project source files
 - Command palette search
-- Public project teaser pages
 - Multiple Projects windows
 - MDX components
 - Analytics
 - AI or RAG indexing
 - Editing case studies in the browser
-- A general-purpose encrypted content management system
+
+## Architecture
+
+```text
+apps/web/content/projects
+  -> existing metadata build
+  -> existing Vite content glob and asset copy
+  -> Projects content helpers
+  -> Projects Zustand/UI state
+  -> ProjectsWindow
+```
+
+The feature remains entirely inside `apps/web`.
+
+Unchanged:
+
+- FastAPI
+- Redis
+- Terminal WebSocket
+- Railway API service
+- EC2 and Pulumi
+- Docker Compose
 
 ## Existing Repository Integration Points
 
@@ -135,21 +117,190 @@ Refreshing the page will lock the portfolio again. This is a reasonable tradeoff
 | Window URL strategy | `apps/web/src/lib/routing/windowTypeStrategies.ts` | Add singleton Projects strategy |
 | URL validation | `apps/web/src/lib/routing/windowSerialization.ts` | Accept and serialize Projects identifiers |
 | URL reconciliation | `apps/web/src/lib/routing/windowReconciliation.ts` | Use the existing singleton mechanism |
-| Route startup | `apps/web/src/routes/index.tsx` | Ensure Projects URLs reconcile |
+| Route startup | `apps/web/src/routes/index.tsx` | Ensure Projects URLs initialize and reconcile |
 | Friendly routes | `apps/web/src/routes/$.tsx` | Redirect `/projects/:slug` explicitly |
 | Window rendering | `apps/web/src/components/system/Desktop.tsx` | Render `ProjectsWindow` |
 | Dock navigation | `apps/web/src/components/system/Dock.tsx` | Add Projects icon and identifier |
+| App activation | `apps/web/src/lib/store.ts` | Reuse existing `projects` value |
+| Content app type | `apps/web/src/lib/fileToApp.ts` | Add `projects` |
+| Content metadata | `apps/web/src/lib/contentLoader.ts` | Parse project frontmatter |
+| Content discovery | `apps/web/src/lib/contentIndex.ts` | Reuse existing index |
 | Window chrome | `apps/web/src/components/window/Window.tsx` | Reuse unchanged |
-| Aqua controls | `apps/web/src/components/ui/aqua/` | Reuse buttons and tokens |
+| Aqua controls | `apps/web/src/components/ui/aqua/` | Reuse existing components |
 | Focus-managed dialogs | `@radix-ui/react-dialog` | Use for password and screenshot dialogs |
-| Styling tokens | `apps/web/src/styles/index.css` | Reuse; add tokens only if necessary |
-| Photos behavior | `apps/web/src/components/apps/Photos/PhotosSingleView.tsx` | Reuse interaction ideas, not the component |
+| Styling tokens | `apps/web/src/styles/index.css` | Reuse existing tokens |
 
-The existing TextEdit and Photos apps should not be used as the case-study renderer:
+Do not use TextEdit or Photos as the case-study renderer:
 
 - TextEdit is editable and renders raw text rather than publication-quality Markdown.
 - Photos uses square `object-cover` thumbnails that can crop UI screenshots.
-- A dedicated app can preserve project navigation and article context.
+- A dedicated app preserves project navigation and article context.
+
+## Content Structure
+
+```text
+apps/web/content/projects/
+  search-redesign/
+    index.md
+    images/
+      thumbnail.webp
+      results.webp
+      filters.webp
+  design-system/
+    index.md
+    images/
+      thumbnail.webp
+      components.webp
+```
+
+Each project is self-contained. Adding a project requires copying one folder and supplying its metadata, article, and images.
+
+### Frontmatter
+
+```yaml
+---
+app: projects
+slug: projects/search-redesign
+title: Search Experience Redesign
+summary: Improving retrieval clarity for a technical workflow.
+order: 1
+role: Product Designer
+team: Product and Engineering
+timeline: "2025"
+tags:
+  - Search
+  - UI
+  - Design Systems
+thumbnail: images/thumbnail.webp
+thumbnailAlt: Updated search results interface
+---
+```
+
+Required:
+
+- `app`
+- `slug`
+- `title`
+- `summary`
+- `order`
+- `role`
+- `timeline`
+- `thumbnail`
+- `thumbnailAlt`
+
+Optional:
+
+- `team`
+- `tags`
+
+Do not add speculative fields until real content needs them.
+
+### Article format
+
+The Markdown body starts below the generated project header:
+
+```markdown
+## Outcome
+
+The revised hierarchy made high-confidence results easier to identify.
+
+![Search results organized by confidence](images/results.webp "The final hierarchy separates primary matches from supporting context.")
+```
+
+Image rules:
+
+- Alt text is required.
+- The optional Markdown image title becomes the visible caption.
+- Image paths are relative to the project folder.
+- Screenshots use WebP unless transparency or fidelity testing justifies PNG.
+- Remote image URLs are not used for the first version.
+- Screenshots should be no wider than necessary for readable display.
+
+### Content metadata types
+
+Extend `ContentMetadata` in `apps/web/src/lib/fileToApp.ts`:
+
+```typescript
+export interface ContentMetadata {
+  app?: AppType;
+  title?: string;
+  slug?: string;
+  description?: string;
+  url?: string;
+  summary?: string;
+  order?: number;
+  role?: string;
+  team?: string;
+  timeline?: string;
+  tags?: string[];
+  thumbnail?: string;
+  thumbnailAlt?: string;
+}
+```
+
+Add `projects` to `AppType`.
+
+Refactor the duplicated frontmatter mapping in `contentLoader.ts` into one small parser while extending it. This prevents `parseContent` and `loadContentFile` from drifting.
+
+## Password Presentation Gate
+
+### Behavior
+
+Opening either the overview or a project deep link displays an Aqua password dialog unless the current tab has already been unlocked.
+
+The dialog includes:
+
+- Title: “Selected Work”
+- A short explanation that the work is shared for portfolio review
+- Labelled password input
+- Unlock button
+- Cancel button
+- Inline wrong-password message
+
+Interaction:
+
+- Enter submits.
+- Escape cancels and returns to the desktop.
+- Focus begins in the password field.
+- Radix Dialog traps and restores focus.
+- A successful unlock is remembered in `sessionStorage`.
+- A deep-linked project remains selected after unlock.
+- Lock clears the session flag.
+
+### Password comparison
+
+Use a build-time environment variable:
+
+```text
+VITE_PORTFOLIO_PASSWORD_HASH
+```
+
+The value is a lowercase hexadecimal SHA-256 digest of the intended password.
+
+The browser:
+
+1. Encodes the submitted password with `TextEncoder`.
+2. Hashes it with `crypto.subtle.digest('SHA-256', ...)`.
+3. Compares the resulting hexadecimal digest with the build-time value.
+4. Stores only an unlocked boolean in `sessionStorage`.
+
+This avoids committing the plaintext password, but it does not provide secure authentication. The digest is present in the built JavaScript and can be brute-forced or bypassed.
+
+### Missing configuration
+
+Development and production behavior must fail clearly:
+
+- If no hash is configured, show “Portfolio access is not configured.”
+- Do not silently accept every password.
+- Do not include a default production password.
+
+Provide a small local command for generating the hash:
+
+```text
+bun run portfolio:hash-password
+```
+
+The command prompts without echoing and prints the digest. It must not accept the password as a command-line argument.
 
 ## User Experience Specification
 
@@ -157,31 +308,9 @@ The existing TextEdit and Photos apps should not be used as the case-study rende
 
 - Title: **Selected Work**
 - Default dimensions: `1000 × 680`
-- Singleton behavior: opening a second project updates and focuses the existing Projects window
+- Singleton behavior: opening another project updates and focuses the existing Projects window
 - Content background: white or a very subtle neutral
-- Pinstripes: toolbar, sidebar chrome, dialogs, and empty states only
-
-### Locked state
-
-Opening either the overview or a project deep link displays an Aqua password dialog.
-
-The dialog includes:
-
-- Title: “Selected Work”
-- One sentence explaining that access is shared for portfolio review
-- Labelled password input
-- Unlock button
-- Cancel button
-- Inline wrong-password error
-- Progress state while deriving the key and decrypting the index
-
-Behavior:
-
-- Enter submits
-- Escape cancels and returns to the desktop
-- Focus starts in the password field
-- Focus cannot escape the dialog while open
-- A deep-linked project remains selected after unlock
+- Pinstripes: toolbar, sidebar chrome, dialog chrome, and empty states only
 
 ### Overview
 
@@ -191,9 +320,9 @@ The unlocked overview contains:
 - “All Projects” as the first sidebar item
 - Projects ordered by the explicit `order` field
 - Two-column landscape project cards
-- Thumbnail, title, summary, role, and date or timeline
+- Thumbnail, title, summary, role, and timeline
 
-Cards must preserve the thumbnail's aspect ratio and must not crop important UI.
+Cards preserve the thumbnail's aspect ratio and do not crop important UI.
 
 ### Article
 
@@ -223,12 +352,14 @@ Recommended editorial structure:
 
 ### Screenshot viewer
 
-- Open by activating an inline figure
-- Preserve the full screenshot with `object-contain`
-- Show the article caption
-- Close with Escape or an explicit button
-- Restore focus to the triggering figure
-- Use a neutral dark viewing surface inside Aqua dialog chrome
+- Open by activating an inline figure.
+- Preserve the full screenshot with `object-contain`.
+- Show the article caption.
+- Close with Escape or an explicit button.
+- Restore focus to the triggering figure.
+- Use a neutral dark viewing surface inside Aqua dialog chrome.
+
+Previous/next gallery navigation is deferred until real case studies demonstrate a need for it.
 
 ## Routing Model
 
@@ -250,7 +381,7 @@ interface Window {
 }
 ```
 
-Serialization rules:
+Serialization:
 
 ```text
 projects                    -> overview
@@ -263,158 +394,27 @@ Slug grammar:
 [a-z0-9]+(?:-[a-z0-9]+)*
 ```
 
-Screenshot dialog state will remain local component state and will not be represented in the URL for the first version.
+Screenshot dialog state remains local component state and is not represented in the URL.
 
-### Route-specific implementation notes
+### Route implementation notes
 
-`apps/web/src/routes/index.tsx` currently waits for the public content index before reconciling windows. Projects does not use that index. Implementation should either:
+`apps/web/src/routes/index.tsx` currently waits for the public content index before reconciling windows. Add `projects` to the identifiers that trigger index initialization. A broader routing refactor is unrelated to this feature.
 
-1. Add `projects` to the set that initializes the index, as the smallest change; or
-2. Remove the unconditional `isIndexed` dependency from reconciliation, if tests show that doing so is safe for all window types.
-
-Prefer option 1 for this feature. The broader reconciliation cleanup is unrelated.
-
-`apps/web/src/routes/$.tsx` must handle `/projects` and `/projects/:slug` before calling the existing public content resolver.
-
-## Source Content
-
-Real source content lives in a gitignored root directory:
+`apps/web/src/routes/$.tsx` currently has mismatched `photo`/`pdf` checks compared with the actual `photos`/`pdfviewer` app types. Correct those checks while adding explicit handling for:
 
 ```text
-.portfolio/
-  projects/
-    search-redesign/
-      project.json
-      article.md
-      images/
-        thumbnail.png
-        results.png
-        filters.png
+/projects
+/projects/:slug
 ```
 
-Add this rule to `.gitignore`:
+## Content Helpers
 
-```gitignore
-# Unencrypted portfolio source
-.portfolio/
-```
+Create `apps/web/src/lib/projectsContent.ts`.
 
-### Project metadata
-
-`project.json`:
-
-```json
-{
-  "slug": "search-redesign",
-  "title": "Search Experience Redesign",
-  "summary": "Improving retrieval clarity for a technical workflow.",
-  "order": 1,
-  "role": "Product Designer",
-  "team": "Product and Engineering",
-  "timeline": "2025",
-  "tags": ["Search", "UI", "Design Systems"],
-  "thumbnail": "images/thumbnail.png",
-  "thumbnailAlt": "Updated search results interface"
-}
-```
-
-Required:
-
-- `slug`
-- `title`
-- `summary`
-- `order`
-- `role`
-- `timeline`
-- `thumbnail`
-- `thumbnailAlt`
-
-Optional:
-
-- `team`
-- `tags`
-
-Do not add speculative fields until actual project content needs them.
-
-### Article format
-
-`article.md` starts below the generated project header:
-
-```markdown
-## Outcome
-
-The revised hierarchy made high-confidence results easier to identify.
-
-![Search results organized by confidence](images/results.png "The final results hierarchy separates primary matches from supporting context.")
-```
-
-Image convention:
-
-- Alt text is required.
-- The optional Markdown image title becomes the visible caption.
-- Image paths must be relative to the project directory.
-- Remote images and absolute filesystem paths are rejected.
-
-## Generated Package
-
-Only encrypted output is committed:
-
-```text
-apps/web/public/portfolio/
-  manifest.json
-  index.<ciphertext-hash>.enc
-  resources/
-    <ciphertext-hash>.enc
-    <ciphertext-hash>.enc
-```
-
-Vite copies `public/portfolio` directly into the production build. It is intentionally separate from `apps/web/content` and the existing content index.
-
-### Public manifest
-
-`manifest.json` contains cryptographic bootstrapping data only:
-
-```json
-{
-  "schemaVersion": 1,
-  "kdf": {
-    "name": "PBKDF2",
-    "hash": "SHA-256",
-    "iterations": 600000,
-    "salt": "<base64>"
-  },
-  "index": {
-    "path": "index.<hash>.enc",
-    "iv": "<base64>",
-    "aad": "portfolio:v1:index"
-  }
-}
-```
-
-The exact PBKDF2 iteration count must be benchmarked during implementation. Target an unlock cost of roughly 300ms–700ms on a typical interviewer's laptop.
-
-The public manifest must not contain:
-
-- Project titles
-- Slugs
-- Article text
-- Original filenames
-- Captions
-- MIME types
-- Asset relationships
-
-### Encrypted index
-
-After decryption, the index contains:
+Suggested interfaces:
 
 ```typescript
-interface PortfolioIndex {
-  schemaVersion: 1;
-  projects: PortfolioProjectSummary[];
-  resources: Record<string, EncryptedResource>;
-}
-
-interface PortfolioProjectSummary {
+export interface ProjectSummary {
   slug: string;
   title: string;
   summary: string;
@@ -423,140 +423,77 @@ interface PortfolioProjectSummary {
   team?: string;
   timeline: string;
   tags: string[];
-  thumbnailResourceId: string;
+  thumbnailUrl: string;
   thumbnailAlt: string;
-  articleResourceId: string;
-  assetResourceIds: Record<string, string>;
+  entry: ContentIndexEntry;
 }
 
-interface EncryptedResource {
-  path: string;
-  iv: string;
-  aad: string;
-  mimeType: string;
-  byteLength: number;
+export interface ProjectArticle {
+  project: ProjectSummary;
+  markdown: string;
+  contentBaseUrl: string;
 }
 ```
 
-Each `.enc` resource is raw AES-GCM ciphertext. Web Crypto's AES-GCM output already includes the authentication tag.
+Suggested functions:
 
-`assetResourceIds` maps normalized article-relative paths such as `images/results.png` to encrypted resource IDs. This lets the Markdown image renderer resolve a source without exposing original filenames in the public manifest.
-
-## Encryption and Build Pipeline
-
-### Cryptography
-
-- KDF: PBKDF2-SHA-256
-- Encryption: AES-256-GCM
-- Salt: one random package salt
-- IV: one random 12-byte IV per encrypted file
-- AAD:
-  - Index: `portfolio:v1:index`
-  - Resource: `portfolio:v1:resource:<resource-id>`
-- Filenames: SHA-256 hash of ciphertext
-- Password comparison: successful authenticated decryption of the index
-
-Do not add a separate client-visible password hash. It would give an attacker a smaller artifact to test without decrypting the authenticated index.
-
-Encode the password exactly as entered with `TextEncoder`. Do not trim or normalize it differently between the build script and browser.
-
-### Build order
-
-```text
-Read local source
-  -> validate metadata and Markdown references
-  -> optimize images
-  -> encrypt article and image resources
-  -> hash ciphertext and assign resource paths
-  -> construct encrypted index
-  -> write package into a temporary directory
-  -> verify round-trip decryption
-  -> atomically replace apps/web/public/portfolio
+```typescript
+getProjects(): ProjectSummary[]
+getProjectBySlug(slug: string): ProjectSummary | undefined
+loadProjectArticle(slug: string): Promise<ProjectArticle>
+resolveProjectAssetUrl(project: ProjectSummary, relativePath: string): string
 ```
 
-The build must never write optimized plaintext into `apps/web/public`.
+Responsibilities:
 
-### Password input
+- Filter content entries where `appType === 'projects'`.
+- Validate required metadata at the boundary.
+- Sort by `order`, then title for deterministic fallback.
+- Convert `slug: projects/search-redesign` into the route slug `search-redesign`.
+- Resolve `images/foo.webp` to `/content/projects/search-redesign/images/foo.webp`.
+- Reject absolute paths, traversal, and unsupported image schemes.
 
-For a real build:
+## Frontend State
 
-- Prompt without echoing the password
-- Prompt twice when creating or rotating a package
-- Do not accept a command-line password argument
+### Access store
 
-For automated fixture tests only:
+Create `apps/web/src/stores/usePortfolioAccessStore.ts`:
 
-- Permit a test password through an environment variable
-- Reject that mode unless the source path is under `tests/fixtures`
+```typescript
+type PortfolioAccessStatus = 'locked' | 'checking' | 'unlocked' | 'misconfigured';
 
-### Image processing
-
-Use `sharp` during package generation.
-
-Create:
-
-- Card thumbnail variant
-- Article/display variant capped near 1800px wide
-- WebP output
-
-The initial quality and size budgets are:
-
-- Thumbnail: target below 100KB
-- Display image: target below 500KB
-- Warn when a generated image exceeds its target
-- Fail only on a larger hard ceiling established with real screenshots
-
-The build encrypts generated image buffers immediately. Original images remain under `.portfolio`.
-
-## Frontend Data Flow
-
-```text
-ProjectsWindow mounts
-  -> portfolioStore.loadManifest()
-  -> locked state
-  -> password dialog submits
-  -> deriveKey(password, manifest.kdf)
-  -> fetch encrypted index
-  -> decrypt index
-  -> store CryptoKey and project summaries in memory
-  -> render overview or selected project
+interface PortfolioAccessStore {
+  status: PortfolioAccessStatus;
+  initialize: () => void;
+  unlock: (password: string) => Promise<boolean>;
+  lock: () => void;
+}
 ```
 
-Project load:
+Storage key:
 
 ```text
-Select slug
-  -> find article resource in decrypted index
-  -> fetch ciphertext
-  -> decrypt with in-memory key
-  -> decode Markdown
-  -> render article
+selected-work-unlocked-v1
 ```
 
-Image load:
+The store contains no project data and no password.
 
-```text
-Markdown image component receives relative source
-  -> resolve project resource
-  -> fetch ciphertext
-  -> decrypt into Blob
-  -> create object URL
-  -> render image
-  -> revoke object URL when cache is cleared
-```
+### Project state
 
-Cache decrypted articles and Blob URLs for the active browser session. Locking the portfolio clears both.
+Keep the selected project in the existing window store through `projectSlug`.
+
+Keep screenshot-dialog state inside the article component. Do not add another global store.
 
 ## Frontend Files
 
 ### Create
 
 ```text
-apps/web/src/lib/portfolio/portfolioTypes.ts
-apps/web/src/lib/portfolio/portfolioCrypto.ts
-apps/web/src/lib/portfolio/portfolioPackage.ts
-apps/web/src/lib/portfolio/portfolioClient.ts
-apps/web/src/stores/usePortfolioStore.ts
+scripts/hashPortfolioPassword.ts
+
+apps/web/src/lib/projectsContent.ts
+apps/web/src/lib/portfolioPassword.ts
+apps/web/src/stores/usePortfolioAccessStore.ts
 
 apps/web/src/components/apps/Projects/ProjectsWindow.tsx
 apps/web/src/components/apps/Projects/ProjectsToolbar.tsx
@@ -570,32 +507,35 @@ apps/web/src/components/apps/Projects/ScreenshotDialog.tsx
 apps/web/src/components/apps/Projects/ProjectsLoadingState.tsx
 apps/web/src/components/apps/Projects/ProjectsErrorState.tsx
 apps/web/src/components/apps/Projects/index.ts
+
+apps/web/public/icons/projects.png
 ```
 
 ### Modify
 
 ```text
+package.json
+apps/web/package.json
 apps/web/src/stores/useWindowStore.ts
 apps/web/src/lib/constants.ts
+apps/web/src/lib/fileToApp.ts
+apps/web/src/lib/contentLoader.ts
 apps/web/src/lib/routing/windowTypeStrategies.ts
 apps/web/src/lib/routing/windowSerialization.ts
 apps/web/src/components/system/Desktop.tsx
 apps/web/src/components/system/Dock.tsx
 apps/web/src/routes/index.tsx
 apps/web/src/routes/$.tsx
-apps/web/package.json
-apps/web/src/styles/index.css
+Dockerfile
+.github/workflows/deploy-infrastructure.yml
+.github/workflows/ci.yml
 ```
 
 Only modify `apps/web/src/styles/index.css` if existing Aqua tokens and Tailwind utilities cannot express a required state. Article elements should normally be styled through ReactMarkdown component mappings.
 
-### Do not modify for the first version
+### Do not modify
 
 ```text
-apps/web/src/lib/contentIndex.ts
-apps/web/src/lib/contentLoader.ts
-apps/web/src/lib/fileToApp.ts
-scripts/buildContentMetadata.mjs
 apps/api/
 iac/
 docker-compose.yml
@@ -606,218 +546,163 @@ docker-compose.dev.yml
 
 ### `ProjectsWindow`
 
-- Reuse `Window`
-- Use `useWindowLifecycle`
-- Select overview or article from `projectSlug`
-- Coordinate sidebar visibility
-- Render locked, loading, error, overview, and article states
-- Update the window title for selected projects
+- Reuse `Window`.
+- Use `useWindowLifecycle`.
+- Initialize the access store.
+- Select overview or article from `projectSlug`.
+- Coordinate sidebar visibility.
+- Render locked, loading, error, overview, and article states.
+- Update the window title for selected projects.
 
 ### `PortfolioPasswordDialog`
 
-- Use Radix Dialog
-- Own only form state
-- Delegate decryption to the store
-- Announce errors through an `aria-live` region
+- Use Radix Dialog.
+- Own only password field and form-error state.
+- Delegate comparison to the access store.
+- Announce errors through an `aria-live` region.
 
 ### `ProjectsOverview`
 
-- Render sorted projects
-- Handle empty state
-- Avoid loading article resources
+- Render ordered project summaries.
+- Handle empty state.
+- Avoid loading article bodies.
 
 ### `CaseStudyArticle`
 
-- Load one Markdown resource
-- Render explicit Markdown component mappings
-- Reject raw HTML
-- Resolve project-relative images through `CaseStudyFigure`
+- Load one Markdown file.
+- Render explicit Markdown component mappings.
+- Do not enable raw HTML.
+- Resolve project-relative images through `CaseStudyFigure`.
 
 ### `CaseStudyFigure`
 
-- Load one encrypted image lazily
-- Render semantic `<figure>` and `<figcaption>`
-- Preserve aspect ratio
-- Open `ScreenshotDialog`
+- Render semantic `<figure>` and `<figcaption>`.
+- Preserve image aspect ratio.
+- Use lazy image loading.
+- Open `ScreenshotDialog`.
+- Render a useful failure state for missing images.
 
 ### `ScreenshotDialog`
 
-- Use Radix Dialog
-- Show one full screenshot
-- Handle Escape and focus restoration
-- Display alt text and caption correctly
-
-### `usePortfolioStore`
-
-Suggested state:
-
-```typescript
-type PortfolioStatus =
-  | 'idle'
-  | 'loading-manifest'
-  | 'locked'
-  | 'unlocking'
-  | 'unlocked'
-  | 'error';
-
-interface PortfolioStore {
-  status: PortfolioStatus;
-  projects: PortfolioProjectSummary[];
-  activeKey: CryptoKey | null;
-  articleCache: Map<string, string>;
-  assetUrlCache: Map<string, string>;
-  error: string | null;
-  loadManifest: () => Promise<void>;
-  unlock: (password: string) => Promise<boolean>;
-  loadArticle: (slug: string) => Promise<string>;
-  loadAssetUrl: (resourceId: string) => Promise<string>;
-  lock: () => void;
-}
-```
-
-Keep fetch and cryptographic details in `portfolioClient.ts` rather than embedding them in React components.
+- Use Radix Dialog.
+- Show one full screenshot.
+- Handle Escape and focus restoration.
+- Display alt text and caption correctly.
 
 ## Dependencies
 
-Add the latest package-manager-resolved versions:
-
-Runtime:
+Add the latest package-manager-resolved versions to `apps/web/package.json`:
 
 ```text
-apps/web/package.json:
-  react-markdown
-  remark-gfm
+react-markdown
+remark-gfm
 ```
 
-Development:
+Add Playwright only during the integration slice:
 
 ```text
-root package.json:
-  sharp
-  @playwright/test
+@playwright/test
 ```
 
-Do not introduce a cryptography package unless Web Crypto proves unavailable in a supported runtime.
+Do not add:
+
+- MDX
+- A Tailwind typography plugin
+- A cryptography package
+- A validation framework solely for this feature
 
 ## Implementation Slices
 
-The slices below are large enough to move development quickly but small enough to diagnose and verify independently.
+The slices are large enough to move quickly while retaining clear verification boundaries.
 
-### Slice 1: Package compiler and cryptographic contract
+### Slice 1: Content model, helpers, and access gate
 
 Scope:
 
-- Types
-- Validation
-- Image optimization
-- Encryption and decryption helpers
-- Fixture project
-- Package builder
-- Unit tests
-
-Create:
-
-```text
-scripts/buildPortfolio.ts
-scripts/validatePortfolio.ts
-apps/web/src/lib/portfolio/portfolioTypes.ts
-apps/web/src/lib/portfolio/portfolioCrypto.ts
-apps/web/src/lib/portfolio/portfolioPackage.ts
-tests/fixtures/portfolio/
-```
+- Extend content metadata and app mapping.
+- Refactor frontmatter parsing.
+- Add one fixture case study.
+- Implement project discovery and asset resolution.
+- Implement SHA-256 password comparison.
+- Implement session-scoped access state.
+- Add the password-hash helper command.
 
 Acceptance:
 
-- Fixture package builds.
-- Correct password decrypts every fixture resource.
-- Wrong password fails.
-- One changed ciphertext byte fails.
-- No fixture plaintext appears in generated output.
-- Missing metadata, alt text, or image references fail validation.
-- Build writes through a temporary directory and leaves the previous package intact on failure.
+- Fixture metadata is parsed correctly.
+- Projects are filtered and ordered correctly.
+- Relative screenshot URLs resolve correctly.
+- Traversal and absolute image paths are rejected.
+- Correct password unlocks.
+- Wrong password remains locked.
+- Missing hash produces `misconfigured`.
+- Reload in the same tab preserves the unlocked state.
+- New tab starts locked.
 
-### Slice 2: Window, routing, and locked shell
+### Slice 2: Projects window, routing, and overview
 
 Scope:
 
-- `projects` window type
-- URL strategy
-- Dock icon
-- Desktop renderer
-- Friendly route
-- Locked/loading/error window states
-- Password dialog wired to a mocked package client
+- Add `projects` window type.
+- Add URL strategy and validation.
+- Add Dock entry and icon.
+- Render `ProjectsWindow`.
+- Add friendly routes.
+- Build toolbar, sidebar, overview, and cards.
+- Connect the access dialog.
 
 Acceptance:
 
 - Dock opens and focuses one Projects window.
-- Overview and project URLs round-trip through serialization.
-- `/projects/:slug` redirects correctly.
-- Password dialog has correct focus and keyboard behavior.
-- Existing window types continue to serialize and reconcile.
+- `/?w=projects` round-trips through serialization.
+- `/?w=projects:search-redesign` selects the fixture.
+- `/projects/search-redesign` redirects correctly.
+- Cards appear in configured order.
+- Card thumbnails preserve aspect ratio.
+- Existing window types still serialize and reconcile.
 
-### Slice 3: End-to-end overview and article
-
-Scope:
-
-- Real encrypted package client
-- Zustand portfolio store
-- Project overview
-- Sidebar
-- Markdown renderer
-- Inline encrypted images
-
-Acceptance:
-
-- Unlocking displays the ordered fixture project.
-- A project deep link unlocks directly into the requested article.
-- Article headings, lists, links, and figures render correctly.
-- Project list does not decrypt all articles.
-- Images decrypt lazily.
-- Lock clears decrypted state and revokes object URLs.
-
-### Slice 4: Reading and media polish
+### Slice 3: Article reader and screenshot viewer
 
 Scope:
 
-- Final typography
-- Toolbar
-- Copy Link
-- Screenshot dialog
-- Empty/error states
-- Reduced-motion handling
-- Accessibility review
+- Add Markdown dependencies.
+- Build the article header and typography.
+- Render headings, lists, links, and figures.
+- Build the screenshot dialog.
+- Add Copy Link and Lock.
+- Add loading, missing-project, and image-error states.
 
 Acceptance:
 
-- Article remains readable at 1280×800 and 1440×900.
-- UI screenshots are never cropped.
-- All controls are keyboard reachable.
+- Article body loads only after selecting a project.
+- Markdown does not render raw HTML.
+- Relative screenshots load from `/content/projects`.
+- External links use safe target and rel behavior.
+- Screenshots are never cropped.
+- Captions and alt text render correctly.
 - Dialog focus is trapped and restored.
-- Every content image has alt text.
-- Aqua styling frames rather than dominates the article.
+- Lock returns to the password state.
 
-### Slice 5: CI, production packaging, and real content
+### Slice 4: CI, deployment, and real content
 
 Scope:
 
-- Run frontend tests in CI
-- Fixture package generation in CI
-- Plaintext leakage verification
-- Root web Docker build in CI
-- Playwright smoke flows
-- Nginx cache rules
-- Local real-content workflow
-- Editorial and visual review
+- Pass the password digest into the Vite build.
+- Configure the Railway web variable.
+- Run frontend unit tests in CI.
+- Build the root web Docker image in CI.
+- Add focused Playwright flows.
+- Add real case-study folders.
+- Complete editorial, visual, accessibility, and performance review.
 
 Acceptance:
 
-- CI exercises tests, type checking, linting, Vite build, and web Docker build.
-- Known fixture plaintext does not appear in `dist`.
-- Encrypted resources use immutable caching.
-- `manifest.json` revalidates instead of receiving immutable caching.
-- Real portfolio sources remain ignored and untracked.
-- Only encrypted package output is committed.
+- CI runs unit tests, type checking, linting, Vite build, and web Docker build.
+- Production shows a clear error if the password hash is absent.
+- Production unlock works with the configured password.
+- Real content renders at target viewport sizes.
+- Direct links work after unlocking.
+- Existing public apps remain functional.
 
 ## Test Plan
 
@@ -825,34 +710,32 @@ Acceptance:
 
 Add tests for:
 
-- PBKDF2 key derivation compatibility
-- AES-GCM encrypt/decrypt round trip
-- Wrong password
-- Tampered ciphertext
-- AAD mismatch
-- Portfolio metadata validation
-- Slug validation
-- Duplicate order detection
-- Markdown image validation
-- Resource path resolution
-- `projects` URL strategy
-- Portfolio store locking and cache cleanup
+- Extended frontmatter parsing
+- `app: projects` mapping
+- Required metadata validation
+- Stable project ordering
+- Route slug extraction
+- Asset URL resolution
+- Path traversal rejection
+- Password hashing and comparison
+- Access-store initialization, unlock, and lock
+- Projects URL strategy
 
 ### End-to-end tests
 
-Playwright fixture password: test-only value generated in CI.
+Use a test-only digest during CI.
 
 Flows:
 
-1. Open Projects from Dock, unlock, and see overview.
-2. Open a direct project URL, unlock, and see that article.
-3. Open and close a screenshot with keyboard controls.
-4. Submit a wrong password and recover.
+1. Open Projects from the Dock, unlock, and see the overview.
+2. Submit a wrong password and recover.
+3. Open a direct project URL, unlock, and see that article.
+4. Open and close a screenshot with keyboard controls.
 5. Lock and unlock again.
-6. Load an invalid slug and return to overview.
-7. Verify overview thumbnails and article images have alt text.
+6. Load an invalid project slug and return to overview.
+7. Verify thumbnails and article images have alt text.
 
-Avoid visual snapshot tests initially. Cross-platform fonts and Aqua gradients would create brittle snapshots with limited value.
+Avoid visual snapshot tests initially. Cross-platform fonts and Aqua gradients would make them brittle.
 
 ### Manual visual review
 
@@ -860,25 +743,25 @@ Review:
 
 - 1280×800
 - 1440×900
-- Default window size
-- Maximized window
+- Default and expanded window sizes
 - Sidebar open and closed
 - Short and long articles
 - Portrait and landscape screenshots
 - Long project titles
-- Slow asset loading
-- Corrupt or missing package
+- Slow image loading
+- Missing screenshot
+- Missing or invalid project metadata
 
 ## Performance Budgets
 
-- Encrypted index: target below 100KB
-- Initial unlock should fetch only manifest and index
-- Overview loads thumbnails only
-- Article loads one Markdown resource
-- Figures use lazy loading
-- Display image target: below 500KB
-- No plaintext article content in the main JavaScript bundle
-- No article-wide eager image decryption
+- Project overview should not load article bodies.
+- Card thumbnails target below 100KB.
+- Display screenshots target below 500KB where practical.
+- Images use `loading="lazy"`.
+- Article text is loaded only for the selected project.
+- No case-study body is imported into the initial application chunk.
+
+The existing content index currently imports text modules while building its runtime index. If bundle inspection shows that this eagerly transfers every case study, move project summaries into generated metadata or add a project-specific lazy index. Do not optimize this speculatively.
 
 ## Accessibility Requirements
 
@@ -895,58 +778,68 @@ Review:
 - Decorative interface elements hidden from assistive technology
 - Motion reduced when `prefers-reduced-motion` is enabled
 
-## Caching and Nginx
+## Environment and Deployment
 
-Update `nginx.conf`:
+### Local
 
-```nginx
-location = /portfolio/manifest.json {
-    expires epoch;
-    add_header Cache-Control "no-cache";
-    try_files $uri =404;
-}
+Add to `apps/web/.env.local`:
 
-location ~* ^/portfolio/.*\.enc$ {
-    expires 1y;
-    add_header Cache-Control "public, immutable";
-    try_files $uri =404;
-}
+```text
+VITE_PORTFOLIO_PASSWORD_HASH=<sha256-hex>
 ```
 
-Ciphertext is safe to cache publicly. Hash-named files make immutable caching appropriate.
-
-## Local Authoring Workflow
-
-Initial setup:
+Generate it with:
 
 ```bash
-mkdir -p .portfolio/projects
+bun run portfolio:hash-password
 ```
+
+### Docker
+
+Extend the root `Dockerfile`:
+
+```dockerfile
+ARG VITE_PORTFOLIO_PASSWORD_HASH
+ENV VITE_PORTFOLIO_PASSWORD_HASH=$VITE_PORTFOLIO_PASSWORD_HASH
+```
+
+### Railway
+
+Add a Railway web-service variable:
+
+```text
+VITE_PORTFOLIO_PASSWORD_HASH
+```
+
+Update `.github/workflows/deploy-infrastructure.yml` to set it from a GitHub secret without printing the value.
+
+No API or infrastructure service changes are required.
+
+## Authoring Workflow
 
 For each project:
 
-1. Create the project directory.
-2. Add `project.json`.
-3. Write `article.md`.
-4. Add screenshots under `images/`.
-5. Validate.
-6. Build and encrypt.
-7. Preview the production package.
+1. Create `apps/web/content/projects/<slug>`.
+2. Add `index.md`.
+3. Add optimized screenshots under `images`.
+4. Validate metadata, alt text, and captions.
+5. Preview the overview.
+6. Read the case study from beginning to end.
+7. Test the project deep link.
 
 Commands:
 
 ```bash
-bun run portfolio:validate
-bun run portfolio:build
-bun run rip
+node scripts/buildContentMetadata.mjs
+cd apps/web && bun run test
+cd apps/web && bun run lint
+cd apps/web && bun run build
 ```
-
-The normal Vite build does not regenerate private content. It uses the last committed encrypted package.
 
 ## Verification Commands
 
 ```bash
-bun run portfolio:validate
+node scripts/buildContentMetadata.mjs
 cd apps/web && bun run test
 cd apps/web && bun run lint
 cd apps/web && bun run format:check
@@ -954,81 +847,37 @@ cd apps/web && bun run build
 docker build -f Dockerfile .
 ```
 
-Before committing real content:
+## Security Disclosure
 
-```bash
-git status --short
-git ls-files ".portfolio/**"
-```
+The implementation should describe itself accurately in code and documentation:
 
-The second command must return no files.
+- Call it an access screen or presentation gate.
+- Do not call it secure authentication.
+- Do not claim that screenshots are private.
+- Do not place additional secrets in frontmatter or Markdown.
+- Keep customer data, credentials, private URLs, and sensitive metrics out of screenshots even when authorized to show the overall work.
 
-## Deployment Impact
-
-### Unchanged
-
-- FastAPI
-- Redis
-- Terminal WebSocket
-- Railway API service
-- EC2 terminal host
-- Pulumi
-- Docker Compose
-- Existing public content pipeline
-
-### Changed
-
-- Web bundle includes encrypted portfolio resources from `apps/web/public/portfolio`
-- Root web image includes those resources
-- Nginx receives portfolio-specific cache rules
-- Railway web deployment is triggered by changes under `apps/web/**`
-
-No production password secret is required because the password is used only to derive the decryption key in the browser and local package builder.
-
-## Security Properties and Limitations
-
-### Provides
-
-- No plaintext portfolio content in the public repository
-- No plaintext portfolio content in the deployed static files
-- Authenticated encryption that detects wrong passwords and tampering
-- Search-engine resistance for titles, text, and screenshots
-- Direct asset URLs that expose ciphertext only
-
-### Does not provide
-
-- Rate limiting against password guesses
-- Protection against offline dictionary attacks
-- Revocation of old ciphertext from Git history
-- Protection after a viewer unlocks and captures content
-- Protection from malicious JavaScript already running on the site
-
-Use a generated multi-word passphrase rather than a short memorable password.
-
-If these limitations become unacceptable, migrate to:
+If stronger protection is needed later, migrate to:
 
 ```text
 Private object storage
   -> FastAPI login and session
   -> authenticated project and asset endpoints
-  -> same Projects UI and content renderer
+  -> same Projects UI and Markdown renderer
 ```
-
-Do not attempt that migration by committing plaintext to `apps/api/content`; the repository is public.
 
 ## Definition of Done
 
 - Projects app opens from the Dock.
-- Password unlock decrypts a static package rather than checking a client-side constant.
-- Real source content is untracked.
+- Access screen uses a build-time password digest and session-scoped unlock.
 - Overview clearly organizes projects.
 - Project deep links survive unlock.
 - Articles are readable and visually restrained.
 - Screenshots preserve their complete UI.
 - Captions and alt text are present.
-- Locking removes decrypted state.
+- Lock clears the session state.
 - Existing window behavior remains intact.
 - Unit and end-to-end tests pass.
 - Web Docker image builds in CI.
-- Fixture plaintext leakage check passes.
-- Production contains only encrypted portfolio resources.
+- Production password configuration is documented.
+- The public-content tradeoff is documented and accepted.
