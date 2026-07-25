@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 
-import CaseStudyArticle from '@/components/apps/Projects/CaseStudyArticle';
 import PortfolioPasswordDialog from '@/components/apps/Projects/PortfolioPasswordDialog';
 import ProjectsErrorState from '@/components/apps/Projects/ProjectsErrorState';
+import ProjectsLoadingState from '@/components/apps/Projects/ProjectsLoadingState';
 import ProjectsOverview from '@/components/apps/Projects/ProjectsOverview';
 import ProjectsSidebar from '@/components/apps/Projects/ProjectsSidebar';
 import ProjectsToolbar from '@/components/apps/Projects/ProjectsToolbar';
@@ -13,6 +13,8 @@ import { getProjectBySlug, getProjects } from '@/lib/projectsContent';
 import { showCompactNotification } from '@/stores/notificationHelpers';
 import { usePortfolioAccessStore } from '@/stores/usePortfolioAccessStore';
 import { type Window as WindowType, useWindowStore } from '@/stores/useWindowStore';
+
+const CaseStudyArticle = lazy(() => import('@/components/apps/Projects/CaseStudyArticle'));
 
 interface ProjectsWindowProps {
   window: WindowType;
@@ -107,10 +109,7 @@ const ProjectsWindow = ({ window: windowData, isActive }: ProjectsWindowProps) =
               ) : null}
               <main className="min-w-0 flex-1">
                 {!isIndexed ? (
-                  <ProjectsErrorState
-                    title="Selected Work is unavailable"
-                    message="The site content index could not be loaded."
-                  />
+                  <ProjectsLoadingState />
                 ) : windowData.projectSlug && !selectedProject ? (
                   <ProjectsErrorState
                     title="Case study not found"
@@ -119,10 +118,16 @@ const ProjectsWindow = ({ window: windowData, isActive }: ProjectsWindowProps) =
                     onAction={() => handleSelectProject()}
                   />
                 ) : selectedProject ? (
-                  <CaseStudyArticle
-                    project={selectedProject}
-                    onBack={() => handleSelectProject()}
-                  />
+                  <Suspense
+                    fallback={
+                      <ProjectsLoadingState message={`Loading ${selectedProject.title}…`} />
+                    }
+                  >
+                    <CaseStudyArticle
+                      project={selectedProject}
+                      onBack={() => handleSelectProject()}
+                    />
+                  </Suspense>
                 ) : (
                   <ProjectsOverview projects={projects} onSelectProject={handleSelectProject} />
                 )}
