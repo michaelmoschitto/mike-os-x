@@ -297,11 +297,7 @@ jobs:
             --set "REDIS_URL=$REDIS_REF" \
             --set "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" \
             --set "ADMIN_API_KEY=${{ secrets.ADMIN_API_KEY }}" \
-            --set "DOCKER_HOST=" \
-            --set "DOCKER_TLS_VERIFY=0" \
-            --set "DOCKER_CA_CERT=" \
-            --set "DOCKER_CLIENT_CERT=" \
-            --set "DOCKER_CLIENT_KEY="
+            --set "DOCKER_TLS_VERIFY=0"
 
           echo "✅ Railway API configured for terminal agent"
 
