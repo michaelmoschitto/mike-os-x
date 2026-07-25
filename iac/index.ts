@@ -100,6 +100,19 @@ const securityGroup = new aws.ec2.SecurityGroup('terminal-host-sg', {
 const userData = `#!/bin/bash
 set -e
 
+# Register with Systems Manager before slower package upgrades. This makes the
+# host manageable even if later bootstrap steps take several minutes.
+if ! command -v snap >/dev/null 2>&1; then
+  apt-get update
+  apt-get install -y snapd
+fi
+
+if ! snap list amazon-ssm-agent >/dev/null 2>&1; then
+  snap install amazon-ssm-agent --classic
+fi
+
+systemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service
+
 apt-get update
 apt-get upgrade -y
 
@@ -109,10 +122,7 @@ usermod -aG docker ubuntu
 mkdir -p /home/ubuntu/mike-os-x
 chown -R ubuntu:ubuntu /home/ubuntu/mike-os-x
 
-apt-get install -y git curl wget snapd
-snap install amazon-ssm-agent --classic || true
-systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service || true
-systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service || true
+apt-get install -y git curl wget
 
 curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
