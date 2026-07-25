@@ -12,6 +12,7 @@ interface WindowProps {
   position: { x: number; y: number };
   size: { width: number; height: number };
   zIndex: number;
+  animateOpen?: boolean;
   onClose?: () => void;
   onMinimize?: () => void;
   onFocus?: () => void;
@@ -27,6 +28,7 @@ const Window = ({
   position,
   size,
   zIndex,
+  animateOpen = true,
   onClose,
   onMinimize,
   onFocus,
@@ -226,9 +228,9 @@ const Window = ({
           height: currentSize.height,
           zIndex,
         }}
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={animateOpen ? { opacity: 0, scale: 0.95 } : false}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
+        exit={animateOpen ? { opacity: 0, scale: 0.95 } : undefined}
         transition={{ duration: 0.2 }}
         onClick={handleClick}
         drag

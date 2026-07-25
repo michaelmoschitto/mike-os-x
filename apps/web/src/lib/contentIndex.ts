@@ -4,6 +4,11 @@ import { parseContent } from '@/lib/contentLoader';
 import { getAppForFile, type ContentMetadata } from '@/lib/fileToApp';
 import { normalizeUrlPath } from '@/lib/utils';
 
+export interface PhotoVariants {
+  thumbnail?: string;
+  display?: string;
+}
+
 export interface ContentIndexEntry {
   urlPath: string; // Clean URL path without extension (e.g., "/ProjectWriteups/mezo")
   filePath: string; // Glob key for importing (e.g., "../../content/README.md")
@@ -14,6 +19,7 @@ export interface ContentIndexEntry {
   dateModified?: Date; // mtime
   dateCreated?: Date; // birthtime
   kind?: string; // "PDF Document", "Markdown File", etc.
+  variants?: PhotoVariants;
 }
 
 interface ContentIndexStore {
@@ -47,7 +53,13 @@ export const useContentIndex = create<ContentIndexStore>((set, get) => ({
  */
 type ContentMetadataRecord = Record<
   string,
-  { size: number; mtime: string; birthtime: string; kind: string }
+  {
+    size: number;
+    mtime: string;
+    birthtime: string;
+    kind: string;
+    variants?: PhotoVariants;
+  }
 >;
 
 /**
@@ -155,6 +167,7 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
           dateModified: fileMetadata?.mtime ? new Date(fileMetadata.mtime) : undefined,
           dateCreated: fileMetadata?.birthtime ? new Date(fileMetadata.birthtime) : undefined,
           kind: fileMetadata?.kind,
+          variants: fileMetadata?.variants,
         };
 
         const existing = index.get(finalUrlPath);
@@ -194,6 +207,7 @@ export const buildContentIndex = async (): Promise<Map<string, ContentIndexEntry
           dateModified: fileMetadata?.mtime ? new Date(fileMetadata.mtime) : undefined,
           dateCreated: fileMetadata?.birthtime ? new Date(fileMetadata.birthtime) : undefined,
           kind: fileMetadata?.kind,
+          variants: fileMetadata?.variants,
         };
 
         const existing = index.get(urlPath);

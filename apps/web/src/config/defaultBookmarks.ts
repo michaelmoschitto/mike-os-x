@@ -16,16 +16,7 @@ export const DEFAULT_BOOKMARKS: BookmarkItem[] = [
   {
     type: 'folder',
     title: 'Projects',
-    items: [
-      {
-        title: 'Mezo × LABITCONF',
-        url: 'https://labitconf.mezo.org/en',
-      },
-      {
-        title: 'Vegas Baby',
-        url: 'https://mezo.org/vegasbaby',
-      },
-    ],
+    items: [],
   },
   {
     type: 'folder',
