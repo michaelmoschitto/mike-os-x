@@ -556,23 +556,48 @@ div[data-bookmark-dropdown].aqua-dropdown-menu {
   padding: 4px !important;
 }
 
-/* TextEdit contentEditable styling */
-[contenteditable] ul,
-[contenteditable] ol {
+/* TextEdit Lexical editor styling */
+.textedit-editor {
+  caret-color: #000;
+}
+
+.textedit-editor .textedit-paragraph {
+  margin: 0;
+  position: relative;
+}
+
+.textedit-editor .textedit-text-bold {
+  font-weight: 700;
+}
+
+.textedit-editor .textedit-text-italic {
+  font-style: italic;
+}
+
+.textedit-editor .textedit-text-underline {
+  text-decoration: underline;
+}
+
+.textedit-editor .textedit-list-ul,
+.textedit-editor .textedit-list-ol {
   margin: 1em 0;
   padding-left: 2.5em;
 }
 
-[contenteditable] li {
+.textedit-editor .textedit-list-item {
   margin: 0.25em 0;
 }
 
-[contenteditable] ul {
+.textedit-editor .textedit-list-ul {
   list-style-type: disc;
 }
 
-[contenteditable] ol {
+.textedit-editor .textedit-list-ol {
   list-style-type: decimal;
+}
+
+.textedit-editor .textedit-nested-list-item {
+  list-style-type: circle;
 }
 
 /* ===== NERD FONT FOR TERMINAL ===== */

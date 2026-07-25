@@ -13,6 +13,10 @@ const FONT_SIZES = [9, 10, 11, 12, 13, 14, 18, 24, 36, 48, 64, 72, 96];
 
 const ToolbarDivider = () => <div className="mx-1 h-[18px] w-px bg-[#999]" />;
 
+const preserveEditorFocus = (event: React.PointerEvent) => {
+  event.preventDefault();
+};
+
 const TextEditToolbar = ({
   alignment,
   fontSize,
@@ -32,7 +36,6 @@ const TextEditToolbar = ({
         borderBottom: '1px solid #8a8a8a',
       }}
     >
-      {/* Left: Alignment buttons */}
       <div className="flex items-center gap-[2px]">
         <button
           className="font-ui relative flex h-[22px] w-[24px] items-center justify-center text-xs transition-all"
@@ -48,6 +51,9 @@ const TextEditToolbar = ({
                 : 'inset 1px 1px 0 #f8f8f8, inset -1px -1px 0 #888',
           }}
           onClick={() => onAlignmentChange('left')}
+          aria-label="Align left"
+          aria-pressed={alignment === 'left'}
+          onPointerDown={preserveEditorFocus}
           title="Align Left"
           type="button"
         >
@@ -72,6 +78,9 @@ const TextEditToolbar = ({
                 : 'inset 1px 1px 0 #f8f8f8, inset -1px -1px 0 #888',
           }}
           onClick={() => onAlignmentChange('center')}
+          aria-label="Align center"
+          aria-pressed={alignment === 'center'}
+          onPointerDown={preserveEditorFocus}
           title="Align Center"
           type="button"
         >
@@ -96,6 +105,9 @@ const TextEditToolbar = ({
                 : 'inset 1px 1px 0 #f8f8f8, inset -1px -1px 0 #888',
           }}
           onClick={() => onAlignmentChange('right')}
+          aria-label="Align right"
+          aria-pressed={alignment === 'right'}
+          onPointerDown={preserveEditorFocus}
           title="Align Right"
           type="button"
         >
@@ -121,6 +133,9 @@ const TextEditToolbar = ({
                 : 'inset 1px 1px 0 #f8f8f8, inset -1px -1px 0 #888',
           }}
           onClick={() => onAlignmentChange('justify')}
+          aria-label="Justify text"
+          aria-pressed={alignment === 'justify'}
+          onPointerDown={preserveEditorFocus}
           title="Justify"
           type="button"
         >
@@ -134,7 +149,6 @@ const TextEditToolbar = ({
 
         <ToolbarDivider />
 
-        {/* Line spacing buttons */}
         <button
           className="toolbar-button font-ui relative flex h-[22px] w-[24px] items-center justify-center text-xs transition-all"
           style={{
@@ -146,6 +160,8 @@ const TextEditToolbar = ({
             boxShadow: 'inset 1px 1px 0 #f8f8f8, inset -1px -1px 0 #888',
           }}
           onClick={() => onLineHeightChange(Math.min(lineHeight + 0.1, 3))}
+          aria-label="Increase line spacing"
+          onPointerDown={preserveEditorFocus}
           title="Increase Line Spacing"
           type="button"
         >
@@ -166,6 +182,8 @@ const TextEditToolbar = ({
             boxShadow: 'inset 1px 1px 0 #f8f8f8, inset -1px -1px 0 #888',
           }}
           onClick={() => onLineHeightChange(Math.max(lineHeight - 0.1, 1))}
+          aria-label="Decrease line spacing"
+          onPointerDown={preserveEditorFocus}
           title="Decrease Line Spacing"
           type="button"
         >
@@ -177,7 +195,6 @@ const TextEditToolbar = ({
 
         <ToolbarDivider />
 
-        {/* List buttons */}
         <button
           className="toolbar-button font-ui relative flex h-[22px] w-[24px] items-center justify-center text-xs transition-all"
           style={{
@@ -189,6 +206,8 @@ const TextEditToolbar = ({
             boxShadow: 'inset 1px 1px 0 #f8f8f8, inset -1px -1px 0 #888',
           }}
           onClick={onBulletedList}
+          aria-label="Bulleted list"
+          onPointerDown={preserveEditorFocus}
           title="Bulleted List"
           type="button"
         >
@@ -213,6 +232,8 @@ const TextEditToolbar = ({
             boxShadow: 'inset 1px 1px 0 #f8f8f8, inset -1px -1px 0 #888',
           }}
           onClick={onNumberedList}
+          aria-label="Numbered list"
+          onPointerDown={preserveEditorFocus}
           title="Numbered List"
           type="button"
         >
@@ -233,9 +254,9 @@ const TextEditToolbar = ({
         </button>
       </div>
 
-      {/* Center: Font size dropdown */}
       <div className="absolute left-1/2 -translate-x-1/2">
         <select
+          aria-label="Font size"
           className="font-ui h-[22px] rounded-sm px-2.5 pr-5 text-[10px] transition-all focus:ring-1 focus:ring-blue-400 focus:outline-none"
           style={{
             background: '#e5e5e5',
@@ -254,7 +275,6 @@ const TextEditToolbar = ({
         </select>
       </div>
 
-      {/* Right: Empty space for symmetry */}
       <div />
     </div>
   );

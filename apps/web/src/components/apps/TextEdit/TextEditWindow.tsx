@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
-import TextEditRuler from '@/components/apps/TextEdit/TextEditRuler';
-import TextEditToolbar from '@/components/apps/TextEdit/TextEditToolbar';
+import TextEditEditor from '@/components/apps/TextEdit/TextEditEditor';
 import Window from '@/components/window/Window';
 import { useContentIndex } from '@/lib/contentIndex';
 import { loadContentFile } from '@/lib/contentLoader';
 import { useWindowLifecycle } from '@/lib/hooks/useWindowLifecycle';
-import { useWindowStore, type Window as WindowType } from '@/stores/useWindowStore';
+import { type Window as WindowType } from '@/stores/useWindowStore';
 
 interface TextEditWindowProps {
   window: WindowType;
@@ -14,126 +13,77 @@ interface TextEditWindowProps {
 }
 
 const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) => {
-  const { updateWindowContent, updateWindow } = useWindowStore();
-
   const { handleClose, handleFocus, handleMinimize, handleDragEnd, handleResize } =
     useWindowLifecycle({
       window: windowData,
       isActive,
     });
 
-  const [alignment, setAlignment] = useState<'left' | 'center' | 'right' | 'justify'>('left');
-  const [fontSize, setFontSize] = useState(12);
-  const [lineHeight, setLineHeight] = useState(1.5);
-  const [isLoading, setIsLoading] = useState(false);
+  const [sourceText, setSourceText] = useState<string | null>(
+    windowData.content ? windowData.content : null
+  );
+  const [isLoading, setIsLoading] = useState(!windowData.content && Boolean(windowData.urlPath));
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
-  const editorRef = useRef<HTMLDivElement>(null);
-  const hasLoadedRef = useRef(false);
-
+  const loadRequestRef = useRef(0);
   const isIndexed = useContentIndex((state) => state.isIndexed);
+  const documentKey = `${windowData.id}:${windowData.urlPath ?? 'untitled'}`;
 
   useEffect(() => {
-    // Skip if already loaded or no urlPath or content exists
-    if (hasLoadedRef.current || !windowData.urlPath || windowData.content) {
+    if (windowData.content) {
+      loadRequestRef.current += 1;
+      setSourceText(windowData.content);
+      setIsLoading(false);
+      setLoadError(null);
+    }
+  }, [windowData.content, windowData.id, windowData.urlPath]);
+
+  useEffect(() => {
+    if (windowData.content || !windowData.urlPath) {
+      if (!windowData.content && !windowData.urlPath) {
+        setSourceText('');
+        setIsLoading(false);
+      }
       return;
     }
 
     if (!isIndexed) {
+      setIsLoading(true);
       return;
     }
 
-    hasLoadedRef.current = true;
+    const requestId = loadRequestRef.current + 1;
+    loadRequestRef.current = requestId;
     setIsLoading(true);
+    setLoadError(null);
 
     const loadContent = async () => {
       try {
-        if (!windowData.urlPath) return;
-        const entry = useContentIndex.getState().getEntry(windowData.urlPath);
-        if (entry) {
-          const loaded = await loadContentFile(entry.filePath);
-          updateWindow(windowData.id, { content: loaded.content }, { skipRouteSync: true });
+        const entry = useContentIndex.getState().getEntry(windowData.urlPath ?? '');
+        if (!entry) {
+          throw new Error('Document could not be found.');
         }
+
+        const loaded = await loadContentFile(entry.filePath);
+        if (loadRequestRef.current !== requestId) return;
+
+        setSourceText(loaded.content);
+        setIsLoading(false);
       } catch (error) {
-        console.error('[TextEdit] Failed to load content:', error);
-      } finally {
+        if (loadRequestRef.current !== requestId) return;
+        setLoadError(error instanceof Error ? error.message : 'Document could not be loaded.');
         setIsLoading(false);
       }
     };
 
-    loadContent();
-  }, [windowData.urlPath, windowData.content, windowData.id, updateWindow, isIndexed]);
-
-  useEffect(() => {
-    if (editorRef.current && windowData.content) {
-      const htmlContent = windowData.content.replace(/\n/g, '<br>');
-      editorRef.current.innerHTML = htmlContent;
-    }
-  }, [windowData.content]);
-
-  useEffect(() => {
-    if (!isLoading && editorRef.current && windowData.content && !editorRef.current.innerHTML) {
-      const htmlContent = windowData.content.replace(/\n/g, '<br>');
-      editorRef.current.innerHTML = htmlContent;
-    }
-  }, [isLoading, windowData.content]);
-
-  const handleContentChange = () => {
-    if (editorRef.current) {
-      updateWindowContent(windowData.id, editorRef.current.innerHTML);
-    }
-  };
-
-  const handleAlignmentChange = (newAlignment: 'left' | 'center' | 'right' | 'justify') => {
-    setAlignment(newAlignment);
-  };
-
-  const handleFontSizeChange = (size: number) => {
-    setFontSize(size);
-  };
-
-  const handleLineHeightChange = (newLineHeight: number) => {
-    setLineHeight(newLineHeight);
-  };
-
-  const handleBulletedList = () => {
-    if (editorRef.current) {
-      editorRef.current.focus();
-      document.execCommand('insertUnorderedList', false);
-    }
-  };
-
-  const handleNumberedList = () => {
-    if (editorRef.current) {
-      editorRef.current.focus();
-      document.execCommand('insertOrderedList', false);
-    }
-  };
-
-  // Keyboard shortcuts for formatting
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isActive) return;
-
-      // Cmd/Ctrl + B for bold
-      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
-        e.preventDefault();
-        document.execCommand('bold');
-      }
-      // Cmd/Ctrl + I for italic
-      if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
-        e.preventDefault();
-        document.execCommand('italic');
-      }
-      // Cmd/Ctrl + U for underline
-      if ((e.metaKey || e.ctrlKey) && e.key === 'u') {
-        e.preventDefault();
-        document.execCommand('underline');
+    void loadContent();
+    return () => {
+      if (loadRequestRef.current === requestId) {
+        loadRequestRef.current += 1;
       }
     };
-
-    globalThis.window.addEventListener('keydown', handleKeyDown);
-    return () => globalThis.window.removeEventListener('keydown', handleKeyDown);
-  }, [isActive]);
+  }, [isIndexed, loadAttempt, windowData.content, windowData.id, windowData.urlPath]);
 
   return (
     <Window
@@ -149,41 +99,40 @@ const TextEditWindow = ({ window: windowData, isActive }: TextEditWindowProps) =
       onDragEnd={handleDragEnd}
       onResize={handleResize}
     >
-      {/* Toolbar */}
-      <TextEditToolbar
-        alignment={alignment}
-        fontSize={fontSize}
-        lineHeight={lineHeight}
-        onAlignmentChange={handleAlignmentChange}
-        onFontSizeChange={handleFontSizeChange}
-        onLineHeightChange={handleLineHeightChange}
-        onBulletedList={handleBulletedList}
-        onNumberedList={handleNumberedList}
-      />
-
-      {/* Ruler */}
-      <TextEditRuler />
-
-      {/* Text Editor */}
-      <div className="relative flex-1 overflow-auto bg-white">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
         {isLoading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
+          <div
+            aria-live="polite"
+            className="absolute inset-0 z-10 flex items-center justify-center bg-white"
+            role="status"
+          >
             <span className="font-ui text-sm text-gray-500">Loading...</span>
           </div>
         )}
-        <div
-          ref={editorRef}
-          className="font-ui min-h-full p-6 focus:outline-none"
-          contentEditable
-          suppressContentEditableWarning
-          onInput={handleContentChange}
-          style={{
-            fontSize: `${fontSize}px`,
-            textAlign: alignment,
-            lineHeight: lineHeight.toFixed(1),
-            color: '#000',
-          }}
-        />
+        {loadError && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-white">
+            <span className="font-ui text-sm text-red-700" role="alert">
+              {loadError}
+            </span>
+            <button
+              className="aqua-button px-3 py-1 text-xs"
+              onClick={() => {
+                setLoadError(null);
+                setLoadAttempt((attempt) => attempt + 1);
+              }}
+              type="button"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+        {sourceText !== null && !loadError && (
+          <TextEditEditor
+            documentKey={documentKey}
+            initialText={sourceText}
+            title={windowData.title}
+          />
+        )}
       </div>
     </Window>
   );
