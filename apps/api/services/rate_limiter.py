@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 
 import redis
@@ -13,10 +14,8 @@ class RateLimiter:
     """
     Rate limiter using Redis for connection and command rate limiting.
 
-    Note: If Redis is unavailable, the rate limiter will fail-open (allow all traffic).
-    This is intentional to prevent service disruption if Redis goes down, but means
-    rate limiting will be disabled in that scenario. Ensure Redis is properly configured
-    and monitored in production.
+    New terminal connections fail closed when Redis is unavailable so session
+    capacity cannot be bypassed by a Redis outage.
     """
 
     def __init__(self) -> None:
@@ -26,11 +25,22 @@ class RateLimiter:
             logger.info(f"Connected to Redis at {settings.redis_url}")
         except redis.ConnectionError as e:
             logger.error(f"Failed to connect to Redis at {settings.redis_url}: {e}")
-            logger.error("Rate limiting will be disabled. Please start Redis.")
             self.redis_client = None
+
+    def _is_production(self) -> bool:
+        return (
+            os.getenv("ENVIRONMENT", "").lower() == "production"
+            or os.getenv("NODE_ENV", "").lower() == "production"
+            or settings.uses_terminal_agent
+        )
 
     async def check_connection_limit(self, ip: str) -> None:
         if not self.redis_client:
+            if self._is_production():
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Rate limiting unavailable. Please try again later.",
+                )
             logger.warning("Redis not available, skipping connection rate limit check")
             return
 
@@ -46,11 +56,16 @@ class RateLimiter:
                     detail="Too many connections. Please try again later.",
                 )
         except redis.ConnectionError:
+            if self._is_production():
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Rate limiting unavailable. Please try again later.",
+                ) from None
             logger.warning("Redis connection lost during rate limit check, allowing connection")
 
     async def check_command_limit(self, ip: str) -> bool:
         if not self.redis_client:
-            return True
+            return not self._is_production()
 
         try:
             key = f"ratelimit:commands:{ip}"
@@ -60,6 +75,8 @@ class RateLimiter:
 
             return count <= settings.rate_limit_commands
         except redis.ConnectionError:
+            if self._is_production():
+                return False
             logger.warning(
                 "Redis connection lost during command rate limit check, allowing command"
             )

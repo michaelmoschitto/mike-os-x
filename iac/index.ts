@@ -1,15 +1,12 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as aws from '@pulumi/aws';
 
-// release bump: 8
+// release bump: 9
 
-// Configuration
 const config = new pulumi.Config();
-const sshPublicKey = config.get('sshPublicKey') || ''; // Will be set via pulumi config
-const sshIngressCidr = config.require('sshIngressCidr');
-const dockerIngressCidr = config.require('dockerIngressCidr');
+const sshPublicKey = config.get('sshPublicKey') || '';
+const agentHostname = config.get('agentHostname') || 'agent.os.mikemoschitto.com';
 
-// Get the latest Ubuntu 22.04 AMI
 const ubuntu = aws.ec2.getAmi({
   mostRecent: true,
   filters: [
@@ -22,7 +19,7 @@ const ubuntu = aws.ec2.getAmi({
       values: ['hvm'],
     },
   ],
-  owners: ['099720109477'], // Canonical
+  owners: ['099720109477'],
 });
 
 const sshKey = new aws.ec2.KeyPair('terminal-host-key', {
@@ -30,23 +27,52 @@ const sshKey = new aws.ec2.KeyPair('terminal-host-key', {
   publicKey: sshPublicKey,
 });
 
-// Security group for the terminal host
+const ssmRole = new aws.iam.Role('terminal-host-ssm-role', {
+  assumeRolePolicy: JSON.stringify({
+    Version: '2012-10-17',
+    Statement: [
+      {
+        Effect: 'Allow',
+        Principal: { Service: 'ec2.amazonaws.com' },
+        Action: 'sts:AssumeRole',
+      },
+    ],
+  }),
+  tags: {
+    Name: 'mike-os-x-terminal-ssm-role',
+    Project: 'mike-os-x',
+  },
+});
+
+new aws.iam.RolePolicyAttachment('terminal-host-ssm-core', {
+  role: ssmRole.name,
+  policyArn: 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore',
+});
+
+const instanceProfile = new aws.iam.InstanceProfile('terminal-host-profile', {
+  role: ssmRole.name,
+  tags: {
+    Name: 'mike-os-x-terminal-profile',
+    Project: 'mike-os-x',
+  },
+});
+
 const securityGroup = new aws.ec2.SecurityGroup('terminal-host-sg', {
   description: 'Security group for mike-os-x terminal host',
   ingress: [
     {
-      description: 'SSH',
-      fromPort: 22,
-      toPort: 22,
+      description: 'HTTP for ACME and redirects',
+      fromPort: 80,
+      toPort: 80,
       protocol: 'tcp',
-      cidrBlocks: [sshIngressCidr],
+      cidrBlocks: ['0.0.0.0/0'],
     },
     {
-      description: 'Docker TLS',
-      fromPort: 2376,
-      toPort: 2376,
+      description: 'HTTPS for authenticated terminal agent',
+      fromPort: 443,
+      toPort: 443,
       protocol: 'tcp',
-      cidrBlocks: [dockerIngressCidr],
+      cidrBlocks: ['0.0.0.0/0'],
     },
   ],
   egress: [
@@ -64,42 +90,32 @@ const securityGroup = new aws.ec2.SecurityGroup('terminal-host-sg', {
   },
 });
 
-// User data script to install Docker and configure on first boot
 const userData = `#!/bin/bash
 set -e
 
-# Update system
 apt-get update
 apt-get upgrade -y
 
-# Install Docker
 curl -fsSL https://get.docker.com | sh
-
-# Add ubuntu user to docker group
 usermod -aG docker ubuntu
 
-# Create directories for Docker TLS certs and app
-mkdir -p /etc/docker/certs
 mkdir -p /home/ubuntu/mike-os-x
-
-# Set ownership
 chown -R ubuntu:ubuntu /home/ubuntu/mike-os-x
 
-# Install git and other utilities
-apt-get install -y git curl wget
+apt-get install -y git curl wget snapd
+snap install amazon-ssm-agent --classic || true
+systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service || true
+systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service || true
 
-# Install Docker Compose (standalone)
 curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 
-# Keep Docker on the local socket until the deployment workflow installs TLS.
 cat > /etc/docker/daemon.json <<'DOCKER_EOF'
 {
   "hosts": ["unix:///var/run/docker.sock"]
 }
 DOCKER_EOF
 
-# Create systemd override to remove -H flag (conflicts with daemon.json hosts)
 mkdir -p /etc/systemd/system/docker.service.d
 cat > /etc/systemd/system/docker.service.d/override.conf <<'OVERRIDE_EOF'
 [Service]
@@ -107,18 +123,13 @@ ExecStart=
 ExecStart=/usr/bin/dockerd
 OVERRIDE_EOF
 
-# Enable and start Docker service
 systemctl daemon-reload
 systemctl enable docker
 systemctl restart docker
-
-# Wait for Docker to be ready
 sleep 5
 
-# Clone repository (will fail if no access, but that's okay - can be done manually)
-sudo -u ubuntu git clone https://github.com/michaelmoschitto/mike-os-x.git /home/ubuntu/mike-os-x || echo "Repository clone failed - will need to clone manually or use SSH keys"
+sudo -u ubuntu git clone https://github.com/michaelmoschitto/mike-os-x.git /home/ubuntu/mike-os-x || echo "Repository clone failed - will need to clone manually"
 
-# Set up log rotation for Docker
 cat > /etc/logrotate.d/docker-containers <<'LOGROTATE_EOF'
 /var/lib/docker/containers/*/*.log {
     rotate 7
@@ -131,35 +142,29 @@ cat > /etc/logrotate.d/docker-containers <<'LOGROTATE_EOF'
 }
 LOGROTATE_EOF
 
-echo "EC2 bootstrap complete. Docker is available only through the local Unix socket."
-echo "The deployment workflow must install TLS before enabling TCP access."
+echo "EC2 bootstrap complete. Docker is local-only; deploy the terminal agent over HTTPS via SSM."
 `;
 
-// EC2 instance for terminal host
 const instance = new aws.ec2.Instance('terminal-host', {
   instanceType: 't3.micro',
   ami: ubuntu.then((ami) => ami.id),
   keyName: sshKey.keyName,
+  iamInstanceProfile: instanceProfile.name,
   vpcSecurityGroupIds: [securityGroup.id],
-
-  userData: userData,
-
+  userData,
   rootBlockDevice: {
     volumeSize: 8,
     volumeType: 'gp3',
     deleteOnTermination: true,
   },
-
   tags: {
     Name: 'mike-os-x-terminal-host',
     Project: 'mike-os-x',
     Purpose: 'terminal-container',
   },
-
   monitoring: false,
 });
 
-// Elastic IP for stable address
 const eip = new aws.ec2.Eip('terminal-host-eip', {
   instance: instance.id,
   tags: {
@@ -168,9 +173,9 @@ const eip = new aws.ec2.Eip('terminal-host-eip', {
   },
 });
 
-// Outputs
 export const instanceId = instance.id;
 export const publicIp = eip.publicIp;
 export const publicDns = eip.publicDns;
-export const sshCommand = pulumi.interpolate`ssh -i ~/.ssh/mike-os-x-terminal ubuntu@${eip.publicIp}`;
-export const dockerHost = pulumi.interpolate`tcp://${eip.publicIp}:2376`;
+export const agentHostnameExport = agentHostname;
+export const agentUrl = pulumi.interpolate`https://${agentHostname}`;
+export const ssmConnectHint = pulumi.interpolate`aws ssm start-session --target ${instance.id}`;
