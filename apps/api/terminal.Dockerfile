@@ -3,14 +3,13 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
-ENV EDITOR=vim
-ENV VISUAL=vim
 
 RUN apt-get update && apt-get install -y \
     bash \
     zsh \
     git \
     vim \
+    nano \
     curl \
     wget \
     htop \
