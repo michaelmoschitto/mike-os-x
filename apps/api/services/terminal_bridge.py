@@ -31,6 +31,9 @@ MAX_TERMINAL_COLS = 1000
 MIN_TERMINAL_ROWS = 1
 MAX_TERMINAL_ROWS = 1000
 SESSION_IDLE_TIMEOUT = 30 * 60
+MAX_SESSIONS_PER_CONNECTION = 5
+MAX_TOTAL_SESSIONS = 100
+MAX_SESSION_ID_LENGTH = 128
 
 
 class TerminalBridge:
@@ -48,6 +51,26 @@ class TerminalBridge:
         except Exception as e:
             logger.error(f"Error sending message: {e}")
 
+    async def _send_session_error(
+        self, websocket: WebSocket, session_id: str, error: str
+    ) -> None:
+        error_msg: ErrorMessage = {
+            "type": "error",
+            "sessionId": session_id,
+            "error": error,
+        }
+        await self._send_message(websocket, error_msg)
+
+    async def _authorize_session(
+        self, websocket: WebSocket, connection_id: str, session_id: str
+    ) -> bool:
+        owned_sessions = self.websocket_sessions.get(connection_id, set())
+        if session_id in owned_sessions:
+            return True
+
+        await self._send_session_error(websocket, session_id, "Session not found")
+        return False
+
     async def _handle_create_session(
         self,
         websocket: WebSocket,
@@ -56,13 +79,39 @@ class TerminalBridge:
         msg: CreateSessionMessage,
     ) -> None:
         session_id = msg.get("sessionId")
-        if not session_id:
-            error_msg: ErrorMessage = {
-                "type": "error",
-                "sessionId": "",
-                "error": "Missing sessionId in create_session message",
-            }
-            await self._send_message(websocket, error_msg)
+        if not isinstance(session_id, str) or not session_id:
+            await self._send_session_error(
+                websocket, "", "Missing sessionId in create_session message"
+            )
+            return
+
+        if len(session_id) > MAX_SESSION_ID_LENGTH:
+            await self._send_session_error(websocket, session_id, "Invalid sessionId")
+            return
+
+        owned_sessions = self.websocket_sessions.setdefault(connection_id, set())
+        if session_id in owned_sessions:
+            await self._send_session_error(websocket, session_id, "Session already exists")
+            return
+
+        if session_id in self.session_manager.sessions:
+            await self._send_session_error(websocket, session_id, "Session not found")
+            return
+
+        if len(owned_sessions) >= MAX_SESSIONS_PER_CONNECTION:
+            await self._send_session_error(
+                websocket,
+                session_id,
+                f"Session limit reached ({MAX_SESSIONS_PER_CONNECTION})",
+            )
+            return
+
+        if len(self.session_manager.sessions) >= MAX_TOTAL_SESSIONS:
+            await self._send_session_error(
+                websocket,
+                session_id,
+                "Terminal capacity reached. Please try again later.",
+            )
             return
 
         try:
@@ -70,9 +119,7 @@ class TerminalBridge:
             self.session_last_activity[session_id] = time.time()
             self.session_input_totals[session_id] = 0
 
-            if connection_id not in self.websocket_sessions:
-                self.websocket_sessions[connection_id] = set()
-            self.websocket_sessions[connection_id].add(session_id)
+            owned_sessions.add(session_id)
 
             response: SessionCreatedMessage = {
                 "type": "session_created",
@@ -106,7 +153,10 @@ class TerminalBridge:
         msg: InputMessage,
     ) -> None:
         session_id = msg.get("sessionId")
-        if not session_id:
+        if not isinstance(session_id, str) or not session_id:
+            return
+
+        if not await self._authorize_session(websocket, connection_id, session_id):
             return
 
         session = self.session_manager.get_session(session_id)
@@ -191,7 +241,10 @@ class TerminalBridge:
         msg: ResizeMessage,
     ) -> None:
         session_id = msg.get("sessionId")
-        if not session_id:
+        if not isinstance(session_id, str) or not session_id:
+            return
+
+        if not await self._authorize_session(websocket, connection_id, session_id):
             return
 
         cols = msg.get("cols", 80)
@@ -243,7 +296,10 @@ class TerminalBridge:
         msg: CloseSessionMessage,
     ) -> None:
         session_id = msg.get("sessionId")
-        if not session_id:
+        if not isinstance(session_id, str) or not session_id:
+            return
+
+        if not await self._authorize_session(websocket, connection_id, session_id):
             return
 
         await self.session_manager.close_session(session_id)
