@@ -97,5 +97,8 @@ jobs:
       - name: Build API Docker image
         run: docker build -t mike-os-x-api:test -f apps/api/Dockerfile apps/api
 
+      - name: Verify API image runs as non-root
+        run: test "$(docker run --rm --entrypoint id mike-os-x-api:test -u)" = "10001"
+
       - name: Build Terminal Docker image
         run: docker build -t mike-os-x-terminal:test -f apps/api/terminal.Dockerfile apps/api
