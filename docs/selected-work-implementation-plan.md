@@ -1032,4 +1032,3 @@ Do not attempt that migration by committing plaintext to `apps/api/content`; the
 - Web Docker image builds in CI.
 - Fixture plaintext leakage check passes.
 - Production contains only encrypted portfolio resources.
-
