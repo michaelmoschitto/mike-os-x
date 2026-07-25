@@ -1,4 +1,11 @@
-export type AppType = 'textedit' | 'browser' | 'pdfviewer' | 'photos' | 'finder' | 'shortcut';
+export type AppType =
+  | 'textedit'
+  | 'browser'
+  | 'pdfviewer'
+  | 'photos'
+  | 'projects'
+  | 'finder'
+  | 'shortcut';
 
 export interface ContentMetadata {
   app?: AppType;
@@ -6,6 +13,14 @@ export interface ContentMetadata {
   slug?: string;
   description?: string;
   url?: string;
+  summary?: string;
+  order?: number;
+  role?: string;
+  team?: string;
+  timeline?: string;
+  tags?: string[];
+  thumbnail?: string;
+  thumbnailAlt?: string;
 }
 
 /**

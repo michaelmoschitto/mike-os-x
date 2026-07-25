@@ -37,6 +37,11 @@ describe('fileToApp', () => {
       expect(getAppForFile('.md', metadata)).toBe('photos');
     });
 
+    test('allows markdown files to open in Projects', () => {
+      const metadata: ContentMetadata = { app: 'projects' };
+      expect(getAppForFile('.md', metadata)).toBe('projects');
+    });
+
     test('case insensitive extension matching', () => {
       expect(getAppForFile('.MD')).toBe('textedit');
       expect(getAppForFile('.PNG')).toBe('photos');
