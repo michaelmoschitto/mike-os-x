@@ -23,5 +23,13 @@ Do not deploy manually from a laptop. After the PR merges to `main`:
 - `index.html` — homepage gallery
 - `projects/<slug>/index.html` — project detail pages
 - `styles.css` — shared Aqua Field Notes stylesheet
+- `scrollbar.js` — accessible custom Aqua scrollbar for the home project pane and detail pages
 
-To add a project, copy `projects/northstar-console/`, replace images and copy, then link it from `index.html`.
+## Adding a project
+
+1. Copy `projects/northstar-console/` to `projects/<your-slug>/`.
+2. Replace the title, narrative, image files, image `alt` text, and page metadata in the copied detail page.
+3. Copy a project `<li>` in `index.html`, update its number, title, summary, pills, image, and links.
+4. Open the homepage and detail page locally at desktop and mobile widths. Confirm the screenshot window, project link, and custom scrollbar work.
+
+`Northstar 2` is a temporary second card that keeps the homepage scroll pane long enough to preview the Aqua scrollbar. Replace it with the next real project rather than removing it before another project is ready.

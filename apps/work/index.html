@@ -9,68 +9,150 @@
       content="Selected product design work by Mike Moschitto. Case studies focused on clarity, hierarchy, and decision-ready interfaces."
     />
     <link rel="canonical" href="https://work.mikemoschitto.com/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+    />
     <link rel="stylesheet" href="/styles.css" />
+    <script src="/scrollbar.js" defer></script>
   </head>
   <body>
-    <div class="site">
+    <div class="site site--home">
       <header class="site-header">
-        <p class="site-name">mike moschitto</p>
+        <div class="site-header__row">
+          <a class="site-name" href="/"> mike moschitto</span> </a>
+          <a class="os-link" href="https://os.mikemoschitto.com">
+            <span class="os-link__orb" aria-hidden="true"></span>
+            open mike os x
+          </a>
+        </div>
         <hr class="site-rule" />
-        <nav aria-label="Primary">
-          <ul class="site-nav">
-            <li><a href="/" aria-current="page">home</a></li>
-            <li><a href="/#about">about</a></li>
-          </ul>
-        </nav>
+        <section class="home-intro" aria-labelledby="home-intro-title">
+          <h1 id="home-intro-title">Hey, I’m Mike!</h1>
+          <p>
+            I'm a Cal Poly SLO graduate (B.S./M.S. in Computer Science) passionate about 0–1
+            products, AI/ML, databases, and financial technology.
+          </p>
+          <p>
+            I love learning, I geek out on system thinking and tools that make building a joy. From
+            clean CI pipelines to a well placed command pallet. Give me a good programming book or
+            pod and I'm happy.
+          </p>
+          <p>
+            When I’m not coding, you’ll find me running, skiing, reading, or playing beach
+            volleyball. I'm also an avid baseball fan... go Dodgers.
+          </p>
+        </section>
       </header>
 
-      <main class="home-layout">
-        <aside class="intro" id="about">
-          <p>
-            product designer working on dense tools that need to feel calm,
-            scannable, and ready for action.
-          </p>
-          <p>
-            this site collects selected work across
-            <strong>product design</strong>,
-            <strong>data visualization</strong>, and
-            <strong>design systems</strong>.
-          </p>
-          <p>based in the united states.</p>
-        </aside>
-
-        <section aria-labelledby="selected-work">
+      <main class="project-scroll">
+        <section class="project-index" aria-labelledby="selected-work">
           <h1 id="selected-work" class="visually-hidden">Selected work</h1>
           <ul class="project-list">
             <li>
-              <a class="project-card" href="/projects/northstar-console/">
-                <figure class="project-card__media">
-                  <img
-                    src="/projects/northstar-console/images/thumbnail.svg"
-                    width="1200"
-                    height="675"
-                    alt="Northstar customer health dashboard with a scorecard and activity chart"
-                  />
-                </figure>
-                <h2 class="project-card__title">Northstar Console</h2>
-                <p class="project-card__summary">
-                  Turning a dense operational dashboard into a calmer, faster way
-                  to investigate customer health. Clear hierarchy first, charts
-                  second.
-                </p>
-                <ul class="pills" aria-label="Project tags">
-                  <li class="pill">Product Design</li>
-                  <li class="pill">Data Visualization</li>
-                  <li class="pill">Concept</li>
-                </ul>
-              </a>
+              <article class="project-card">
+                <div class="project-card__info">
+                  <p class="figure-index">01</p>
+                  <h2 class="project-card__title">Northstar Console</h2>
+                  <p class="project-card__summary">
+                    Turning a dense operational dashboard into a calmer, faster way to investigate
+                    customer health. Clear hierarchy first, charts second.
+                  </p>
+                  <ul class="pills" aria-label="Project tags">
+                    <li class="pill">Product Design</li>
+                    <li class="pill">Data Visualization</li>
+                    <li class="pill">Concept</li>
+                  </ul>
+                  <a class="project-card__cta" href="/projects/northstar-console/">
+                    View case study →
+                  </a>
+                </div>
+                <a
+                  class="project-card__media-link"
+                  href="/projects/northstar-console/"
+                  aria-label="View the Northstar Console case study"
+                >
+                  <figure class="project-card__media">
+                    <div class="window">
+                      <div class="window__titlebar">
+                        <div class="window__lights" aria-hidden="true">
+                          <span class="window__light window__light--close"></span>
+                          <span class="window__light window__light--minimize"></span>
+                          <span class="window__light window__light--zoom"></span>
+                        </div>
+                        <span class="window__title">northstar-console.png</span>
+                      </div>
+                      <div class="window__body">
+                        <img
+                          src="/projects/northstar-console/images/thumbnail.svg"
+                          width="1200"
+                          height="675"
+                          alt="Northstar customer health dashboard with a scorecard and activity chart"
+                        />
+                      </div>
+                    </div>
+                  </figure>
+                </a>
+              </article>
+            </li>
+            <li>
+              <article class="project-card">
+                <div class="project-card__info">
+                  <p class="figure-index">02</p>
+                  <h2 class="project-card__title">Northstar 2</h2>
+                  <p class="project-card__summary">
+                    Placeholder second project so the home scroll pane has enough length to show the
+                    Aqua scrollbar. Same case study for now.
+                  </p>
+                  <ul class="pills" aria-label="Project tags">
+                    <li class="pill">Product Design</li>
+                    <li class="pill">Prototype</li>
+                    <li class="pill">Concept</li>
+                  </ul>
+                  <a class="project-card__cta" href="/projects/northstar-console/">
+                    View case study →
+                  </a>
+                </div>
+                <a
+                  class="project-card__media-link"
+                  href="/projects/northstar-console/"
+                  aria-label="View the Northstar 2 placeholder case study"
+                >
+                  <figure class="project-card__media">
+                    <div class="window">
+                      <div class="window__titlebar">
+                        <div class="window__lights" aria-hidden="true">
+                          <span class="window__light window__light--close"></span>
+                          <span class="window__light window__light--minimize"></span>
+                          <span class="window__light window__light--zoom"></span>
+                        </div>
+                        <span class="window__title">northstar-2.png</span>
+                      </div>
+                      <div class="window__body">
+                        <img
+                          src="/projects/northstar-console/images/dashboard.svg"
+                          width="1200"
+                          height="675"
+                          alt="Northstar overview dashboard used as a placeholder second project thumbnail"
+                        />
+                      </div>
+                    </div>
+                  </figure>
+                </a>
+              </article>
             </li>
           </ul>
         </section>
       </main>
 
       <footer class="site-footer">
-        <p>Selected work · mike moschitto</p>
+        <nav class="footer-links" aria-label="Contact">
+          <a href="https://linkedin.com/in/michaelmoschitto">linkedin ↗</a>
+          <a href="https://os.mikemoschitto.com">os.mikemoschitto.com ↗</a>
+          <a href="mailto:me@mikemoschitto.com">me@mikemoschitto.com</a>
+        </nav>
       </footer>
     </div>
   </body>
