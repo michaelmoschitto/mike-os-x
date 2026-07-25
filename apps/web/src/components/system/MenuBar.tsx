@@ -83,11 +83,11 @@ const MenuBar = () => {
     terminalWindows.forEach((w) => closeWindow(w.id));
   }, [windows, closeWindow]);
 
-  const handleMinimizeWindow = () => {
+  const handleMinimizeWindow = useCallback(() => {
     if (activeWindowId) {
       minimizeWindow(activeWindowId);
     }
-  };
+  }, [activeWindowId, minimizeWindow]);
 
   const handleBringAllToFront = () => {
     const visibleWindows = windows.filter((w) => !w.isMinimized);
@@ -140,6 +140,17 @@ const MenuBar = () => {
           e.preventDefault();
           handleQuitTerminal();
         }
+        return;
+      }
+
+      if (activeWindow?.type === 'textedit') {
+        if (e.key === 'w' || e.key === 'W') {
+          e.preventDefault();
+          handleCloseWindow();
+        } else if (e.key === 'm' || e.key === 'M') {
+          e.preventDefault();
+          handleMinimizeWindow();
+        }
       }
     };
 
@@ -153,6 +164,7 @@ const MenuBar = () => {
     handleCloseTerminalTab,
     handleCloseWindow,
     handleQuitTerminal,
+    handleMinimizeWindow,
   ]);
 
   const menuConfig =

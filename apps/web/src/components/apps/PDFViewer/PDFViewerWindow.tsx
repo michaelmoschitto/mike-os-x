@@ -18,8 +18,8 @@ const PDFViewerWindow = ({ window: windowData, isActive }: PDFViewerWindowProps)
     });
 
   const sanitizedPath = windowData.urlPath ? sanitizeUrlPath(windowData.urlPath) : '';
-  const dateModified = useContentIndex(
-    (state) => state.getEntry(sanitizedPath)?.dateModified?.getTime()
+  const dateModified = useContentIndex((state) =>
+    state.getEntry(sanitizedPath)?.dateModified?.getTime()
   );
   const version = dateModified ? `?v=${dateModified}` : '';
   const pdfUrl = sanitizedPath ? `/content${sanitizedPath}.pdf${version}` : '';
