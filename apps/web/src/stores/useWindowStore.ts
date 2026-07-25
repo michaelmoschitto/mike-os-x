@@ -88,14 +88,16 @@ const getDockIconForFinderPath = (path: string | undefined): App | null => {
   return null;
 };
 
-const getAppTypeForDock = (window: Window): App | null => {
+export const getAppTypeForDock = (window: Window): App | null => {
   if (window.type === 'finder') {
     return getDockIconForFinderPath(window.currentPath);
   }
 
-  if (window.type === 'textedit' || window.type === 'pdfviewer') {
+  if (window.type === 'pdfviewer') {
     return null;
   }
+
+  if (window.type === 'textedit') return 'textedit';
 
   return window.type;
 };
@@ -114,7 +116,6 @@ interface WindowStore {
   getVisibleWindows: () => Window[];
   updateWindowPosition: (id: string, position: { x: number; y: number }) => void;
   updateWindowSize: (id: string, size: { width: number; height: number }) => void;
-  updateWindowContent: (id: string, content: string) => void;
   updateWindow: (
     id: string,
     updates: Partial<Window>,
@@ -218,9 +219,12 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     const windows = state.windows.filter((w) => w.id !== id);
     const activeWindowId =
       state.activeWindowId === id
-        ? windows.length > 0
-          ? windows[windows.length - 1].id
-          : null
+        ? (windows
+            .filter((w) => !w.isMinimized)
+            .reduce<Window | null>((topmost, window) => {
+              if (!topmost || window.zIndex > topmost.zIndex) return window;
+              return topmost;
+            }, null)?.id ?? null)
         : state.activeWindowId;
 
     const nextActiveWindow = activeWindowId ? windows.find((w) => w.id === activeWindowId) : null;
@@ -278,12 +282,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     }));
   },
 
-  updateWindowContent: (id, content) => {
-    set((state) => ({
-      windows: state.windows.map((w) => (w.id === id ? { ...w, content } : w)),
-    }));
-  },
-
   updateWindow: (id, updates, options) => {
     set((state) => {
       const window = state.windows.find((w) => w.id === id);
@@ -311,9 +309,36 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
   },
 
   minimizeWindow: (id) => {
-    set((state) => ({
-      windows: state.windows.map((w) => (w.id === id ? { ...w, isMinimized: !w.isMinimized } : w)),
-    }));
+    set((state) => {
+      const targetWindow = state.windows.find((w) => w.id === id);
+      if (!targetWindow) return state;
+
+      const isMinimizing = !targetWindow.isMinimized;
+      const windows = state.windows.map((w) =>
+        w.id === id ? { ...w, isMinimized: isMinimizing } : w
+      );
+
+      let activeWindowId = state.activeWindowId;
+      if (isMinimizing) {
+        if (state.activeWindowId === id) {
+          activeWindowId =
+            windows
+              .filter((w) => !w.isMinimized)
+              .reduce<Window | null>((topmost, window) => {
+                if (!topmost || window.zIndex > topmost.zIndex) return window;
+                return topmost;
+              }, null)?.id ?? null;
+        }
+      } else {
+        activeWindowId = id;
+      }
+
+      const nextActiveWindow = activeWindowId ? windows.find((w) => w.id === activeWindowId) : null;
+      const nextAppType = nextActiveWindow ? getAppTypeForDock(nextActiveWindow) : null;
+      useUI.getState().setActiveApp(nextAppType);
+
+      return { windows, activeWindowId };
+    });
   },
 
   navigateToUrl: (id, url, title?: string, fromRoute?: boolean) => {
