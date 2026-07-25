@@ -71,8 +71,9 @@ These decisions should be treated as defaults during local implementation.
 - Adopt shadcn Dialog, Command, Tabs, and Chart composition, not its default visual theme.
 - Do not force Vercel AI SDK into the Python API solely to satisfy a résumé keyword.
 - Do not use the current TextEdit renderer for arbitrary source code.
-- Use one immutable, explicitly configured source namespace per indexed commit. Add dynamic
-  pointers and turbopuffer branching only after the vertical slice is working.
+- Use one stable source namespace populated by a one-shot script from the local checkout.
+- Do not build indexing CI, incremental updates, candidate promotion, dynamic pointers, or
+  turbopuffer branching for this portfolio.
 
 ### 2.3 Scope decisions
 
@@ -371,14 +372,15 @@ Each citation shows:
 
 ```text
 apps/web/src/stores/useWindowStore.ts
-lines 148–214 · indexed at <short SHA>
+lines 148–214 · uploaded from <short SHA>
 ```
 
 MVP actions:
 
 - expand the retrieved source excerpt safely as text;
 - copy the file path;
-- open a GitHub permalink at the exact commit and line range;
+- open a GitHub permalink at the recorded commit and line range when the upload came from a
+  clean checkout;
 - inspect the underlying turbopuffer request.
 
 Do not route arbitrary source through the current TextEdit window. Its rendering path was built
@@ -396,21 +398,19 @@ Standout follow-up:
 
 ### 6.1 Corpus policy
 
-Index files tracked by Git at a specific commit, not arbitrary filesystem contents.
-
-The indexer must read the exact Git objects for that commit:
+Upload tracked files from the local checkout:
 
 ```text
-git cat-file -e <sha>^{commit}
-git ls-tree -r -z <sha>
-git cat-file blob <object-id>
+git ls-files -z
+git rev-parse HEAD
+git diff --quiet
+git diff --cached --quiet
 ```
 
-Parse each tree record’s mode, type, object ID, and path. Invoke Git with an argument array, never
-a shell string containing a path. Reject symlink modes and read accepted blob object IDs with
-`git cat-file`. The secret scan, chunker, content hash, and citation lines all operate on those
-exact bytes, not the current working tree. This guarantees that a citation to
-`<sha>/<path>#Lx-Ly` matches the indexed content.
+The script reads those paths directly from disk. By default it refuses a dirty tracked checkout,
+so the recorded commit and GitHub line links match the uploaded text. `--allow-dirty` is useful
+for local experimentation but marks the manifest dirty and disables GitHub permalinks. Reject
+symlinks and paths that resolve outside the repository.
 
 Include:
 
@@ -444,11 +444,12 @@ Generate an index report with:
 - excluded files and reason;
 - chunk count;
 - embedding token count;
-- changed/deleted paths;
-- candidate namespace;
-- smoke-test results.
+- target namespace;
+- clean/dirty state;
+- estimated embedding cost before upload.
 
-Run a secret scanner before promotion even if the repository is public.
+Run a secret scanner before upload even if the repository is public. This is a guardrail, not a
+production indexing system.
 
 ### 6.2 Chunking strategy
 
@@ -561,29 +562,29 @@ surface remains private beta and its response contracts are not stable.
 
 ### 6.6 Namespace lifecycle
 
-MVP uses one immutable candidate namespace per indexed commit:
+MVP uses one stable namespace:
 
 ```text
-TURBOPUFFER_SOURCE_NAMESPACE=mike-os-x-code-v1-<short-sha>
+TURBOPUFFER_SOURCE_NAMESPACE=mike-os-x-source
 ```
 
-The indexer performs a full write into a new namespace. Every chunk in that namespace has the
-same Git SHA. Store one `index-manifest` row containing the indexed Git SHA, chunker version,
-embedding version, and completion time. Run smoke tests before changing the local or Railway
-`TURBOPUFFER_SOURCE_NAMESPACE` variable.
+The local uploader replaces it completely:
 
-Update flow:
+1. scan and chunk the checkout in memory;
+2. print the file, chunk, token, and estimated embedding-cost report;
+3. generate and validate every embedding before touching the namespace;
+4. require the API to be stopped or `RAG_ENABLED=false`;
+5. require explicit confirmation of the exact namespace name;
+6. call `namespace.delete_all()`, ignoring only a not-found response;
+7. recreate the namespace by writing schema and complete chunk batches;
+8. write the `index-manifest` row last, with commit, dirty state, chunker, embedding version, and
+   upload time;
+9. run six smoke questions, print top paths, and then re-enable/restart the API.
 
-1. write a fresh candidate namespace for the target commit;
-2. wait for indexing and run smoke tests;
-3. update `TURBOPUFFER_SOURCE_NAMESPACE`;
-4. deploy and verify;
-5. retain the previous namespace for rollback;
-6. delete old candidates manually after a retention window.
-
-This prevents mixed-commit reads without requiring a dynamic control namespace, pointer cache,
-distributed promotion lock, or in-place mutation. Full re-embedding is acceptable for this small
-repository. Turbopuffer branching can optimize a later version.
+If upload fails after deletion, leave RAG disabled and rerun it. Stopping the API also prevents a
+process cache from retaining the old manifest. Brief index downtime is acceptable for this
+portfolio. There is no incremental update, candidate namespace, rollback, branch, promotion, or
+distributed locking logic.
 
 ### 6.7 Indexer location
 
@@ -591,48 +592,46 @@ Create:
 
 ```text
 apps/api/scripts/index_source.py
-apps/api/services/source_index/
-  corpus.py
-  chunker.py
-  embeddings.py
-  indexer.py
-  models.py
+apps/api/services/source_index.py
 ```
+
+Keep corpus selection, deterministic chunking, row construction, and reporting as small pure
+functions in `source_index.py`. The script owns local filesystem access, embedding calls, the
+destructive replacement, and smoke queries.
 
 Run locally:
 
 ```text
 cd apps/api
-uv run python scripts/index_source.py --repo ../.. --sha <sha> --dry-run
-uv run python scripts/index_source.py --repo ../.. --sha <sha> --namespace <namespace> --write
+uv run python scripts/index_source.py --repo ../.. --dry-run
+uv run python scripts/index_source.py --repo ../.. --replace
 ```
 
 `--dry-run` must require no model or turbopuffer key. It prints the corpus and chunk report.
-Both modes read exact Git objects as described above.
+`--replace` reads `TURBOPUFFER_SOURCE_NAMESPACE` and requires the operator to type that namespace
+verbatim before deletion.
 
 Do not index source during a web request or normal frontend build.
 
-### 6.8 Indexing CI
+### 6.8 Local upload workflow
 
-Add a manually triggered workflow first:
+The uploader is intentionally local-only. Put `TURBOPUFFER_API_KEY`, region, namespace, and the
+embedding provider key in `apps/api/.env.local`, run dry-run, review the report, then run replace.
+Do not add an indexing workflow, webhook, watcher, scheduler, or production endpoint.
+
+`index_source.py` uses a dedicated `SourceUploadSettings` model containing only:
 
 ```text
-.github/workflows/index-source.yml
+TURBOPUFFER_API_KEY
+TURBOPUFFER_REGION
+TURBOPUFFER_SOURCE_NAMESPACE
+RAG_EMBEDDING_PROVIDER
+RAG_EMBEDDING_MODEL
+RAG_EMBEDDING_API_KEY
 ```
 
-Inputs:
-
-- commit SHA;
-- dry-run/write;
-- destination namespace.
-
-Required secrets:
-
-- `TURBOPUFFER_API_KEY`;
-- embedding provider key.
-
-Writing should require smoke tests. Automatic indexing on every `main` push can be enabled after
-cost and reliability are understood.
+It must not import the application `Settings`, which currently requires unrelated CORS and
+terminal configuration.
 
 ## 7. Retrieval and answer generation deep dive
 
@@ -1759,12 +1758,7 @@ apps/api/services/
   source_retrieval.py
   answer_generator.py
 
-apps/api/services/source_index/
-  corpus.py
-  chunker.py
-  embeddings.py
-  indexer.py
-  models.py
+apps/api/services/source_index.py
 
 apps/api/scripts/
   index_source.py
@@ -1967,10 +1961,11 @@ interface Insight {
 - CRLF and Unicode line mapping;
 - deterministic IDs;
 - overlap and hard limits;
-- changed, deleted, and renamed paths;
+- tracked-file allowlist and exclusions;
 - dry-run report;
-- exact-SHA bytes differ safely from a dirty working tree;
-- symlink tree entries are rejected.
+- dirty-checkout refusal and `--allow-dirty` labeling;
+- symlink and repository-escape rejection;
+- destructive replacement requires exact namespace confirmation.
 
 ### 18.2 Retrieval tests
 
@@ -2049,12 +2044,55 @@ Update `.github/workflows/ci.yml`:
 - run `bun run test` in the frontend job;
 - run `uv run pytest` for the entire API test directory;
 - retain lint, type checks, and builds;
-- add indexer dry-run against the checked-out repository;
-- keep live integration as manual or scheduled with disposable namespaces.
+- keep the uploader’s pure corpus/chunking tests in normal API CI;
+- run one live smoke test manually after the local upload.
 
 ## 19. Local implementation sequence
 
 Each phase should be a small, reviewable commit or PR.
+
+### Work-packet breakdown
+
+The phases below are planning groups. Implement them as these independently testable packets:
+
+| ID | Deliverable | Depends on | Proof |
+| --- | --- | --- | --- |
+| B0 | FastAPI starts without Docker | none | startup test plus `/health` and `/health/terminal` tests |
+| T0 | Frontend jsdom and Testing Library harness | none | one mounted Aqua component test in CI |
+| U0 | Aqua shadcn Dialog, Command, and Tabs primitives | T0 | keyboard, focus, and tabs component tests |
+| U1 | Aqua shadcn Chart primitive | T0 | chart-summary and reduced-motion tests |
+| S0 | Sherlock shell, store, `⌘K`, focus, and close behavior | U0 | component and keyboard tests; no network |
+| S1 | Application commands and Fuse local results | S0 | pure ranking tests and URL-navigation mocks |
+| I0 | Local corpus selection, chunking, and dry-run report | none | pure Python snapshots; no API keys |
+| I1 | One-shot namespace replacement | I0 | manual upload plus six printed smoke questions |
+| R0 | Turbopuffer adapter and response normalization | none | recorded SDK response fixtures |
+| R1 | BM25, vector, and hybrid retrieval | R0 | request-construction and ranked fixture tests |
+| R2 | Grounded answer generation and citation validation | R1 | mocked model, invalid-citation, and refusal tests |
+| R3 | Signed session, Redis limits, and telemetry | B0 | atomic limiter and session-ownership API tests |
+| R4 | POST SSE endpoint | R2, R3 | event-order, error, and disconnect tests |
+| S2 | Browser SSE parser and source-answer UI | S0 | protocol-fixture, split-frame parser, and UI-state tests |
+| P0 | Process Viewer window type and fixture shell | U0 | URL serialization and window rendering tests |
+| P1 | Live namespace summary and Aqua chart | P0, U1, R0, R3 | fixture contract and chart-summary tests |
+| P2 | Session-private request inspector | P1, R3 | cross-session denial and in-memory handoff tests |
+| P3 | Bounded three-mode playground | P0, R1, R3 | validation tests and BM25/vector/hybrid fixtures |
+| P4 | In-memory run comparison and deterministic insight | P3 | overlap, delta, threshold, and refresh-reset tests |
+| D0 | Explicit Live/Demo behavior and production verification | I1, R4, S2, P1, P2, P4 | provider-outage fallback and Railway SSE smoke test |
+
+Parallel work:
+
+```text
+B0 → R3 ─────────────────────────→ R4 ──────────────┐
+R0 → R1 → R2 ────────────────────→ R4 ──────────────┤
+I0 → I1 ────────────────────────────────────────────┤
+T0 → U0 → S0 → S1 ───────────────→ S2 ─────────────┤→ D0
+T0 → U0 → P0 ──────────────────────────────────────┤
+T0 → U1 ────────────────────────────────────────────┤
+P0 + U1 + R0 + R3 → P1 → P2 ───────────────────────┤
+P0 + R1 + R3 → P3 → P4 ────────────────────────────┘
+```
+
+Only `I1` and the final `D0` smoke test require live external services. Every other packet can
+be developed against fixtures or mocked service interfaces.
 
 ### Phase 0 — Backend boot prerequisite and baseline
 
@@ -2064,10 +2102,6 @@ Tasks:
 - create terminal dependencies lazily;
 - make `/health` report application liveness and add `/health/terminal`;
 - prove `uv run uvicorn main:app` can start without Docker when terminal features are unused;
-- create turbopuffer account and API key;
-- choose nearest region to Railway;
-- choose embedding and generation providers;
-- record current SDK, model, and pricing information;
 - run existing web/API checks;
 - capture baseline screenshots and bundle size.
 
@@ -2076,8 +2110,7 @@ Exit criteria:
 - existing application is green;
 - API and fixture mode boot without Docker;
 - terminal readiness failure does not take down Sherlock routes;
-- required secrets exist only in local env;
-- live turbopuffer quickstart query succeeds.
+- no external account or paid service is required.
 
 ### Phase 1 — Shared UI foundations
 
@@ -2117,12 +2150,17 @@ Exit criteria:
 
 Tasks:
 
+- create the turbopuffer account and API key;
+- choose the nearest turbopuffer region to Railway;
+- choose the embedding provider and current model;
+- install and record the current official SDK and model pricing;
+- run the turbopuffer quickstart;
 - add official turbopuffer SDK and embedding client;
 - implement corpus policy, chunker, schema, and dry-run;
-- index the configured source namespace;
-- build 12–15 representative evaluation questions;
+- run the one-shot local replacement into the configured source namespace;
+- build six representative smoke questions;
 - measure file-level Recall@5/10;
-- verify the manifest SHA.
+- verify the manifest and six smoke questions.
 
 Exit criteria:
 
@@ -2135,6 +2173,7 @@ Exit criteria:
 Tasks:
 
 - modularize FastAPI routes and lifespan;
+- choose the generation provider and current model;
 - add paid-route rate limiter;
 - implement hybrid retrieval;
 - implement answer generator;
@@ -2247,7 +2286,7 @@ Exit criteria:
 
 - paid routes have fail-closed spend limits;
 - no live network dependency in CI;
-- source namespace changes are explicit and previous namespaces are retained for rollback;
+- source upload is local-only, dry-runnable, and explicitly confirms destructive replacement;
 - metadata calls are cached;
 - SSE works through production proxy;
 - all new routes have typed models and tests.
@@ -2347,7 +2386,7 @@ These are external facts, not unresolved architecture:
 2. Railway production region.
 3. Embedding provider and current model ID.
 4. Generation provider and current model ID.
-5. Public GitHub repository URL for exact-SHA citation links.
+5. Public GitHub repository URL for clean-commit citation links.
 6. Monthly demo spend ceiling.
 
 All other major product and architecture choices are specified in this plan.
@@ -2373,15 +2412,23 @@ All other major product and architecture choices are specified in this plan.
 
 ## 26. First local implementation checklist
 
-Before writing feature code:
+Before writing UI feature code:
 
 - [ ] Read this plan end to end.
-- [ ] Confirm the six external inputs above.
 - [ ] Run existing frontend and backend checks.
+- [ ] Add CI test execution before adding window types.
+- [ ] Ship local Sherlock before connecting paid services.
+
+When starting the one-shot upload:
+
+- [ ] Confirm the six external inputs above.
 - [ ] Create the turbopuffer quickstart namespace.
 - [ ] Verify the installed SDK against current official examples.
 - [ ] Implement indexer dry-run before sending any source.
 - [ ] Review the generated corpus report manually.
-- [ ] Add CI test execution before adding window types.
-- [ ] Ship local Sherlock before connecting paid services.
+- [ ] Stop the API or disable RAG before replacement.
+- [ ] Keep RAG disabled until all six smoke questions pass.
+
+Throughout:
+
 - [ ] Keep every phase independently demoable.
