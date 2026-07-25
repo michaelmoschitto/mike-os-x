@@ -32,6 +32,7 @@ def mock_container_manager(mock_container):
     manager = MagicMock(spec=ContainerManager)
     manager.ensure_container_running.return_value = mock_container
     manager.ensure_container_healthy.return_value = mock_container
+    manager.create_session_container.return_value = mock_container
     manager.get_container.return_value = mock_container
     return manager
 
@@ -65,6 +66,7 @@ def mock_session_manager(mock_container):
     manager.resize_session = AsyncMock()
     manager.write_to_session = AsyncMock()
     manager.read_from_session = AsyncMock()
+    manager.close_all_sessions = AsyncMock()
     manager.sessions = {}
 
     return manager
@@ -77,6 +79,63 @@ def terminal_bridge(mock_container_manager, mock_rate_limiter, mock_session_mana
     bridge.rate_limiter = mock_rate_limiter
     bridge.session_manager = mock_session_manager
     return bridge
+
+
+@pytest.mark.asyncio
+async def test_pty_session_uses_and_removes_isolated_container(
+    mock_container_manager, mock_container
+):
+    session_manager = PTYSessionManager(mock_container_manager)
+
+    session = await session_manager.create_session("isolated-session")
+
+    mock_container_manager.create_session_container.assert_called_once_with()
+    assert session.container is mock_container
+
+    await session_manager.close_session("isolated-session")
+
+    mock_container_manager.remove_session_container.assert_called_once_with(mock_container)
+
+
+@pytest.mark.asyncio
+async def test_closed_pty_removes_its_isolated_container(
+    mock_container_manager, mock_container
+):
+    session_manager = PTYSessionManager(mock_container_manager)
+    await session_manager.create_session("closed-session")
+
+    with patch("asyncio.get_event_loop") as mock_loop:
+        loop = MagicMock()
+        loop.sock_recv = AsyncMock(return_value=b"")
+        mock_loop.return_value = loop
+
+        await session_manager.read_from_session(
+            "closed-session",
+            MagicMock(),
+            AsyncMock(),
+        )
+
+    mock_container_manager.remove_session_container.assert_called_once_with(mock_container)
+    assert session_manager.get_session("closed-session") is None
+
+
+@pytest.mark.asyncio
+async def test_bridge_removes_orphaned_session_containers(
+    terminal_bridge, mock_container_manager
+):
+    await terminal_bridge.cleanup_orphaned_sessions()
+
+    mock_container_manager.remove_all_session_containers.assert_called_once_with()
+
+
+@pytest.mark.asyncio
+async def test_bridge_closes_sessions_before_removing_orphans(
+    terminal_bridge, mock_session_manager, mock_container_manager
+):
+    await terminal_bridge.close_all_sessions()
+
+    mock_session_manager.close_all_sessions.assert_awaited_once_with()
+    mock_container_manager.remove_all_session_containers.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -148,7 +207,9 @@ async def test_create_session_message(terminal_bridge, mock_session_manager):
 
 
 @pytest.mark.asyncio
-async def test_multiple_sessions_same_websocket(terminal_bridge, mock_session_manager):
+async def test_rejects_multiple_sessions_from_one_websocket(
+    terminal_bridge, mock_session_manager
+):
     mock_websocket = AsyncMock(spec=WebSocket)
     mock_websocket.client.host = "127.0.0.1"
     mock_websocket.headers.get.return_value = "test-agent"
@@ -191,9 +252,9 @@ async def test_multiple_sessions_same_websocket(terminal_bridge, mock_session_ma
         except asyncio.CancelledError:
             pass
 
-    assert mock_session_manager.create_session.call_count == 3
-    for session_id in session_ids:
-        mock_session_manager.create_session.assert_any_call(session_id)
+    mock_session_manager.create_session.assert_awaited_once_with(session_ids[0])
+    send_calls = [call[0][0] for call in mock_websocket.send_text.call_args_list]
+    assert sum("Session limit reached" in call for call in send_calls) == 2
 
 
 @pytest.mark.asyncio
@@ -432,12 +493,8 @@ async def test_session_isolation(terminal_bridge, mock_session_manager):
     mock_websocket.receive_text = receive_text
 
     session_a = "session-a"
-    session_b = "session-b"
-
     messages.append(json.dumps({"type": "create_session", "sessionId": session_a}))
-    messages.append(json.dumps({"type": "create_session", "sessionId": session_b}))
     messages.append(json.dumps({"type": "input", "sessionId": session_a, "data": "echo A\n"}))
-    messages.append(json.dumps({"type": "input", "sessionId": session_b, "data": "echo B\n"}))
 
     with patch("asyncio.get_event_loop") as mock_loop:
         loop = MagicMock()
@@ -455,9 +512,8 @@ async def test_session_isolation(terminal_bridge, mock_session_manager):
             pass
 
     write_calls = mock_session_manager.write_to_session.call_args_list
-    assert len(write_calls) == 2
+    assert len(write_calls) == 1
     assert write_calls[0][0][0] == session_a
-    assert write_calls[1][0][0] == session_b
 
 
 @pytest.mark.asyncio
@@ -581,5 +637,4 @@ async def test_websocket_close_cleans_all_sessions(terminal_bridge, mock_session
         except asyncio.CancelledError:
             pass
 
-    for session_id in session_ids:
-        mock_session_manager.close_session.assert_any_call(session_id)
+    assert not terminal_bridge.websocket_sessions

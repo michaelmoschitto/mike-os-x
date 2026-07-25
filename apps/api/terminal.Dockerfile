@@ -42,30 +42,17 @@ RUN git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /opt/oh-my-zsh &&
     ./install --all --no-bash --no-fish && \
     chown -R workspace:workspace /opt/oh-my-zsh /opt/fzf
 
-RUN echo 'export ZSH="$HOME/.oh-my-zsh"' > /opt/zshrc-template && \
-    echo 'ZSH_THEME="random"' >> /opt/zshrc-template && \
-    echo 'plugins=(git fzf zsh-autosuggestions zsh-syntax-highlighting)' >> /opt/zshrc-template && \
-    echo 'source $ZSH/oh-my-zsh.sh' >> /opt/zshrc-template && \
-    echo '[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh' >> /opt/zshrc-template
+RUN mkdir -p /opt/zsh && \
+    echo 'export ZSH="/opt/oh-my-zsh"' > /opt/zsh/.zshrc && \
+    echo 'export FZF_BASE="/opt/fzf"' >> /opt/zsh/.zshrc && \
+    echo 'ZSH_THEME="random"' >> /opt/zsh/.zshrc && \
+    echo 'plugins=(git fzf zsh-autosuggestions zsh-syntax-highlighting)' >> /opt/zsh/.zshrc && \
+    echo 'source $ZSH/oh-my-zsh.sh' >> /opt/zsh/.zshrc && \
+    echo 'source /opt/fzf/shell/key-bindings.zsh' >> /opt/zsh/.zshrc && \
+    echo 'source /opt/fzf/shell/completion.zsh' >> /opt/zsh/.zshrc && \
+    chown -R workspace:workspace /opt/zsh
 
-USER root
+USER workspace
 
-RUN echo '#!/bin/bash' > /entrypoint.sh && \
-    echo 'if [ ! -d /workspace/.oh-my-zsh ]; then' >> /entrypoint.sh && \
-    echo '  cp -r /opt/oh-my-zsh /workspace/.oh-my-zsh' >> /entrypoint.sh && \
-    echo '  chown -R workspace:workspace /workspace/.oh-my-zsh' >> /entrypoint.sh && \
-    echo 'fi' >> /entrypoint.sh && \
-    echo 'if [ ! -d /workspace/.fzf ]; then' >> /entrypoint.sh && \
-    echo '  cp -r /opt/fzf /workspace/.fzf' >> /entrypoint.sh && \
-    echo '  chown -R workspace:workspace /workspace/.fzf' >> /entrypoint.sh && \
-    echo 'fi' >> /entrypoint.sh && \
-    echo 'if [ ! -f /workspace/.zshrc ]; then' >> /entrypoint.sh && \
-    echo '  cp /opt/zshrc-template /workspace/.zshrc' >> /entrypoint.sh && \
-    echo '  chown workspace:workspace /workspace/.zshrc' >> /entrypoint.sh && \
-    echo 'fi' >> /entrypoint.sh && \
-    echo 'exec "$@"' >> /entrypoint.sh && \
-    chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
 CMD ["tail", "-f", "/dev/null"]
 

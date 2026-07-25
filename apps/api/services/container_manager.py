@@ -1,5 +1,6 @@
 import logging
 import os
+import uuid
 
 import docker
 from docker.errors import DockerException, NotFound
@@ -8,6 +9,8 @@ from docker.models.containers import Container
 from config.settings import settings
 
 logger = logging.getLogger(__name__)
+
+SESSION_CONTAINER_LABEL = "com.mike-os-x.terminal-session"
 
 
 class ContainerManager:
@@ -89,6 +92,64 @@ class ContainerManager:
             container.start()
         return container
 
+    def create_session_container(self) -> Container:
+        template = self.ensure_container_running()
+        container_id = uuid.uuid4().hex
+        container = self.client.containers.run(
+            image=template.image.id,
+            command="tail -f /dev/null",
+            detach=True,
+            name=f"terminal-session-{container_id}",
+            hostname=f"mikeos-{container_id[:12]}",
+            user="1000:1000",
+            network_mode="none",
+            read_only=True,
+            cap_drop=["ALL"],
+            security_opt=["no-new-privileges"],
+            mem_limit=settings.container_memory,
+            nano_cpus=int(settings.container_cpus * 1_000_000_000),
+            pids_limit=settings.container_pids,
+            tmpfs={
+                "/tmp": "rw,size=64m",
+                "/var/tmp": "rw,size=64m",
+                "/workspace": (
+                    f"rw,size={settings.container_disk},uid=1000,gid=1000,mode=0755"
+                ),
+            },
+            labels={SESSION_CONTAINER_LABEL: "true"},
+        )
+        logger.info(f"Created isolated terminal container {container.id}")
+        return container
+
+    def get_session_containers(self) -> list[Container]:
+        return self.client.containers.list(
+            all=True, filters={"label": f"{SESSION_CONTAINER_LABEL}=true"}
+        )
+
+    def remove_session_container(self, container: Container) -> None:
+        try:
+            container.remove(force=True)
+            logger.info(f"Removed isolated terminal container {container.id}")
+        except NotFound:
+            pass
+        except DockerException as e:
+            logger.warning(f"Failed to remove terminal container {container.id}: {e}")
+
+    def remove_all_session_containers(self) -> int:
+        removed = 0
+        for container in self.get_session_containers():
+            try:
+                container.remove(force=True)
+                removed += 1
+            except NotFound:
+                continue
+            except DockerException as e:
+                logger.warning(f"Failed to remove terminal container {container.id}: {e}")
+
+        if removed:
+            logger.info(f"Removed {removed} isolated terminal containers")
+        return removed
+
     def restart_container(self) -> Container:
         container = self.get_container()
         if not container:
@@ -100,16 +161,8 @@ class ContainerManager:
         return container
 
     def reset_container(self) -> None:
-        container = self.get_container()
-        if container:
-            container.stop()
-            container.remove()
-
-        try:
-            volume = self.client.volumes.get(self.volume_name)
-            volume.remove()
-        except NotFound:
-            pass
+        self.remove_all_session_containers()
+        self.reset_workspace()
 
     def get_container_status(self) -> dict[str, str | bool | None]:
         container = self.get_container()

@@ -33,10 +33,12 @@ class PTYSession:
             except Exception:
                 pass
 
-        if self.read_task:
+        current_task = asyncio.current_task()
+
+        if self.read_task and self.read_task is not current_task:
             self.read_task.cancel()
 
-        if self.write_task:
+        if self.write_task and self.write_task is not current_task:
             self.write_task.cancel()
 
 
@@ -50,40 +52,47 @@ class PTYSessionManager:
             logger.warning(f"Session {session_id} already exists")
             return self.sessions[session_id]
 
-        container = self.container_manager.ensure_container_healthy()
+        container = await asyncio.to_thread(
+            self.container_manager.create_session_container
+        )
         logger.info(f"Container {container.id} is running for session {session_id}")
 
-        exec_id = container.client.api.exec_create(
-            container.id,
-            cmd="/bin/zsh",
-            stdin=True,
-            stdout=True,
-            stderr=True,
-            tty=True,
-            user="workspace",
-            environment={
-                "TERM": "xterm-256color",
-                "LANG": "en_US.UTF-8",
-                "LC_ALL": "en_US.UTF-8",
-            },
-        )
-        logger.info(f"Created exec instance {exec_id['Id']} for session {session_id}")
+        try:
+            exec_id = container.client.api.exec_create(
+                container.id,
+                cmd="/bin/zsh",
+                stdin=True,
+                stdout=True,
+                stderr=True,
+                tty=True,
+                user="workspace",
+                environment={
+                    "TERM": "xterm-256color",
+                    "LANG": "en_US.UTF-8",
+                    "LC_ALL": "en_US.UTF-8",
+                    "ZDOTDIR": "/opt/zsh",
+                },
+            )
+            logger.info(f"Created exec instance {exec_id['Id']} for session {session_id}")
 
-        exec_socket = container.client.api.exec_start(
-            exec_id["Id"],
-            socket=True,
-            tty=True,
-        )
-        logger.info(f"Exec socket started for session {session_id}")
+            exec_socket = container.client.api.exec_start(
+                exec_id["Id"],
+                socket=True,
+                tty=True,
+            )
+            logger.info(f"Exec socket started for session {session_id}")
 
-        # Handle both TLS (SSLSocket) and non-TLS connections
-        # When using TLS, exec_socket is already the socket we need
-        sock = getattr(exec_socket, "_sock", exec_socket)
-        sock.setblocking(False)
+            sock = getattr(exec_socket, "_sock", exec_socket)
+            sock.setblocking(False)
 
-        session = PTYSession(session_id, exec_id["Id"], exec_socket, sock, container)
-        self.sessions[session_id] = session
-        return session
+            session = PTYSession(session_id, exec_id["Id"], exec_socket, sock, container)
+            self.sessions[session_id] = session
+            return session
+        except Exception:
+            await asyncio.to_thread(
+                self.container_manager.remove_session_container, container
+            )
+            raise
 
     def get_session(self, session_id: str) -> PTYSession | None:
         return self.sessions.get(session_id)
@@ -92,6 +101,9 @@ class PTYSessionManager:
         session = self.sessions.pop(session_id, None)
         if session:
             session.close()
+            await asyncio.to_thread(
+                self.container_manager.remove_session_container, session.container
+            )
             logger.info(f"Closed session {session_id}")
 
     async def resize_session(self, session_id: str, cols: int, rows: int) -> None:
@@ -163,10 +175,10 @@ class PTYSessionManager:
                     break
         except Exception as e:
             logger.error(f"Unexpected error in read_from_session for {session_id}: {e}")
+        finally:
+            await self.close_session(session_id)
 
-    def close_all_sessions(self) -> None:
+    async def close_all_sessions(self) -> None:
         for session_id in list(self.sessions.keys()):
-            session = self.sessions.pop(session_id)
-            if session:
-                session.close()
+            await self.close_session(session_id)
         logger.info("Closed all sessions")
