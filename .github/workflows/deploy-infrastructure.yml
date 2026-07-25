@@ -13,11 +13,6 @@ on:
       - 'apps/api/Caddyfile'
       - 'apps/api/agent/**'
   workflow_dispatch:
-    inputs:
-      ssh_public_key:
-        description: 'SSH public key for EC2 key pair (emergency access only; SSH ingress is closed)'
-        required: false
-        type: string
 
 jobs:
   deploy-infrastructure:
@@ -53,8 +48,7 @@ jobs:
             CORS_ORIGINS \
             ADMIN_API_KEY \
             TERMINAL_AGENT_TOKEN \
-            AGENT_HOSTNAME \
-            EC2_SSH_PUBLIC_KEY
+            AGENT_HOSTNAME
           do
             case "$secret_name" in
               AWS_ACCESS_KEY_ID) value="${{ secrets.AWS_ACCESS_KEY_ID }}" ;;
@@ -65,7 +59,6 @@ jobs:
               ADMIN_API_KEY) value="${{ secrets.ADMIN_API_KEY }}" ;;
               TERMINAL_AGENT_TOKEN) value="${{ secrets.TERMINAL_AGENT_TOKEN }}" ;;
               AGENT_HOSTNAME) value="${{ secrets.AGENT_HOSTNAME }}" ;;
-              EC2_SSH_PUBLIC_KEY) value="${{ secrets.EC2_SSH_PUBLIC_KEY }}" ;;
             esac
 
             if [ -z "$value" ]; then
@@ -125,40 +118,9 @@ jobs:
             pulumi stack select default
           fi
 
-      - name: Set SSH public key
-        working-directory: iac
-        env:
-          SSH_PUBLIC_KEY_INPUT: ${{ github.event.inputs.ssh_public_key }}
-          SSH_PUBLIC_KEY_SECRET: ${{ secrets.EC2_SSH_PUBLIC_KEY }}
-        run: |
-          SSH_KEY="${SSH_PUBLIC_KEY_INPUT:-$SSH_PUBLIC_KEY_SECRET}"
-          TEMP_KEY=$(mktemp)
-          trap 'rm -f "$TEMP_KEY"' EXIT
-          printf '%s\n' "$SSH_KEY" > "$TEMP_KEY"
-          if ! ssh-keygen -l -f "$TEMP_KEY" > /dev/null; then
-            echo "::error::The provided SSH public key is invalid."
-            exit 1
-          fi
-          pulumi config set sshPublicKey "$SSH_KEY"
-
       - name: Configure agent hostname
         working-directory: iac
         run: pulumi config set agentHostname "${{ secrets.AGENT_HOSTNAME }}"
-
-      - name: Handle existing key pair
-        working-directory: iac
-        run: |
-          if pulumi stack export 2>/dev/null | jq -e '.deployment.resources[] | select(.type == "aws:ec2/keyPair:KeyPair" and .id == "mike-os-x-terminal-key")' > /dev/null 2>&1; then
-            echo "✅ Key pair already in Pulumi state"
-          else
-            if aws ec2 describe-key-pairs --key-names mike-os-x-terminal-key --region us-west-2 > /dev/null 2>&1; then
-              echo "⚠️  Key pair exists in AWS but not in Pulumi state"
-              aws ec2 delete-key-pair --key-name mike-os-x-terminal-key --region us-west-2
-              echo "✅ Orphaned key pair deleted, Pulumi will create a new one"
-            else
-              echo "✅ Key pair doesn't exist in AWS, Pulumi will create it"
-            fi
-          fi
 
       - name: Refresh Pulumi state
         working-directory: iac

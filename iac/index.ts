@@ -4,7 +4,7 @@ import * as aws from '@pulumi/aws';
 // release bump: 9
 
 const config = new pulumi.Config();
-const sshPublicKey = config.get('sshPublicKey') || '';
+const sshPublicKey = config.get('sshPublicKey');
 const agentHostname = config.get('agentHostname') || 'agent.os.mikemoschitto.com';
 
 const ubuntu = aws.ec2.getAmi({
@@ -22,10 +22,12 @@ const ubuntu = aws.ec2.getAmi({
   owners: ['099720109477'],
 });
 
-const sshKey = new aws.ec2.KeyPair('terminal-host-key', {
-  keyName: 'mike-os-x-terminal-key',
-  publicKey: sshPublicKey,
-});
+const sshKey = sshPublicKey
+  ? new aws.ec2.KeyPair('terminal-host-key', {
+      keyName: 'mike-os-x-terminal-key',
+      publicKey: sshPublicKey,
+    })
+  : undefined;
 
 const ssmRole = new aws.iam.Role('terminal-host-ssm-role', {
   assumeRolePolicy: JSON.stringify({
@@ -158,7 +160,7 @@ echo "EC2 bootstrap complete. Docker is local-only; deploy the terminal agent ov
 const instance = new aws.ec2.Instance('terminal-host', {
   instanceType: 't3.micro',
   ami: ubuntu.then((ami) => ami.id),
-  keyName: sshKey.keyName,
+  keyName: sshKey?.keyName,
   iamInstanceProfile: instanceProfile.name,
   vpcSecurityGroupIds: [securityGroup.id],
   userData,
