@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
+from config.settings import settings
 from middleware.auth import verify_admin_key
 from middleware.cors import setup_cors
 from models.responses import (
@@ -61,12 +62,25 @@ async def terminal_status() -> TerminalStatusResponse:
 
 
 def get_client_ip(websocket: WebSocket) -> str:
+    peer_ip = websocket.client.host if websocket.client else "unknown"
+    if peer_ip not in settings.trusted_proxy_ips_set:
+        return peer_ip
+
     x_forwarded_for = websocket.headers.get("x-forwarded-for")
     if x_forwarded_for:
         return x_forwarded_for.split(",")[0].strip()
-    if websocket.client:
-        return websocket.client.host
-    return "unknown"
+
+    return peer_ip
+
+
+async def reject_disallowed_websocket_origin(websocket: WebSocket) -> bool:
+    origin = websocket.headers.get("origin")
+    if origin in settings.cors_origins_list:
+        return False
+
+    logger.warning(f"Rejected WebSocket origin: {origin or 'missing'}")
+    await websocket.close(code=1008, reason="Origin not allowed")
+    return True
 
 
 def filter_sensitive_headers(headers: dict) -> dict:
@@ -80,6 +94,9 @@ async def websocket_test(websocket: WebSocket) -> None:
 
     TODO: Remove this endpoint once WebSocket connectivity is confirmed working in production.
     """
+    if await reject_disallowed_websocket_origin(websocket):
+        return
+
     client_ip = get_client_ip(websocket)
     logger.info(f"Test WebSocket connection from {client_ip}")
     await websocket.accept()
@@ -89,6 +106,9 @@ async def websocket_test(websocket: WebSocket) -> None:
 
 @app.websocket("/ws/terminal")
 async def websocket_terminal(websocket: WebSocket) -> None:
+    if await reject_disallowed_websocket_origin(websocket):
+        return
+
     client_ip = get_client_ip(websocket)
     logger.info(f"WebSocket connection attempt from {client_ip}")
     safe_headers = filter_sensitive_headers(dict(websocket.headers))

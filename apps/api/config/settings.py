@@ -88,8 +88,9 @@ class Settings(BaseSettings):
     redis_url: str = Field(default="redis://localhost:6379/0")
 
     # Security
-    admin_api_key: str = Field(default="")
+    admin_api_key: str = Field(min_length=32)
     cors_origins: str = Field(default="")
+    trusted_proxy_ips: str = Field(default="")
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -97,16 +98,6 @@ class Settings(BaseSettings):
         if not self.cors_origins:
             raise ValueError(
                 "CORS_ORIGINS environment variable is required but not set.\n\n"
-            )
-
-        is_production = (
-            os.getenv("ENVIRONMENT", "").lower() == "production"
-            or os.getenv("NODE_ENV", "").lower() == "production"
-        )
-        if is_production and not self.admin_api_key:
-            raise ValueError(
-                "ADMIN_API_KEY must be set in production environment. "
-                "Please set the ADMIN_API_KEY environment variable."
             )
 
     rate_limit_connections: int = Field(default=50)
@@ -120,6 +111,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",")]
+
+    @property
+    def trusted_proxy_ips_set(self) -> set[str]:
+        return {ip.strip() for ip in self.trusted_proxy_ips.split(",") if ip.strip()}
 
 
 settings = Settings()

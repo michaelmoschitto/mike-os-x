@@ -5,6 +5,8 @@ from starlette.testclient import TestClient
 
 from main import app
 
+ALLOWED_ORIGIN_HEADERS = {"origin": "http://localhost:3000"}
+
 
 @pytest.fixture
 def test_client():
@@ -12,7 +14,9 @@ def test_client():
 
 
 def test_websocket_connection(test_client: TestClient) -> None:
-    with test_client.websocket_connect("/ws/terminal") as ws:
+    with test_client.websocket_connect(
+        "/ws/terminal", headers=ALLOWED_ORIGIN_HEADERS
+    ) as ws:
         session_id = "test-session-1"
 
         create_session_msg = json.dumps(
@@ -58,7 +62,9 @@ def test_websocket_connection(test_client: TestClient) -> None:
 
 
 def test_websocket_multiple_commands(test_client: TestClient) -> None:
-    with test_client.websocket_connect("/ws/terminal") as ws:
+    with test_client.websocket_connect(
+        "/ws/terminal", headers=ALLOWED_ORIGIN_HEADERS
+    ) as ws:
         session_id = "test-session-2"
 
         create_session_msg = json.dumps(

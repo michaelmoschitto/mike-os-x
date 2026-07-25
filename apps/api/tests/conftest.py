@@ -7,7 +7,7 @@ from httpx import AsyncClient
 
 # Set required environment variables for tests before importing settings
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
-os.environ.setdefault("ADMIN_API_KEY", "test-admin-key")
+os.environ.setdefault("ADMIN_API_KEY", "test-admin-key-at-least-32-characters")
 
 from config.settings import settings
 from main import app
