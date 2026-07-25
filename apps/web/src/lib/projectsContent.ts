@@ -1,5 +1,5 @@
-import { loadContentFile } from '@/lib/contentLoader';
 import { type ContentIndexEntry, useContentIndex } from '@/lib/contentIndex';
+import { loadContentFile } from '@/lib/contentLoader';
 
 const PROJECT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const CONTENT_PREFIX_PATTERN = /^\.\.\/\.\.\/content\//;
