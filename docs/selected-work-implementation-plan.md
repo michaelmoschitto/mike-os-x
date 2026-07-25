@@ -110,25 +110,25 @@ Unchanged:
 
 ## Existing Repository Integration Points
 
-| Concern | Existing file | Required change |
-| --- | --- | --- |
-| Window state | `apps/web/src/stores/useWindowStore.ts` | Add `projects` and `projectSlug` |
-| Default size | `apps/web/src/lib/constants.ts` | Add `projects: 1000 × 680` |
-| Window URL strategy | `apps/web/src/lib/routing/windowTypeStrategies.ts` | Add singleton Projects strategy |
-| URL validation | `apps/web/src/lib/routing/windowSerialization.ts` | Accept and serialize Projects identifiers |
-| URL reconciliation | `apps/web/src/lib/routing/windowReconciliation.ts` | Use the existing singleton mechanism |
-| Route startup | `apps/web/src/routes/index.tsx` | Ensure Projects URLs initialize and reconcile |
-| Friendly routes | `apps/web/src/routes/$.tsx` | Redirect `/projects/:slug` explicitly |
-| Window rendering | `apps/web/src/components/system/Desktop.tsx` | Render `ProjectsWindow` |
-| Dock navigation | `apps/web/src/components/system/Dock.tsx` | Add Projects icon and identifier |
-| App activation | `apps/web/src/lib/store.ts` | Reuse existing `projects` value |
-| Content app type | `apps/web/src/lib/fileToApp.ts` | Add `projects` |
-| Content metadata | `apps/web/src/lib/contentLoader.ts` | Parse project frontmatter |
-| Content discovery | `apps/web/src/lib/contentIndex.ts` | Reuse existing index |
-| Window chrome | `apps/web/src/components/window/Window.tsx` | Reuse unchanged |
-| Aqua controls | `apps/web/src/components/ui/aqua/` | Reuse existing components |
-| Focus-managed dialogs | `@radix-ui/react-dialog` | Use for password and screenshot dialogs |
-| Styling tokens | `apps/web/src/styles/index.css` | Reuse existing tokens |
+| Concern               | Existing file                                      | Required change                               |
+| --------------------- | -------------------------------------------------- | --------------------------------------------- |
+| Window state          | `apps/web/src/stores/useWindowStore.ts`            | Add `projects` and `projectSlug`              |
+| Default size          | `apps/web/src/lib/constants.ts`                    | Add `projects: 1000 × 680`                    |
+| Window URL strategy   | `apps/web/src/lib/routing/windowTypeStrategies.ts` | Add singleton Projects strategy               |
+| URL validation        | `apps/web/src/lib/routing/windowSerialization.ts`  | Accept and serialize Projects identifiers     |
+| URL reconciliation    | `apps/web/src/lib/routing/windowReconciliation.ts` | Use the existing singleton mechanism          |
+| Route startup         | `apps/web/src/routes/index.tsx`                    | Ensure Projects URLs initialize and reconcile |
+| Friendly routes       | `apps/web/src/routes/$.tsx`                        | Redirect `/projects/:slug` explicitly         |
+| Window rendering      | `apps/web/src/components/system/Desktop.tsx`       | Render `ProjectsWindow`                       |
+| Dock navigation       | `apps/web/src/components/system/Dock.tsx`          | Add Projects icon and identifier              |
+| App activation        | `apps/web/src/lib/store.ts`                        | Reuse existing `projects` value               |
+| Content app type      | `apps/web/src/lib/fileToApp.ts`                    | Add `projects`                                |
+| Content metadata      | `apps/web/src/lib/contentLoader.ts`                | Parse project frontmatter                     |
+| Content discovery     | `apps/web/src/lib/contentIndex.ts`                 | Reuse existing index                          |
+| Window chrome         | `apps/web/src/components/window/Window.tsx`        | Reuse unchanged                               |
+| Aqua controls         | `apps/web/src/components/ui/aqua/`                 | Reuse existing components                     |
+| Focus-managed dialogs | `@radix-ui/react-dialog`                           | Use for password and screenshot dialogs       |
+| Styling tokens        | `apps/web/src/styles/index.css`                    | Reuse existing tokens                         |
 
 Do not use TextEdit or Photos as the case-study renderer:
 
@@ -166,7 +166,7 @@ summary: Improving retrieval clarity for a technical workflow.
 order: 1
 role: Product Designer
 team: Product and Engineering
-timeline: "2025"
+timeline: '2025'
 tags:
   - Search
   - UI
@@ -204,7 +204,7 @@ The Markdown body starts below the generated project header:
 
 The revised hierarchy made high-confidence results easier to identify.
 
-![Search results organized by confidence](images/results.webp "The final hierarchy separates primary matches from supporting context.")
+![Search results organized by confidence](images/results.webp 'The final hierarchy separates primary matches from supporting context.')
 ```
 
 Image rules:
