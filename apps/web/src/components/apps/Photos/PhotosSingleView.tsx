@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import type { PhotoData } from '@/lib/photosContent';
-import { getPhotoImageUrl } from '@/lib/photosUtils';
+import { getPhotoDisplayUrl } from '@/lib/photosUtils';
 import { cn } from '@/lib/utils';
 
 interface PhotosSingleViewProps {
@@ -65,9 +65,11 @@ const PhotosSingleView = ({
             </div>
           ) : (
             <img
-              src={getPhotoImageUrl(photo)}
+              src={getPhotoDisplayUrl(photo)}
               alt={photo.name}
               className="max-h-full max-w-full object-contain"
+              decoding="async"
+              fetchPriority="high"
               onError={() => setImageError(true)}
             />
           )}
