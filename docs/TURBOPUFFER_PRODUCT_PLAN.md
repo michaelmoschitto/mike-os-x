@@ -49,6 +49,8 @@ These decisions should be treated as defaults during local implementation.
 - The public console is read-only and scoped to configured demo namespaces.
 - No admin key, turbopuffer key, model key, or embedding key reaches the browser.
 - Live data is labeled **Live**. Seeded fallback data is labeled **Demo Data**.
+- `TURBOPUFFER_MODE=live|demo|disabled` is the server-side kill switch.
+- Canceling turbopuffer does not break the desktop, local commands, or local Fuse search.
 - Every source-specific answer contains canonical file and line citations.
 - Generated answers never invent citation paths or line ranges.
 - Insights are deterministic rules first, not opaque AI diagnoses.
@@ -364,7 +366,9 @@ cannot consume it first. When closed, focus returns to the invoking element.
 | Insufficient evidence | Explicit refusal plus best matching files |
 | Rate limited | Retry time and explanation |
 | Provider unavailable | Extractive source results if retrieval succeeded |
-| Offline | Local commands and portfolio search remain available |
+| Turbopuffer unavailable | Explain the outage and offer explicitly labeled Demo Data |
+| Integration disabled | Keep local commands/search; explain that source Q&A is turned off |
+| Offline | Local commands and local search remain available |
 
 ### 5.7 Citation behavior
 
@@ -573,7 +577,7 @@ The local uploader replaces it completely:
 1. scan and chunk the checkout in memory;
 2. print the file, chunk, token, and estimated embedding-cost report;
 3. generate and validate every embedding before touching the namespace;
-4. require the API to be stopped or `RAG_ENABLED=false`;
+4. require the API to be stopped or `TURBOPUFFER_MODE` set to `demo`/`disabled`;
 5. require explicit confirmation of the exact namespace name;
 6. call `namespace.delete_all()`, ignoring only a not-found response;
 7. recreate the namespace by writing schema and complete chunk batches;
@@ -661,10 +665,18 @@ Every public API request sends:
 X-Portfolio-Mode: live | demo
 ```
 
-The client defaults to `live`. `demo` selects deterministic fixtures and performs no paid
-upstream call. A live failure returns a live error and offers an explicit “Switch to Demo Data”
-action; the server never silently substitutes fixture data. Add `X-Portfolio-Mode` to the exact
-CORS header allowlist.
+The server constrains that request with `TURBOPUFFER_MODE`:
+
+| Server mode | Allowed behavior |
+| --- | --- |
+| `live` | Client may request Live or explicitly switch to Demo Data |
+| `demo` | Fixtures only; no turbopuffer, embedding, or generation client is created |
+| `disabled` | Integration status only; source Q&A and console data routes return `integration_disabled` |
+
+The client defaults to the mode reported by `/api/turbopuffer/status`. Demo selects deterministic
+fixtures and performs no paid upstream call. A live failure returns a live error and offers an
+explicit “Switch to Demo Data” action; the server never silently substitutes fixture data. Add
+`X-Portfolio-Mode` to the exact CORS header allowlist.
 
 ### 7.2 Retrieval pseudocode
 
@@ -1081,12 +1093,27 @@ same event protocol from `fixtures/sherlock_demo`.
 #### Process Viewer
 
 ```text
+GET /api/turbopuffer/status
 GET /api/turbopuffer/overview?range=1h
 GET /api/turbopuffer/namespaces/source
 GET /api/turbopuffer/operations?range=1h&limit=100
 GET /api/turbopuffer/operations/{inspect_id}
 GET /api/turbopuffer/insights?range=24h
 ```
+
+Status response:
+
+```json
+{
+  "configured_mode": "live",
+  "status": "available",
+  "demo_available": true,
+  "reason": null
+}
+```
+
+`status` is `available`, `unavailable`, `demo`, or `disabled`. This endpoint never requires a
+turbopuffer key and remains available after cancellation.
 
 The overview is aggregate and contains no questions or request-level identifiers. Operations
 and inspection endpoints return only traces owned by the current signed anonymous session.
@@ -1247,6 +1274,13 @@ TRUSTED_PROXY_MODE
   spend/concurrency controls;
 - local Fuse search remains available;
 - Process Viewer shows stale cached data with a timestamp.
+- `TURBOPUFFER_MODE=demo` makes no turbopuffer or model-provider calls;
+- `TURBOPUFFER_MODE=disabled` does not construct those clients and returns stable
+  `integration_disabled` errors from integration routes;
+- upstream authentication, authorization, account, or billing failures map to
+  `turbopuffer_unavailable`, not an application crash;
+- live failures never silently become demo responses;
+- Sherlock keeps application commands and local search when live source Q&A is unavailable.
 
 ### 11.4 Prompt injection
 
@@ -1513,6 +1547,15 @@ The application must remain presentable before enough real traffic exists.
 - client-local Reset Demo action;
 - never mixed invisibly with live metrics.
 
+#### Disabled
+
+- Sherlock application commands and local search remain active;
+- Ask Source explains that turbopuffer-powered Q&A is turned off;
+- Process Viewer opens an Integration Disabled empty state instead of failing;
+- no turbopuffer, embedding, or generation credentials are required;
+- no background retries or metadata polling occur;
+- a “View Demo Data” action is shown only when server mode is `demo` or `live`.
+
 ### 13.2 Fixture location
 
 ```text
@@ -1777,11 +1820,11 @@ apps/api/fixtures/sherlock_demo/
 Add to `config/settings.py`:
 
 ```text
+TURBOPUFFER_MODE
 TURBOPUFFER_API_KEY
 TURBOPUFFER_REGION
 TURBOPUFFER_SOURCE_NAMESPACE
 
-RAG_ENABLED
 RAG_EMBEDDING_PROVIDER
 RAG_EMBEDDING_MODEL
 RAG_EMBEDDING_API_KEY
@@ -1805,17 +1848,21 @@ TRUSTED_PROXY_MODE
 
 TPUF_TELEMETRY_RETENTION_DAYS
 TPUF_METADATA_TTL_SECONDS
-TPUF_DEMO_FALLBACK_ENABLED
 ```
 
 Use provider-specific secret names when implementation chooses a provider; generic names above
 describe the boundary.
 
+`TURBOPUFFER_MODE` is a validated enum and defaults to `disabled`. Live behavior must always be
+enabled explicitly.
+
 Production startup behavior:
 
-- terminal-only deployments can start with `RAG_ENABLED=false`;
-- when RAG is enabled, missing required keys fail startup with a clear settings error;
-- public monitor can serve fixture mode when explicitly configured;
+- `live` requires turbopuffer, embedding, and generation configuration;
+- `demo` requires no external-provider credentials and loads fixtures only;
+- `disabled` requires no external-provider credentials and does not create integration clients;
+- invalid mode or missing live configuration fails startup with a clear settings error;
+- an upstream account failure after startup changes integration status, not application liveness;
 - never silently present fixture data as live.
 
 ### 16.3 Environment propagation
@@ -1832,7 +1879,7 @@ Update:
 | `docker-compose.dev.yml` | Forward turbopuffer, provider, session, limiter, and demo variables |
 | `docker-compose.yml` | Forward the same production variables |
 | `apps/web/.env.example` | Keep only `VITE_API_URL`; add no secret or admin variable |
-| `.github/workflows/deploy-infrastructure.yml` | Validate required GitHub secrets and set Railway API variables |
+| `.github/workflows/deploy-infrastructure.yml` | Set mode and Railway variables; require provider secrets only for `live` |
 | `apps/api/railway.toml` | Watch index/service changes under `apps/api/**`; no source snapshot is copied into the image |
 | `apps/api/middleware/cors.py` | Replace wildcard methods/headers/exposed headers with the exact public API needs |
 
@@ -1840,26 +1887,48 @@ The citation excerpt comes from retrieved turbopuffer chunks, and the exact file
 GitHub at the indexed SHA. This avoids changing the API Docker build context to copy repository
 source.
 
-### 16.4 Lifespan
+### 16.4 Cancellation and shutdown runbook
+
+Disabling the application integration does not cancel turbopuffer billing. To stop the Launch
+plan minimum:
+
+1. cancel or change the plan in the turbopuffer dashboard; use dashboard Help/support if the
+   cancellation control is not available;
+2. set Railway API `TURBOPUFFER_MODE=demo` to retain the labeled interview experience, or
+   `TURBOPUFFER_MODE=disabled` to turn the feature off completely;
+3. remove turbopuffer and model-provider secrets from Railway;
+4. redeploy the API;
+5. verify `/api/turbopuffer/status`;
+6. verify local Sherlock commands still work and no live upstream request is attempted.
+
+The public signup page currently advertises a `$16/month` Launch minimum, says plans can be
+changed later, and says cancellation within 30 days is eligible for a refund. Treat the dashboard
+or support response as authoritative at cancellation time.
+
+Recommended post-subscription mode is `demo`: it preserves the Process Viewer and Sherlock
+product demonstration using clearly labeled fixtures at no turbopuffer cost. Use `disabled` when
+even fixture-backed integration UI should be unavailable.
+
+### 16.5 Lifespan
 
 Add FastAPI lifespan management:
 
 ```text
 startup
   → create async Redis pool
-  → create one reusable AsyncTurbopuffer client
-  → create embedding/generation clients
+  → if live, create reusable turbopuffer and model clients
+  → if demo or disabled, create no external-provider clients
   → validate configuration syntax without requiring an upstream network call
 
 shutdown
-  → close clients and Redis pool
+  → close any created clients and Redis pool
 ```
 
 Keep HTTP clients process-scoped for connection reuse. Discover the source namespace and manifest
 lazily on the first request so an upstream outage does not prevent fixture mode or application
 liveness from starting.
 
-### 16.5 Service boundary
+### 16.6 Service boundary
 
 Routes depend on application services, not raw SDK calls:
 
@@ -1875,7 +1944,21 @@ This makes unit testing possible without network access.
 
 ## 17. API response contracts
 
-### 17.1 Overview
+### 17.1 Integration status
+
+```typescript
+interface TurbopufferStatusResponse {
+  configuredMode: 'live' | 'demo' | 'disabled';
+  status: 'available' | 'unavailable' | 'demo' | 'disabled';
+  demoAvailable: boolean;
+  reason?: 'authentication' | 'authorization' | 'billing' | 'network' | 'configuration';
+  checkedAt: string;
+}
+```
+
+Do not expose upstream error text, account identifiers, or API-key details.
+
+### 17.2 Overview
 
 ```typescript
 interface TpufOverviewResponse {
@@ -1903,7 +1986,7 @@ interface TpufOverviewResponse {
 }
 ```
 
-### 17.2 Request inspector
+### 17.3 Request inspector
 
 ```typescript
 interface RequestInspectionResponse {
@@ -1937,7 +2020,7 @@ interface RequestInspectionResponse {
 }
 ```
 
-### 17.3 Insight
+### 17.4 Insight
 
 ```typescript
 interface Insight {
@@ -2076,7 +2159,7 @@ The phases below are planning groups. Implement them as these independently test
 | P2 | Session-private request inspector | P1, R3 | cross-session denial and in-memory handoff tests |
 | P3 | Bounded three-mode playground | P0, R1, R3 | validation tests and BM25/vector/hybrid fixtures |
 | P4 | In-memory run comparison and deterministic insight | P3 | overlap, delta, threshold, and refresh-reset tests |
-| D0 | Explicit Live/Demo behavior and production verification | I1, R4, S2, P1, P2, P4 | provider-outage fallback and Railway SSE smoke test |
+| D0 | Live/Demo/Disabled modes and production verification | I1, R4, S2, P1, P2, P4 | no-key boot tests, cancellation-mode test, and Railway SSE smoke test |
 
 Parallel work:
 
@@ -2196,6 +2279,7 @@ Tasks:
 
 - implement Redis event and snapshot stores;
 - cache metadata;
+- implement `/api/turbopuffer/status` and the server mode state machine;
 - add public read-only endpoints;
 - implement aggregation and sample-count rules;
 - add deterministic demo fallback;
@@ -2204,6 +2288,7 @@ Tasks:
 Exit criteria:
 
 - live and demo modes are distinguishable;
+- demo and disabled modes boot without external credentials or clients;
 - historical chart data comes from captured events;
 - metadata polling is collapsed server-side.
 
@@ -2251,6 +2336,8 @@ Tasks:
 - test Railway Redis failure behavior;
 - seed the interview story;
 - create direct demo URL and reset action;
+- verify a no-key `TURBOPUFFER_MODE=demo` deployment;
+- verify `disabled` keeps local Sherlock behavior and returns stable integration errors;
 - write a concise portfolio case study.
 
 Exit criteria:
@@ -2267,8 +2354,9 @@ Exit criteria:
 - local search works without network;
 - source ask is explicit and does not fire per keystroke;
 - answers include valid citations or refuse;
-- citation opens a safe excerpt and exact GitHub permalink;
+- citation opens a safe excerpt and, for clean uploads, an exact GitHub permalink;
 - request can be inspected in Process Viewer;
+- local commands remain usable when turbopuffer is disabled;
 - focus and keyboard behavior are accessible.
 
 ### Process Viewer
@@ -2280,7 +2368,8 @@ Exit criteria:
 - displays sample counts with percentiles;
 - provides safe bounded experiments;
 - labels captured billing fields and any marginal estimate accurately;
-- labels fixture data as Demo Data.
+- labels fixture data as Demo Data;
+- renders useful unavailable and disabled states without crashing.
 
 ### Operational
 
@@ -2289,6 +2378,8 @@ Exit criteria:
 - source upload is local-only, dry-runnable, and explicitly confirms destructive replacement;
 - metadata calls are cached;
 - SSE works through production proxy;
+- demo/disabled startup requires no turbopuffer or model-provider key;
+- account/auth/billing failures do not affect application liveness;
 - all new routes have typed models and tests.
 
 ## 21. Metrics for judging the project
@@ -2376,6 +2467,7 @@ Closing line:
 | shadcn visual mismatch | Use source primitives with Aqua presentation |
 | SSE buffering | Production verification and non-streaming fallback |
 | Redis loss | Demo fallback; telemetry is observational, not source of truth |
+| Subscription canceled | Server mode switch, no-key demo/disabled boot, stable unavailable state |
 | Overbuilding | Ship local Sherlock, RAG, monitor, then one experiment loop |
 
 ## 24. Open inputs required at implementation time
@@ -2407,6 +2499,8 @@ All other major product and architecture choices are specified in this plan.
 - Limits: <https://turbopuffer.com/docs/limits>
 - Pricing: <https://turbopuffer.com/pricing>
 - Pricing history: <https://turbopuffer.com/docs/pricing-log>
+- Plan signup/change terms: <https://turbopuffer.com/join>
+- Billing support: <https://turbopuffer.com/contact/support>
 - OpenAPI: <https://github.com/turbopuffer/turbopuffer-openapi>
 - Python SDK: <https://github.com/turbopuffer/turbopuffer-python>
 
