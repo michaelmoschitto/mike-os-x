@@ -47,8 +47,11 @@ const buildIconsFromContent = async (): Promise<DesktopIconData[]> => {
   }
 
   const entries = useContentIndex.getState().getAllEntries();
-  // Filter out /dock entries from desktop
-  const desktopEntries = entries.filter((entry) => !entry.urlPath.startsWith('/dock'));
+  // Dock apps and portfolio project writeups live in content/ but aren't desktop items
+  const desktopExcludedPrefixes = ['/dock', '/projects'];
+  const desktopEntries = entries.filter(
+    (entry) => !desktopExcludedPrefixes.some((prefix) => entry.urlPath.startsWith(prefix))
+  );
   const folderMap = new Map<string, DesktopIconData[]>();
 
   for (const entry of desktopEntries) {
@@ -83,7 +86,10 @@ const buildIconsFromContent = async (): Promise<DesktopIconData[]> => {
 
   for (const [folderPath] of folderMap.entries()) {
     const folderParts = folderPath.split('/');
-    const folderName = folderParts[folderParts.length - 1] || folderPath;
+    // Only top-level folders belong on the desktop; nested ones open via Finder
+    if (folderParts.length !== 1) continue;
+
+    const folderName = folderParts[0] || folderPath;
 
     const folderIcon: DesktopIconData = {
       id: `folder-${folderPath}`,
