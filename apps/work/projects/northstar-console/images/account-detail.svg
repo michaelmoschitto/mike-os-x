@@ -1,0 +1,48 @@
+<svg width="1440" height="900" viewBox="0 0 1440 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1440" height="900" fill="#F6F8FC"/>
+  <rect width="1440" height="66" fill="#172033"/>
+  <circle cx="48" cy="33" r="15" fill="#75D0B0"/>
+  <text x="78" y="40" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="700">northstar</text>
+  <rect x="0" y="66" width="270" height="834" fill="#202B41"/>
+  <text x="34" y="125" fill="#99A6BE" font-family="Arial, sans-serif" font-size="13" font-weight="700">WORKSPACE</text>
+  <text x="35" y="171" fill="#C7D0E0" font-family="Arial, sans-serif" font-size="16">Overview</text>
+  <rect x="18" y="193" width="234" height="46" rx="8" fill="#354462"/>
+  <circle cx="46" cy="216" r="8" fill="#75D0B0"/>
+  <text x="66" y="222" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="700">Accounts</text>
+  <text x="35" y="286" fill="#C7D0E0" font-family="Arial, sans-serif" font-size="16">Signals</text>
+  <text x="35" y="335" fill="#C7D0E0" font-family="Arial, sans-serif" font-size="16">Reports</text>
+  <text x="306" y="117" fill="#68748A" font-family="Arial, sans-serif" font-size="14">Accounts / Mercury Labs</text>
+  <text x="306" y="168" fill="#172033" font-family="Arial, sans-serif" font-size="34" font-weight="700">Mercury Labs</text>
+  <text x="306" y="199" fill="#68748A" font-family="Arial, sans-serif" font-size="16">Growth plan � Renewal in 92 days</text>
+  <rect x="1176" y="139" width="194" height="40" rx="7" fill="#4D7CE8"/>
+  <text x="1233" y="165" fill="white" font-family="Arial, sans-serif" font-size="14" font-weight="700">Create note</text>
+  <rect x="306" y="244" width="716" height="268" rx="12" fill="white" stroke="#D8DEE9"/>
+  <text x="334" y="285" fill="#68748A" font-family="Arial, sans-serif" font-size="13" font-weight="700">ACCOUNT HEALTH</text>
+  <circle cx="391" cy="383" r="54" stroke="#E9EEF7" stroke-width="14"/>
+  <path d="M391 329A54 54 0 1 1 342 406" stroke="#F4B44C" stroke-width="14" stroke-linecap="round"/>
+  <text x="366" y="393" fill="#172033" font-family="Arial, sans-serif" font-size="31" font-weight="700">68</text>
+  <text x="474" y="350" fill="#172033" font-family="Arial, sans-serif" font-size="17" font-weight="700">At risk, but recoverable</text>
+  <text x="474" y="381" fill="#68748A" font-family="Arial, sans-serif" font-size="14">Usage is down after the latest workspace change.</text>
+  <text x="474" y="405" fill="#68748A" font-family="Arial, sans-serif" font-size="14">A champion meeting is scheduled for Thursday.</text>
+  <rect x="474" y="434" width="180" height="32" rx="16" fill="#FFF2D6"/>
+  <text x="494" y="455" fill="#A86100" font-family="Arial, sans-serif" font-size="12" font-weight="700">Usage decline</text>
+  <rect x="1048" y="244" width="322" height="268" rx="12" fill="white" stroke="#D8DEE9"/>
+  <text x="1076" y="285" fill="#68748A" font-family="Arial, sans-serif" font-size="13" font-weight="700">NEXT BEST ACTION</text>
+  <text x="1076" y="329" fill="#172033" font-family="Arial, sans-serif" font-size="18" font-weight="700">Prepare a recovery plan</text>
+  <text x="1076" y="360" fill="#68748A" font-family="Arial, sans-serif" font-size="14">Share the usage change, confirm the</text>
+  <text x="1076" y="382" fill="#68748A" font-family="Arial, sans-serif" font-size="14">new workflow, and agree on adoption goals.</text>
+  <rect x="1076" y="429" width="158" height="38" rx="7" fill="#E8F0FF"/>
+  <text x="1101" y="454" fill="#2752A4" font-family="Arial, sans-serif" font-size="13" font-weight="700">View playbook</text>
+  <rect x="306" y="540" width="1064" height="286" rx="12" fill="white" stroke="#D8DEE9"/>
+  <text x="334" y="582" fill="#172033" font-family="Arial, sans-serif" font-size="20" font-weight="700">Recent activity</text>
+  <line x1="365" y1="618" x2="365" y2="774" stroke="#D9E0EC" stroke-width="2"/>
+  <circle cx="365" cy="640" r="8" fill="#4D7CE8"/>
+  <text x="397" y="638" fill="#172033" font-family="Arial, sans-serif" font-size="15" font-weight="700">Weekly active users fell below the expected range</text>
+  <text x="397" y="662" fill="#68748A" font-family="Arial, sans-serif" font-size="13">Today, 9:24 AM � Product signal</text>
+  <circle cx="365" cy="707" r="8" fill="#75D0B0"/>
+  <text x="397" y="705" fill="#172033" font-family="Arial, sans-serif" font-size="15" font-weight="700">Champion meeting scheduled with Maya Chen</text>
+  <text x="397" y="729" fill="#68748A" font-family="Arial, sans-serif" font-size="13">Yesterday � Customer success</text>
+  <circle cx="365" cy="774" r="8" fill="#AEB9CC"/>
+  <text x="397" y="772" fill="#172033" font-family="Arial, sans-serif" font-size="15" font-weight="700">Workspace migration completed</text>
+  <text x="397" y="796" fill="#68748A" font-family="Arial, sans-serif" font-size="13">May 12 � Product event</text>
+</svg>
