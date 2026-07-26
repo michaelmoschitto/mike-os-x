@@ -24,6 +24,7 @@ FROM nginx:alpine
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 COPY apps/work/index.html /usr/share/nginx/work/index.html
 COPY apps/work/styles.css /usr/share/nginx/work/styles.css
+COPY apps/work/scrollbar.js /usr/share/nginx/work/scrollbar.js
 COPY apps/work/projects /usr/share/nginx/work/projects
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
