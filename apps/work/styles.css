@@ -507,6 +507,13 @@ button:focus-visible {
   box-shadow: 0 3px 10px rgba(20, 40, 60, 0.12);
 }
 
+.window__body img.media--contain {
+  aspect-ratio: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+}
+
 .detail-header {
   position: relative;
   z-index: 1;
@@ -595,6 +602,13 @@ button:focus-visible {
 
 .gallery__item .window__body img {
   aspect-ratio: 16 / 10;
+}
+
+.gallery__item .window__body img.media--contain {
+  aspect-ratio: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
 }
 
 .gallery figcaption {
