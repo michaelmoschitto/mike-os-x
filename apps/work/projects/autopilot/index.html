@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Autopilot — Mike Moschitto</title>
+    <meta
+      name="description"
+      content="Making browser agents easier to build, operate, and trust."
+    />
+    <link rel="canonical" href="https://portfolio.mikemoschitto.com/projects/autopilot/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+    />
+    <link rel="stylesheet" href="/styles.css?v=4" />
+    <script src="/scrollbar.js?v=1" defer></script>
+  </head>
+  <body>
+    <div class="site">
+      <header class="site-header">
+        <div class="site-header__row">
+          <a class="site-name" href="/">
+            mike moschitto</span>
+          </a>
+          <a class="os-link" href="https://os.mikemoschitto.com">
+            <span class="os-link__orb" aria-hidden="true"></span>
+            mike os x
+          </a>
+        </div>
+        <hr class="site-rule" />
+      </header>
+
+      <main>
+        <section class="project-info-window window" aria-labelledby="project-title">
+          <div class="window__titlebar">
+            <div class="window__lights" aria-hidden="true">
+              <span class="window__light window__light--close"></span>
+              <span class="window__light window__light--minimize"></span>
+              <span class="window__light window__light--zoom"></span>
+            </div>
+            <span class="window__title">Autopilot — Project Info</span>
+          </div>
+
+          <header class="detail-header">
+            <div>
+              <h1 id="project-title" class="detail-title">Autopilot</h1>
+            </div>
+
+            <section class="detail-block" aria-labelledby="what-is-it">
+              <h2 id="what-is-it">What is it?</h2>
+              <p>
+                Autopilot applies AI browser automation to testing and operational workflows. Teams
+                can build an agent, run it against a real product, and keep track of how the
+                workflow changes over time.
+              </p>
+            </section>
+
+            <section class="detail-block" aria-labelledby="my-role">
+              <h2 id="my-role">My role</h2>
+              <p>
+                I shipped features across Autopilot’s entire stack, from the infrastructure that
+                runs agents to the workflows people use every day. I designed and delivered many of
+                its core interactions. The command palette, version history, and agent builder are
+                three favorites because they make a powerful system easier to navigate, inspect, and
+                control.
+              </p>
+            </section>
+          </header>
+        </section>
+
+        <section class="gallery" aria-label="Project screenshots">
+          <figure class="gallery__item gallery__item--wide">
+            <div class="window">
+              <div class="window__titlebar">
+                <div class="window__lights" aria-hidden="true">
+                  <span class="window__light window__light--close"></span>
+                  <span class="window__light window__light--minimize"></span>
+                  <span class="window__light window__light--zoom"></span>
+                </div>
+                <span class="window__title">command-pallet.gif</span>
+              </div>
+              <div class="window__body">
+                <img
+                  src="/projects/autopilot/images/command-pallet.gif"
+                  width="3446"
+                  height="1922"
+                  alt="Command palette open over a populated Autopilot workspace"
+                />
+              </div>
+            </div>
+            <figcaption>
+              <span class="figure-index">01</span>
+              <div>
+                <h2>Command + K</h2>
+                <p>
+                  Every app needs a command palette. Search workflows, scenarios, automations, and
+                  conversations from one keyboard-first entry point.
+                </p>
+              </div>
+            </figcaption>
+          </figure>
+
+          <figure class="gallery__item gallery__item--tall">
+            <div class="window">
+              <div class="window__titlebar">
+                <div class="window__lights" aria-hidden="true">
+                  <span class="window__light window__light--close"></span>
+                  <span class="window__light window__light--minimize"></span>
+                  <span class="window__light window__light--zoom"></span>
+                </div>
+                <span class="window__title">version-history.png</span>
+              </div>
+              <div class="window__body">
+                <img
+                  src="/projects/autopilot/images/version-history.png"
+                  width="3446"
+                  height="1924"
+                  alt="Version timeline alongside a scenario diff or read-only historical preview"
+                />
+              </div>
+            </div>
+            <figcaption>
+              <span class="figure-index">02</span>
+              <div>
+                <h2>Scenario version history</h2>
+                <p>
+                  A timeline and diff show exactly how a scenario evolved without pulling users away
+                  from their work.
+                </p>
+              </div>
+            </figcaption>
+          </figure>
+
+          <figure class="gallery__item gallery__item--narrow">
+            <div class="window">
+              <div class="window__titlebar">
+                <div class="window__lights" aria-hidden="true">
+                  <span class="window__light window__light--close"></span>
+                  <span class="window__light window__light--minimize"></span>
+                  <span class="window__light window__light--zoom"></span>
+                </div>
+                <span class="window__title">plan-mode.gif</span>
+              </div>
+              <div class="window__body">
+                <img
+                  class="media--contain"
+                  src="/projects/autopilot/images/plan-mode.gif"
+                  width="640"
+                  height="1852"
+                  alt="Agent composer with a plan or proposed browser steps visible before execution"
+                />
+              </div>
+            </div>
+            <figcaption>
+              <span class="figure-index">03</span>
+              <div>
+                <h2>Agent-building experience</h2>
+                <p>
+                  The agent surfaces relevant scenarios and knowledge through hybrid search, using
+                  RRF and embeddings to make existing work easier to find and reuse.
+                </p>
+              </div>
+            </figcaption>
+          </figure>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <p><a href="/">← back to home</a></p>
+        <nav class="footer-links" aria-label="Contact">
+          <a href="https://linkedin.com/in/michaelmoschitto">linkedin ↗</a>
+          <a href="https://os.mikemoschitto.com">os.mikemoschitto.com ↗</a>
+          <a href="mailto:me@mikemoschitto.com">me@mikemoschitto.com</a>
+        </nav>
+      </footer>
+    </div>
+  </body>
+</html>

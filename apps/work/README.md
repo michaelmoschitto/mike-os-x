@@ -32,4 +32,4 @@ Do not deploy manually from a laptop. After the PR merges to `main`:
 3. Copy a project `<li>` in `index.html`, update its number, title, summary, pills, image, and links.
 4. Open the homepage and detail page locally at desktop and mobile widths. Confirm the screenshot window, project link, and custom scrollbar work.
 
-`Northstar 2` is a temporary second card that keeps the homepage scroll pane long enough to preview the Aqua scrollbar. Replace it with the next real project rather than removing it before another project is ready.
+Homepage cards currently include Autopilot, Perf Scale Platform, and Ai Product.

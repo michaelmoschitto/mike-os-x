@@ -276,6 +276,11 @@ button:focus-visible {
   margin: 0;
 }
 
+.project-card__media--ai-product .window__body img {
+  object-fit: contain;
+  object-position: center;
+}
+
 .project-card__info {
   max-width: 20rem;
 }
@@ -591,7 +596,8 @@ button:focus-visible {
 }
 
 .gallery__item:nth-child(odd) > .window,
-.gallery__item:nth-child(odd) > .gallery__media-link {
+.gallery__item:nth-child(odd) > .gallery__media-link,
+.gallery__item:nth-child(odd) > .gallery__stack {
   grid-column: 2;
   grid-row: 1;
 }
@@ -606,7 +612,8 @@ button:focus-visible {
 }
 
 .gallery__item:nth-child(even) > .window,
-.gallery__item:nth-child(even) > .gallery__media-link {
+.gallery__item:nth-child(even) > .gallery__media-link,
+.gallery__item:nth-child(even) > .gallery__stack {
   grid-column: 1;
   grid-row: 1;
 }
@@ -616,8 +623,16 @@ button:focus-visible {
   grid-row: 1;
 }
 
+.gallery__stack {
+  display: grid;
+  gap: 1.25rem;
+}
+
 .gallery__item .window__body img {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
 }
 
 .gallery__item .window__body img.media--contain {
@@ -625,6 +640,21 @@ button:focus-visible {
   height: auto;
   object-fit: contain;
   object-position: center;
+}
+
+.gallery__item--narrow .window__body {
+  display: flex;
+  justify-content: center;
+}
+
+.gallery__item--narrow .window__body img {
+  width: auto;
+  max-width: min(100%, 22rem);
+  max-height: 42rem;
+  aspect-ratio: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: top center;
 }
 
 .gallery figcaption {
@@ -781,6 +811,8 @@ button:focus-visible {
 
   .site--home .window__body img {
     aspect-ratio: 16 / 10.5;
+    object-fit: contain;
+    object-position: center;
   }
 
   .site--home .window__body img.media--contain {
@@ -1148,7 +1180,8 @@ html {
   }
 
   .gallery__item:nth-child(n) > .window,
-  .gallery__item:nth-child(n) > .gallery__media-link {
+  .gallery__item:nth-child(n) > .gallery__media-link,
+  .gallery__item:nth-child(n) > .gallery__stack {
     grid-column: 1;
     grid-row: 1;
   }
@@ -1156,6 +1189,11 @@ html {
   .gallery__item:nth-child(n) > figcaption {
     grid-column: 1;
     grid-row: 2;
+  }
+
+  .gallery__item--narrow .window__body img {
+    max-width: min(100%, 18rem);
+    max-height: 34rem;
   }
 }
 
