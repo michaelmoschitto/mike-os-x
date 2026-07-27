@@ -1,9 +1,10 @@
 import { motion, useMotionValue } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
+import { useContentIndex } from '@/lib/contentIndex';
 import { useWindowNavigation } from '@/lib/hooks/useWindowNavigation';
 import { parseWindowIdentifiersFromUrl } from '@/lib/routing/windowSerialization';
-import { normalizePathForRouting } from '@/lib/utils';
+import { normalizePathForRouting, validateAndNormalizeUrl } from '@/lib/utils';
 import type { DesktopIconData } from '@/stores/useDesktopStore';
 
 interface DesktopIconProps {
@@ -63,6 +64,18 @@ const DesktopIcon = ({
     }
 
     if (icon.type === 'file') {
+      if (icon.fileExtension === 'webloc' && icon.urlPath) {
+        const entry = useContentIndex.getState().getEntry(icon.urlPath);
+        const targetUrl = entry?.metadata.url;
+        if (targetUrl) {
+          const validatedUrl = validateAndNormalizeUrl(targetUrl);
+          if (validatedUrl) {
+            window.open(validatedUrl, '_blank', 'noopener,noreferrer');
+          }
+        }
+        return;
+      }
+
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
       const isImage = imageExtensions.includes(icon.fileExtension?.toLowerCase() || '');
 

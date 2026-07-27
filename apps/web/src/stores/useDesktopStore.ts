@@ -25,6 +25,9 @@ interface DesktopStore {
 
 const getIconForFile = (fileExtension: string): string => {
   const ext = fileExtension.toLowerCase();
+  if (ext === '.webloc') {
+    return '/icons/browser.png';
+  }
   if (ext === '.md' || ext === '.txt') {
     return '/icons/file-text.png';
   }
@@ -39,6 +42,7 @@ const getIconForFile = (fileExtension: string): string => {
 
 const buildIconsFromContent = async (): Promise<DesktopIconData[]> => {
   const icons: DesktopIconData[] = [];
+  const shortcutIcons: DesktopIconData[] = [];
   let gridIndex = 0;
 
   const indexState = useContentIndex.getState();
@@ -58,21 +62,31 @@ const buildIconsFromContent = async (): Promise<DesktopIconData[]> => {
     const urlParts = entry.urlPath.split('/').filter(Boolean);
     const fileName = urlParts[urlParts.length - 1] || 'untitled';
     const folderPath = urlParts.slice(0, -1).join('/');
+    const isWebloc = entry.fileExtension.toLowerCase() === '.webloc';
 
     const baseLabel = entry.metadata.title || fileName;
-    const labelWithExtension = baseLabel.endsWith(entry.fileExtension)
-      ? baseLabel
-      : `${baseLabel}${entry.fileExtension}`;
+    const label = isWebloc
+      ? baseLabel.replace(/\.webloc$/i, '')
+      : baseLabel.endsWith(entry.fileExtension)
+        ? baseLabel
+        : `${baseLabel}${entry.fileExtension}`;
 
     const icon: DesktopIconData = {
       id: `file-${entry.urlPath}`,
-      label: labelWithExtension,
+      label,
       icon: getIconForFile(entry.fileExtension),
       type: 'file',
-      gridIndex: gridIndex++,
       fileExtension: entry.fileExtension.replace('.', ''),
       urlPath: entry.urlPath,
     };
+
+    // Append shortcuts after folders so existing desktop grid slots stay put
+    if (isWebloc && !folderPath) {
+      shortcutIcons.push(icon);
+      continue;
+    }
+
+    icon.gridIndex = gridIndex++;
 
     if (folderPath) {
       if (!folderMap.has(folderPath)) {
@@ -101,6 +115,28 @@ const buildIconsFromContent = async (): Promise<DesktopIconData[]> => {
     };
 
     icons.push(folderIcon);
+  }
+
+  // Place desktop shortcuts directly under Graduate_Work without reshuffling prior icons
+  const graduateWorkIndex = icons.findIndex((icon) => icon.id === 'folder-Graduate_Work');
+  const insertAtGridIndex =
+    graduateWorkIndex >= 0 ? (icons[graduateWorkIndex].gridIndex ?? gridIndex) + 1 : gridIndex;
+
+  for (const icon of icons) {
+    if ((icon.gridIndex ?? -1) >= insertAtGridIndex) {
+      icon.gridIndex = (icon.gridIndex ?? 0) + shortcutIcons.length;
+    }
+  }
+
+  const shortcutsWithGrid = shortcutIcons.map((shortcut, offset) => ({
+    ...shortcut,
+    gridIndex: insertAtGridIndex + offset,
+  }));
+
+  if (graduateWorkIndex >= 0) {
+    icons.splice(graduateWorkIndex + 1, 0, ...shortcutsWithGrid);
+  } else {
+    icons.push(...shortcutsWithGrid);
   }
 
   return icons;
