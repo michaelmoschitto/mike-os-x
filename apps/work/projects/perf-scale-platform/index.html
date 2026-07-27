@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perf Scale Platform — Mike Moschitto</title>
+    <meta
+      name="description"
+      content="A shared workspace for running and investigating performance tests."
+    />
+    <link
+      rel="canonical"
+      href="https://portfolio.mikemoschitto.com/projects/perf-scale-platform/"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+    />
+    <link rel="stylesheet" href="/styles.css?v=4" />
+    <script src="/scrollbar.js?v=1" defer></script>
+  </head>
+  <body>
+    <div class="site">
+      <header class="site-header">
+        <div class="site-header__row">
+          <a class="site-name" href="/">
+            mike moschitto</span>
+          </a>
+          <a class="os-link" href="https://os.mikemoschitto.com">
+            <span class="os-link__orb" aria-hidden="true"></span>
+            mike os x
+          </a>
+        </div>
+        <hr class="site-rule" />
+      </header>
+
+      <main>
+        <section class="project-info-window window" aria-labelledby="project-title">
+          <div class="window__titlebar">
+            <div class="window__lights" aria-hidden="true">
+              <span class="window__light window__light--close"></span>
+              <span class="window__light window__light--minimize"></span>
+              <span class="window__light window__light--zoom"></span>
+            </div>
+            <span class="window__title">Perf Scale Platform — Project Info</span>
+          </div>
+
+          <header class="detail-header">
+            <div>
+              <h1 id="project-title" class="detail-title">Perf Scale Platform</h1>
+            </div>
+
+            <section class="detail-block" aria-labelledby="what-is-it">
+              <h2 id="what-is-it">What is it?</h2>
+              <p>
+                Perf Scale Platform is a control room for large-scale simulations. Teams can run
+                realistic customer workflows, watch the system respond, and find bottlenecks in one
+                place.
+              </p>
+            </section>
+
+            <section class="detail-block" aria-labelledby="my-role">
+              <h2 id="my-role">My role</h2>
+              <p>
+                I built across the full performance-testing lifecycle: realistic customer scenarios,
+                the tools that ran them, and the views teams used to understand what happened. My
+                work includes the dashboard, Automation Runs experience, real-time NPC tracking, and
+                database monitoring. I also partnered across Product, Platform, and Infrastructure
+                to make scale testing self-service.
+              </p>
+            </section>
+          </header>
+        </section>
+
+        <section class="gallery" aria-label="Project screenshots">
+          <figure class="gallery__item gallery__item--wide">
+            <div class="window">
+              <div class="window__titlebar">
+                <div class="window__lights" aria-hidden="true">
+                  <span class="window__light window__light--close"></span>
+                  <span class="window__light window__light--minimize"></span>
+                  <span class="window__light window__light--zoom"></span>
+                </div>
+                <span class="window__title">dashboard.png</span>
+              </div>
+              <div class="window__body">
+                <img
+                  src="/projects/perf-scale-platform/images/dashboard.png"
+                  width="3444"
+                  height="1859"
+                  alt="Developer dashboard showing scenario metrics, running NPCs, database metrics, and simulations together"
+                />
+              </div>
+            </div>
+            <figcaption>
+              <span class="figure-index">01</span>
+              <div>
+                <h2>One operational workspace</h2>
+                <p>
+                  Scenario runtimes, active NPCs, database health, and simulation status live
+                  together, giving teams one place to investigate.
+                </p>
+              </div>
+            </figcaption>
+          </figure>
+
+          <figure class="gallery__item gallery__item--tall">
+            <div class="window">
+              <div class="window__titlebar">
+                <div class="window__lights" aria-hidden="true">
+                  <span class="window__light window__light--close"></span>
+                  <span class="window__light window__light--minimize"></span>
+                  <span class="window__light window__light--zoom"></span>
+                </div>
+                <span class="window__title">automation-runs.png</span>
+              </div>
+              <div class="window__body">
+                <img
+                  src="/projects/perf-scale-platform/images/automation-runs.png"
+                  width="3442"
+                  height="1852"
+                  alt="Automation Runs grid with mixed statuses and an opened run detail"
+                />
+              </div>
+            </div>
+            <figcaption>
+              <span class="figure-index">02</span>
+              <div>
+                <h2>Running and investigating automations</h2>
+                <p>
+                  Automation Runs gives teams a live view of what is running, where, and for whom.
+                  Status, tenant, persona, timing, and controls stay together, with each row opening
+                  the full run details.
+                </p>
+              </div>
+            </figcaption>
+          </figure>
+
+          <figure class="gallery__item gallery__item--wide">
+            <div class="window">
+              <div class="window__titlebar">
+                <div class="window__lights" aria-hidden="true">
+                  <span class="window__light window__light--close"></span>
+                  <span class="window__light window__light--minimize"></span>
+                  <span class="window__light window__light--zoom"></span>
+                </div>
+                <span class="window__title">db-metrics.png</span>
+              </div>
+              <div class="window__body">
+                <img
+                  src="/projects/perf-scale-platform/images/db-metrics.png"
+                  width="3442"
+                  height="1838"
+                  alt="DB Monitoring view with writer and reader trends across CPU, memory, connections, and IOPS"
+                />
+              </div>
+            </div>
+            <figcaption>
+              <span class="figure-index">03</span>
+              <div>
+                <h2>Database health in context</h2>
+                <p>
+                  Writer and reader metrics sit next to workload results, making it easier to
+                  connect application behavior to CPU, memory, connections, and IOPS.
+                </p>
+              </div>
+            </figcaption>
+          </figure>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <p><a href="/">← back to home</a></p>
+        <nav class="footer-links" aria-label="Contact">
+          <a href="https://linkedin.com/in/michaelmoschitto">linkedin ↗</a>
+          <a href="https://os.mikemoschitto.com">os.mikemoschitto.com ↗</a>
+          <a href="mailto:me@mikemoschitto.com">me@mikemoschitto.com</a>
+        </nav>
+      </footer>
+    </div>
+  </body>
+</html>
